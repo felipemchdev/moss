@@ -1165,113 +1165,162 @@ fn start_element_zapper(app: AppHandle, tab_id: String) -> Result<(), String> {
     let tab_id_clone = tab_id;
 
     let script = r#"(() => {
-  return new Promise((resolve) => {
-    let overlay = document.getElementById('__moss_zapper_overlay__');
+  window.__moss_zapper_result = null;
+  let overlay = document.getElementById('__moss_zapper_overlay__');
+  if (overlay) overlay.remove();
+
+  overlay = document.createElement('div');
+  overlay.id = '__moss_zapper_overlay__';
+  overlay.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;border:2px dashed #f43f5e;background:rgba(244,63,94,0.15);transition:all 0.05s ease;display:none;';
+  
+  const badge = document.createElement('div');
+  badge.style.cssText = 'position:absolute;top:-24px;left:0;background:#f43f5e;color:#fff;font-family:monospace;font-size:11px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
+  overlay.appendChild(badge);
+  document.documentElement.appendChild(overlay);
+
+  let currentTarget = null;
+
+  function getSelector(el) {
+    if (!el || el === document.body || el === document.documentElement) return '';
+    if (el.id) return '#' + CSS.escape(el.id);
+    let sel = el.tagName.toLowerCase();
+    if (el.className && typeof el.className === 'string') {
+      const classes = el.className.trim().split(/\s+/).filter(c => c && !c.startsWith('__moss_')).slice(0, 2);
+      if (classes.length) sel += '.' + classes.map(c => CSS.escape(c)).join('.');
+    }
+    return sel;
+  }
+
+  function onMouseMove(e) {
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    if (!target || target === overlay || overlay.contains(target) || target === document.body || target === document.documentElement) {
+      overlay.style.display = 'none';
+      currentTarget = null;
+      return;
+    }
+    currentTarget = target;
+    const rect = target.getBoundingClientRect();
+    overlay.style.display = 'block';
+    overlay.style.top = rect.top + 'px';
+    overlay.style.left = rect.left + 'px';
+    overlay.style.width = rect.width + 'px';
+    overlay.style.height = rect.height + 'px';
+    badge.textContent = getSelector(target);
+  }
+
+  function cleanup() {
+    window.removeEventListener('mousemove', onMouseMove, true);
+    window.removeEventListener('click', onClick, true);
+    window.removeEventListener('keydown', onKeyDown, true);
     if (overlay) overlay.remove();
+  }
 
-    overlay = document.createElement('div');
-    overlay.id = '__moss_zapper_overlay__';
-    overlay.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;border:2px dashed #f43f5e;background:rgba(244,63,94,0.15);transition:all 0.05s ease;display:none;';
-    
-    const badge = document.createElement('div');
-    badge.style.cssText = 'position:absolute;top:-24px;left:0;background:#f43f5e;color:#fff;font-family:monospace;font-size:11px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
-    overlay.appendChild(badge);
-    document.documentElement.appendChild(overlay);
+  window.__moss_zapper_cleanup = cleanup;
 
-    let currentTarget = null;
-
-    function getSelector(el) {
-      if (!el || el === document.body || el === document.documentElement) return '';
-      if (el.id) return '#' + CSS.escape(el.id);
-      let sel = el.tagName.toLowerCase();
-      if (el.className && typeof el.className === 'string') {
-        const classes = el.className.trim().split(/\s+/).filter(c => c && !c.startsWith('__moss_')).slice(0, 2);
-        if (classes.length) sel += '.' + classes.map(c => CSS.escape(c)).join('.');
-      }
-      return sel;
-    }
-
-    function onMouseMove(e) {
-      const target = document.elementFromPoint(e.clientX, e.clientY);
-      if (!target || target === overlay || overlay.contains(target) || target === document.body || target === document.documentElement) {
-        overlay.style.display = 'none';
-        currentTarget = null;
-        return;
-      }
-      currentTarget = target;
-      const rect = target.getBoundingClientRect();
-      overlay.style.display = 'block';
-      overlay.style.top = rect.top + 'px';
-      overlay.style.left = rect.left + 'px';
-      overlay.style.width = rect.width + 'px';
-      overlay.style.height = rect.height + 'px';
-      badge.textContent = getSelector(target);
-    }
-
-    function cleanup() {
-      window.removeEventListener('mousemove', onMouseMove, true);
-      window.removeEventListener('click', onClick, true);
-      window.removeEventListener('keydown', onKeyDown, true);
-      if (overlay) overlay.remove();
-    }
-
-    function onKeyDown(e) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        cleanup();
-        resolve(JSON.stringify({ cancelled: true }));
-      }
-    }
-
-    function onClick(e) {
+  function onKeyDown(e) {
+    if (e.key === 'Escape') {
       e.preventDefault();
-      e.stopPropagation();
-      if (!currentTarget) {
-        cleanup();
-        resolve(JSON.stringify({ cancelled: true }));
-        return;
-      }
-      const sel = getSelector(currentTarget);
-      currentTarget.style.transition = 'all 0.25s ease';
-      currentTarget.style.opacity = '0';
-      currentTarget.style.transform = 'scale(0.85)';
-      setTimeout(() => { if (currentTarget) currentTarget.remove(); }, 250);
-      const domain = location.hostname;
       cleanup();
-      resolve(JSON.stringify({ cancelled: false, selector: sel, domain: domain }));
+      window.__moss_zapper_result = JSON.stringify({ cancelled: true });
     }
+  }
 
-    window.addEventListener('mousemove', onMouseMove, true);
-    window.addEventListener('click', onClick, true);
-    window.addEventListener('keydown', onKeyDown, true);
-  });
+  function onClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentTarget) {
+      cleanup();
+      window.__moss_zapper_result = JSON.stringify({ cancelled: true });
+      return;
+    }
+    const sel = getSelector(currentTarget);
+    currentTarget.style.transition = 'all 0.25s ease';
+    currentTarget.style.opacity = '0';
+    currentTarget.style.transform = 'scale(0.85)';
+    setTimeout(() => { if (currentTarget) currentTarget.remove(); }, 250);
+    const domain = location.hostname;
+    cleanup();
+    window.__moss_zapper_result = JSON.stringify({ cancelled: false, selector: sel, domain: domain });
+  }
+
+  window.addEventListener('mousemove', onMouseMove, true);
+  window.addEventListener('click', onClick, true);
+  window.addEventListener('keydown', onKeyDown, true);
 })()"#;
 
-    let _ = tab.eval_with_callback(script, move |res| {
-        let unquoted = if res.starts_with('"') && res.ends_with('"') && res.len() >= 2 {
-            serde_json::from_str::<String>(&res).unwrap_or_else(|_| res.to_string())
-        } else {
-            res.to_string()
-        };
-        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&unquoted) {
-            let cancelled = val.get("cancelled").and_then(|v| v.as_bool()).unwrap_or(true);
-            if !cancelled {
-                let selector = val.get("selector").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let domain = val.get("domain").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                if !selector.is_empty() {
-                    emit_to_chrome(
-                        &app_clone,
-                        "zapper-element-selected",
-                        ZapPayload {
-                            tab_id: tab_id_clone.clone(),
-                            selector,
-                            domain,
-                        },
-                    );
+    let _ = tab.eval(script);
+
+    tauri::async_runtime::spawn(async move {
+        let result_cell = std::sync::Arc::new(std::sync::Mutex::new(None::<String>));
+        let start_time = std::time::Instant::now();
+        let timeout = std::time::Duration::from_secs(60);
+        let poll_interval = std::time::Duration::from_millis(150);
+
+        while start_time.elapsed() < timeout {
+            let tab = match app_clone.get_webview(&tab_label(&tab_id_clone)) {
+                Some(w) => w,
+                None => return,
+            };
+
+            let maybe_res = result_cell.lock().map(|mut l| l.take()).unwrap_or(None);
+            if let Some(res) = maybe_res {
+                let unquoted = if res.starts_with('"') && res.ends_with('"') && res.len() >= 2 {
+                    serde_json::from_str::<String>(&res).unwrap_or_else(|_| res.clone())
+                } else {
+                    res
+                };
+
+                let parsed_val = serde_json::from_str::<serde_json::Value>(&unquoted)
+                    .ok()
+                    .and_then(|v| {
+                        if let Some(s) = v.as_str() {
+                            serde_json::from_str::<serde_json::Value>(s).ok()
+                        } else {
+                            Some(v)
+                        }
+                    });
+
+                if let Some(val) = parsed_val {
+                    if let Some(cancelled) = val.get("cancelled").and_then(|v| v.as_bool()) {
+                        let _ = tab.eval("window.__moss_zapper_result = null;");
+                        if !cancelled {
+                            let selector = val.get("selector").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                            let domain = val.get("domain").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                            if !selector.is_empty() {
+                                emit_to_chrome(
+                                    &app_clone,
+                                    "zapper-element-selected",
+                                    ZapPayload {
+                                        tab_id: tab_id_clone.clone(),
+                                        selector,
+                                        domain,
+                                    },
+                                );
+                            }
+                        }
+                        return;
+                    }
                 }
             }
+
+            let cell = result_cell.clone();
+            let _ = tab.eval_with_callback("(window.__moss_zapper_result || '')", move |res| {
+                let trimmed = res.trim();
+                if !trimmed.is_empty() && trimmed != "\"\"" && trimmed != "null" && trimmed != "{}" {
+                    if let Ok(mut lock) = cell.lock() {
+                        *lock = Some(res);
+                    }
+                }
+            });
+
+            tokio::time::sleep(poll_interval).await;
+        }
+
+        if let Some(tab) = app_clone.get_webview(&tab_label(&tab_id_clone)) {
+            let _ = tab.eval("if (window.__moss_zapper_cleanup) window.__moss_zapper_cleanup(); window.__moss_zapper_result = null;");
         }
     });
+
     Ok(())
 }
 

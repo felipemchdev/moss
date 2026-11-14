@@ -1,3 +1,4 @@
+import { getDomainFromUrl } from "./dom";
 import { webview } from "./webview";
 
 export interface DomainBoost {
@@ -16,6 +17,8 @@ export interface DomainZapRule {
 
 const BOOSTS_STORAGE_KEY = "moss:domain_boosts";
 const ZAPS_STORAGE_KEY = "moss:domain_zap_rules";
+const BOOST_MIN = -50;
+const BOOST_MAX = 50;
 
 const DEFAULT_BOOST: DomainBoost = {
   smartDarkMode: false,
@@ -63,19 +66,39 @@ function saveZaps() {
 
 export function extractDomain(url: string): string {
   if (!url) return "";
+  const canonical = getDomainFromUrl(url);
+  if (canonical) return canonical;
+  if (!/^[a-z0-9.-]+(:\d+)?(\/|$)/i.test(url)) return "";
   try {
-    if (url.includes("://")) {
-      return new URL(url).hostname.toLowerCase();
-    }
-    return url.replace(/\/.*$/, "").toLowerCase();
+    return new URL(`https://${url}`).hostname.toLowerCase();
   } catch {
     return "";
   }
 }
 
+function clampBoostValue(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(BOOST_MAX, Math.max(BOOST_MIN, value));
+}
+
+function sanitizeBoost(stored: unknown): DomainBoost {
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+    return { ...DEFAULT_BOOST };
+  }
+  const raw = stored as Record<string, unknown>;
+  return {
+    smartDarkMode:
+      typeof raw.smartDarkMode === "boolean" ? raw.smartDarkMode : DEFAULT_BOOST.smartDarkMode,
+    brightness: clampBoostValue(raw.brightness, DEFAULT_BOOST.brightness),
+    contrast: clampBoostValue(raw.contrast, DEFAULT_BOOST.contrast),
+    sepia: typeof raw.sepia === "boolean" ? raw.sepia : DEFAULT_BOOST.sepia,
+    customCss: typeof raw.customCss === "string" ? raw.customCss : DEFAULT_BOOST.customCss,
+  };
+}
+
 export function getDomainBoost(domain: string): DomainBoost {
   const norm = domain.toLowerCase();
-  return { ...DEFAULT_BOOST, ...(boosts[norm] || {}) };
+  return sanitizeBoost(boosts[norm]);
 }
 
 export function setDomainBoost(domain: string, patch: Partial<DomainBoost>) {

@@ -12,7 +12,14 @@ export interface MediaWidgetOptions {
   onSelectTab: (tabId: string) => void;
 }
 
-export function createMediaWidget(options: MediaWidgetOptions): HTMLElement {
+export interface MediaWidgetController {
+  element: HTMLElement;
+  destroy: () => void;
+}
+
+export type MediaWidget = HTMLElement & MediaWidgetController;
+
+export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
   const coverIcon = el("span", { class: "media-widget-cover" }, [icon("play")]);
   const titleEl = el("span", { class: "media-widget-title" }, ["Tocando agora"]);
   const artistEl = el("span", { class: "media-widget-artist" }, ["Moss Player"]);
@@ -101,11 +108,21 @@ export function createMediaWidget(options: MediaWidgetOptions): HTMLElement {
     container.classList.toggle("sidebar-media-widget--playing", media.playing);
   }
 
-  subscribeMedia(() => {
+  const unsubscribe = subscribeMedia(() => {
     render(getActivePlayingMedia());
   });
 
   render(getActivePlayingMedia());
 
-  return container;
+  function destroy() {
+    unsubscribe();
+    container.remove();
+  }
+
+  const widget = Object.assign(container, {
+    element: container,
+    destroy,
+  });
+
+  return widget;
 }

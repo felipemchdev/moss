@@ -27,16 +27,25 @@ function loadFolders(): TabFolder[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (f): f is TabFolder =>
-        typeof f === "object" &&
-        f !== null &&
-        typeof f.id === "string" &&
-        typeof f.name === "string" &&
-        typeof f.workspaceId === "string",
-    );
+    return parsed
+      .filter(
+        (f): f is Record<string, unknown> =>
+          typeof f === "object" &&
+          f !== null &&
+          typeof f.id === "string" &&
+          typeof f.name === "string" &&
+          typeof f.workspaceId === "string",
+      )
+      .map((f) => ({
+        id: f.id as string,
+        name: f.name as string,
+        color: typeof f.color === "string" ? f.color : undefined,
+        isCollapsed: Boolean(f.isCollapsed),
+        workspaceId: f.workspaceId as string,
+        createdAt: typeof f.createdAt === "number" ? f.createdAt : Date.now(),
+      }));
   } catch {
     return [];
   }

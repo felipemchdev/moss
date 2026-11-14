@@ -528,6 +528,7 @@ function buildChrome(root: HTMLElement) {
     pinnedTabsSection,
     pinnedTabsGrid,
     workspaceSection,
+    mediaWidget,
   };
 }
 
@@ -764,9 +765,17 @@ window.addEventListener("DOMContentLoaded", () => {
       openTab(url);
     },
     onClose() {
+      visibleWebviewId = null;
       syncWebviewVisibility();
     },
   });
+
+  const rawGlanceOpen = glance.open.bind(glance);
+  glance.open = (url: string, title?: string) => {
+    visibleWebviewId = null;
+    rawGlanceOpen(url, title);
+    syncWebviewVisibility();
+  };
 
   const boostsPopover = createBoostsPopover(syncWebviewVisibility);
 
@@ -988,6 +997,7 @@ window.addEventListener("DOMContentLoaded", () => {
     commandPalette.destroy();
     glance.destroy();
     boostsPopover.destroy();
+    ui.mediaWidget.destroy();
   });
 
   ui.boostsButton.addEventListener("click", () => {
@@ -1035,6 +1045,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {
     if (glance.isOpen()) {
+      visibleWebviewId = null;
       return;
     }
 
@@ -2223,9 +2234,10 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   setInterval(() => {
-    const activeTab = getActiveTab();
-    if (activeTab && activeTab.url && isWebUrl(activeTab.url)) {
-      webview.syncTabMediaState(activeTab.id).catch(() => {});
+    for (const tab of getTabs()) {
+      if (!tab.isSleeping && tab.url && isWebUrl(tab.url)) {
+        webview.syncTabMediaState(tab.id).catch(() => {});
+      }
     }
   }, 2500);
 

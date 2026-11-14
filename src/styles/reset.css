@@ -1,0 +1,419 @@
+/* ==========================================================================
+   MOSS BROWSER — MODERN CSS RESET
+   Based on modern reset best practices (Andy Bell, Josh Comeau, etc.)
+   ========================================================================== */
+
+/* --- Box sizing --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* --- Root elements --- */
+html {
+  -moz-text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  scroll-behavior: smooth;
+}
+
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* --- Body defaults --- */
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* --- Media --- */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* --- Form elements --- */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* --- Remove default button styles --- */
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* --- Links --- */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* --- Lists --- */
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Headings --- */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: inherit;
+  font-size: inherit;
+}
+
+/* --- Paragraphs --- */
+p {
+  margin: 0;
+}
+
+/* --- Fieldset / Legend --- */
+fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+/* --- Table --- */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* --- HR --- */
+hr {
+  border: 0;
+  border-top: 1px solid var(--color-border-default);
+  margin: 0;
+}
+
+/* --- Selection --- */
+::selection {
+  background-color: var(--color-accent-primary);
+  color: var(--color-fg-inverse);
+}
+
+::-moz-selection {
+  background-color: var(--color-accent-primary);
+  color: var(--color-fg-inverse);
+}
+
+/* --- Focus visible (accessible focus styles) --- */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Skip focus ring for mouse users on buttons */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- High contrast mode --- */
+@media (prefers-contrast: high) {
+  :root {
+    --color-border-subtle:  var(--color-fg-primary);
+    --color-border-default: var(--color-fg-primary);
+    --color-border-strong:  var(--color-fg-primary);
+  }
+}
+
+/* --- Scrollbar styling (dark theme base) --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+/* WebKit scrollbar */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-default);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-border-strong);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* --- Text rendering --- */
+::-webkit-input-placeholder {
+  color: var(--color-fg-placeholder);
+  opacity: 1;
+}
+
+::-moz-placeholder {
+  color: var(--color-fg-placeholder);
+  opacity: 1;
+}
+
+:-ms-input-placeholder {
+  color: var(--color-fg-placeholder);
+  opacity: 1;
+}
+
+::placeholder {
+  color: var(--color-fg-placeholder);
+  opacity: 1;
+}
+
+/* --- Input number arrows --- */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* --- Search input cancel button --- */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
+/* --- Disable tap highlight on mobile --- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Prevent text selection on UI elements --- */
+.ui-no-select,
+button,
+.tab,
+.toolbar-btn,
+.nav-btn {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* --- Ensure monospace for code elements --- */
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-family-mono);
+  font-size: 0.9em;
+}
+
+pre {
+  overflow-x: auto;
+  padding: var(--space-4);
+  background-color: var(--color-bg-input);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border-subtle);
+}
+
+pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+/* --- Utility: visually hidden but accessible --- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Utility: clearfix --- */
+.clearfix::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* --- Utility: container --- */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+/* --- Utility: flex helpers --- */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1; }
+.flex-auto { flex: 1 1 auto; }
+.flex-none { flex: none; }
+.items-center { align-items: center; }
+.items-stretch { align-items: stretch; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+
+/* --- Utility: text helpers --- */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.text-primary { color: var(--color-fg-primary); }
+.text-secondary { color: var(--color-fg-secondary); }
+.text-tertiary { color: var(--color-fg-tertiary); }
+.text-muted { color: var(--color-fg-muted); }
+.text-placeholder { color: var(--color-fg-placeholder); }
+.text-accent { color: var(--color-accent-primary); }
+.text-danger { color: var(--color-danger); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+
+/* --- Utility: truncate --- */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Utility: aspect ratio --- */
+.aspect-square { aspect-ratio: 1 / 1; }
+.aspect-video { aspect-ratio: 16 / 9; }
+
+/* --- Utility: spacing --- */
+.m-0 { margin: 0; }
+.m-auto { margin: auto; }
+.mt-auto { margin-top: auto; }
+.mb-auto { margin-bottom: auto; }
+.ml-auto { margin-left: auto; }
+.mr-auto { margin-right: auto; }
+
+.p-0 { padding: 0; }
+
+/* --- Utility: sizing --- */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-0 { min-height: 0; }
+.min-w-0 { min-width: 0; }
+.max-w-full { max-width: 100%; }
+.max-h-full { max-height: 100%; }
+
+/* --- Utility: overflow --- */
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.overflow-x-auto { overflow-x: auto; }
+.overflow-y-auto { overflow-y: auto; }
+
+/* --- Utility: position --- */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+.inset-0 { inset: 0; }
+
+/* --- Utility: z-index --- */
+.z-base { z-index: var(--z-base); }
+.z-dropdown { z-index: var(--z-dropdown); }
+.z-sticky { z-index: var(--z-sticky); }
+.z-overlay { z-index: var(--z-overlay); }
+.z-modal { z-index: var(--z-modal); }
+.z-popover { z-index: var(--z-popover); }
+.z-tooltip { z-index: var(--z-tooltip); }
+.z-toast { z-index: var(--z-toast); }
+
+/* --- Utility: transitions --- */
+.transition-fast { transition: all var(--transition-fast); }
+.transition-base { transition: all var(--transition-base); }
+.transition-slow { transition: all var(--transition-slow); }
+.transition-colors {
+  transition: color var(--transition-base),
+              background-color var(--transition-base),
+              border-color var(--transition-base),
+              fill var(--transition-base),
+              stroke var(--transition-base);
+}
+.transition-transform {
+  transition: transform var(--transition-base);
+}
+.transition-opacity {
+  transition: opacity var(--transition-base);
+}
+
+/* --- Utility: border radius --- */
+.rounded-none { border-radius: var(--radius-none); }
+.rounded-xs { border-radius: var(--radius-xs); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-2xl { border-radius: var(--radius-2xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* --- Utility: shadows --- */
+.shadow-xs { box-shadow: var(--shadow-xs); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+.shadow-2xl { box-shadow: var(--shadow-2xl); }
+.shadow-focus { box-shadow: var(--shadow-focus); }
+
+/* --- Utility: cursor --- */
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+.cursor-not-allowed { cursor: not-allowed; }
+.cursor-text { cursor: text; }
+.cursor-grab { cursor: grab; }
+.cursor-grabbing { cursor: grabbing; }

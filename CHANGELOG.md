@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-11-14
+
+### Added
+- Zen Space Routing (Roteamento Automático de Espaços por domínio) inspired by Zen Browser (`src/space-routing.ts`, `src/settings-panel.ts`, `src/toast.ts`).
+- Intelligent navigation interception across Omnibar, links, and external URLs mapping domains directly to designated Workspaces.
+- Default preset mappings: Dev (`github.com`, `gitlab.com`, `stackoverflow.com`), Work (`slack.com`, `linear.app`, `notion.so`), Personal (`youtube.com`, `reddit.com`).
+- Two routing modes: "Automático" (migrates tab and switches workspace seamlessly) and "Perguntar" (presents non-intrusive action toast with confirmation).
+- Glassmorphic top pill toast notification (`.moss-toast`) with spring animations, action triggers, and auto-dismissal.
+- Dedicated "Espaços & Roteamento" section in Settings Panel with toggle switch, routing mode selector, active rules list with deletion, and custom domain rule creator.
+- Command Palette actions: "Roteamento: Vincular este site ao Espaço Atual" and "Roteamento: Gerenciar Regras de Espaços".
+
 ## [0.13.0] - 2026-11-14
 
 ### Added

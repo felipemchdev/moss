@@ -20,6 +20,17 @@ import {
   type Theme,
 } from "./settings";
 import { isWebUrl } from "./storage";
+import {
+  getRoutingRules,
+  addRoutingRule,
+  removeRoutingRule,
+  isSpaceRoutingEnabled,
+  setSpaceRoutingEnabled,
+  getSpaceRoutingMode,
+  setSpaceRoutingMode,
+  subscribeRoutingRules,
+} from "./space-routing";
+import { getWorkspaces } from "./workspaces";
 
 const HOMEPAGE_HINT = "Aberta em novas abas. Deixe vazio para uma aba em branco.";
 const HOMEPAGE_ERROR = "Endereço inválido. Use um endereço http ou https.";
@@ -233,6 +244,110 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     backupFileInput.value = "";
   });
 
+  // Space Routing elements
+  const routingEnabledCheckbox = el("input", {
+    type: "checkbox",
+    id: "settings-routing-enabled",
+    class: "settings-checkbox",
+  }) as HTMLInputElement;
+  routingEnabledCheckbox.checked = isSpaceRoutingEnabled();
+  routingEnabledCheckbox.addEventListener("change", () => {
+    setSpaceRoutingEnabled(routingEnabledCheckbox.checked);
+  });
+
+  const routingModeSelect = el(
+    "select",
+    { class: "settings-select", id: "settings-routing-mode" },
+    [
+      el("option", { value: "auto" }, ["Automático (Migra e alterna imediatamente)"]),
+      el("option", { value: "prompt" }, ["Perguntar (Exibe toast de confirmação)"]),
+    ],
+  ) as HTMLSelectElement;
+  routingModeSelect.value = getSpaceRoutingMode();
+  routingModeSelect.addEventListener("change", () => {
+    setSpaceRoutingMode(routingModeSelect.value as "auto" | "prompt");
+  });
+
+  const rulesListContainer = el("div", { class: "settings-rules-list" });
+
+  function renderRulesList() {
+    rulesListContainer.replaceChildren();
+    const rules = getRoutingRules();
+    const workspaces = getWorkspaces();
+
+    if (rules.length === 0) {
+      rulesListContainer.append(
+        el("p", { class: "settings-toggle-desc" }, ["Nenhuma regra de roteamento configurada."]),
+      );
+      return;
+    }
+
+    rules.forEach((rule) => {
+      const ws = workspaces.find((w) => w.id === rule.targetWorkspaceId);
+      const wsName = ws ? ws.name : rule.targetWorkspaceId;
+      const removeBtn = el(
+        "button",
+        {
+          class: "settings-icon-btn",
+          type: "button",
+          "aria-label": `Remover regra para ${rule.domain}`,
+          title: "Remover regra",
+        },
+        [icon("trash")],
+      );
+      removeBtn.addEventListener("click", () => {
+        removeRoutingRule(rule.id);
+      });
+
+      const row = el("div", { class: "settings-rule-row" }, [
+        el("span", { class: "settings-rule-domain" }, [rule.domain]),
+        el("span", { class: "settings-rule-arrow" }, ["→"]),
+        el("span", { class: "settings-rule-workspace" }, [wsName]),
+        removeBtn,
+      ]);
+      rulesListContainer.append(row);
+    });
+  }
+
+  renderRulesList();
+  subscribeRoutingRules(renderRulesList);
+
+  const newDomainInput = el("input", {
+    class: "settings-input",
+    type: "text",
+    placeholder: "ex: figma.com",
+  }) as HTMLInputElement;
+
+  const newWorkspaceSelect = el(
+    "select",
+    { class: "settings-select" },
+    getWorkspaces().map((w) => el("option", { value: w.id }, [w.name])),
+  ) as HTMLSelectElement;
+
+  const addRuleBtn = el("button", { class: "settings-action-btn", type: "button" }, [
+    icon("plus"),
+    el("span", {}, ["Adicionar Regra"]),
+  ]);
+
+  addRuleBtn.addEventListener("click", () => {
+    const domain = newDomainInput.value.trim();
+    if (!domain) return;
+    const added = addRoutingRule(domain, newWorkspaceSelect.value);
+    if (added) {
+      newDomainInput.value = "";
+      showStatus(
+        `Regra adicionada: ${added.domain} → Espaço ${newWorkspaceSelect.selectedOptions[0]?.text ?? ""}`,
+        "success",
+      );
+    }
+  });
+
+  const addRuleRow = el("div", { class: "settings-add-rule-row" }, [
+    newDomainInput,
+    newWorkspaceSelect,
+    addRuleBtn,
+  ]);
+
   const sections: { id: string; label: string; icon: IconName; content: HTMLElement[] }[] = [
     {
       id: "general",
@@ -250,6 +365,29 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
       label: "Aparência",
       icon: "sun",
       content: [section("Tema", [field("settings-theme", "Tema da interface", themeSelect)])],
+    },
+    {
+      id: "spaces",
+      label: "Roteamento de Espaços",
+      icon: "briefcase",
+      content: [
+        section("Comportamento de Roteamento", [
+          el("div", { class: "settings-field settings-field--inline" }, [
+            el("label", { class: "settings-field-label", for: "settings-routing-enabled" }, [
+              "Ativar Roteamento Automático de Espaços",
+            ]),
+            routingEnabledCheckbox,
+          ]),
+          field("settings-routing-mode", "Modo de roteamento", routingModeSelect),
+        ]),
+        section("Regras por Domínio", [
+          el("p", { class: "settings-toggle-desc" }, [
+            "Ao navegar para domínios configurados, o Moss direciona a aba para o Workspace correspondente.",
+          ]),
+          rulesListContainer,
+          addRuleRow,
+        ]),
+      ],
     },
     {
       id: "data",

@@ -60,6 +60,8 @@ export interface CommandPaletteActions {
   createTabFolder?: () => void;
   hibernateInactiveTabs?: () => void;
   wakeAllTabs?: () => void;
+  routeCurrentDomainToCurrentSpace?: () => void;
+  openSpaceRoutingSettings?: () => void;
 }
 
 export interface CommandPaletteController {
@@ -356,6 +358,26 @@ export function createCommandPalette(
         iconName: "sun",
         keywords: ["acordar", "wake", "reativar", "restaurar", "abas"],
         run: () => actions.wakeAllTabs?.(),
+      },
+      {
+        id: "action-route-current-domain",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Roteamento: Vincular este site ao Espaço Atual",
+        subtitle: "Sempre abrir o domínio atual no Workspace ativo",
+        iconName: "briefcase",
+        keywords: ["roteamento", "regra", "espaco", "workspace", "vincular", "domain", "route"],
+        run: () => actions.routeCurrentDomainToCurrentSpace?.(),
+      },
+      {
+        id: "action-open-space-routing",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Roteamento: Gerenciar Regras de Espaços",
+        subtitle: "Configurar mapeamentos de domínios para workspaces",
+        iconName: "settings",
+        keywords: ["roteamento", "regras", "espacos", "workspace", "configurar", "gerenciar"],
+        run: () => actions.openSpaceRoutingSettings?.(),
       },
       {
         id: "action-find-in-page",

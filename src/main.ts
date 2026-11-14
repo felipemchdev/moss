@@ -67,6 +67,7 @@ import {
   deleteWorkspace,
   getActiveWorkspaceId,
   getWorkspaces,
+  getWorkspace,
   setActiveWorkspace,
   subscribeWorkspaces,
 } from "./workspaces";
@@ -89,6 +90,8 @@ import {
   zoomIn,
   zoomOut,
 } from "./zoom";
+import { findRuleForDomain, isSpaceRoutingEnabled, getSpaceRoutingMode, addRoutingRule } from "./space-routing";
+import { showToast } from "./toast";
 
 type NavAction = NavIntent;
 
@@ -881,6 +884,25 @@ window.addEventListener("DOMContentLoaded", () => {
       wakeAllTabs() {
         wakeAllTabs();
       },
+      routeCurrentDomainToCurrentSpace() {
+        const target = getTargetTab();
+        if (!target?.url) return;
+        try {
+          const host = new URL(target.url).hostname;
+          const currentWsId = getActiveWorkspaceId();
+          const ws = getWorkspace(currentWsId);
+          if (host && ws) {
+            addRoutingRule(host, currentWsId);
+            showToast(`Regra criada: ${host} sempre abrirá em ${ws.name}`);
+          }
+        } catch {
+          /* invalid url */
+        }
+      },
+      openSpaceRoutingSettings() {
+        closePanels();
+        togglePanel(settingsPanel);
+      },
     },
     syncWebviewVisibility,
   );
@@ -1106,7 +1128,39 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.omnibarInput.select();
   }
 
+  function checkSpaceRouting(tabId: string, url: string): boolean {
+    if (!isSpaceRoutingEnabled() || !url) return false;
+    const rule = findRuleForDomain(url);
+    if (!rule) return false;
+
+    const currentWsId = getTab(tabId)?.workspaceId ?? getActiveWorkspaceId();
+    if (rule.targetWorkspaceId === currentWsId) return false;
+
+    const targetWs = getWorkspace(rule.targetWorkspaceId);
+    if (!targetWs) return false;
+
+    if (getSpaceRoutingMode() === "auto") {
+      moveTabToWorkspace(tabId, rule.targetWorkspaceId);
+      handleSwitchWorkspace(rule.targetWorkspaceId);
+      showToast(`Roteado para o espaço ${targetWs.name} (${rule.domain})`);
+      return true;
+    } else {
+      showToast(`O site "${rule.domain}" pertence ao espaço ${targetWs.name}.`, {
+        duration: 6000,
+        action: {
+          label: `Mover para ${targetWs.name}`,
+          onClick: () => {
+            moveTabToWorkspace(tabId, rule.targetWorkspaceId);
+            handleSwitchWorkspace(rule.targetWorkspaceId);
+          },
+        },
+      });
+      return false;
+    }
+  }
+
   function navigate(tabId: string, url: string) {
+    checkSpaceRouting(tabId, url);
     if (getActiveTab()?.id === tabId) {
       ui.omnibarInput.value = url;
       ui.omnibarInput.blur();
@@ -2033,6 +2087,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!tab) return;
     const title = tab.title === NEW_TAB_TITLE ? hostnameOf(payload.url) : tab.title;
     if (payload.state === "started") {
+      checkSpaceRouting(tab.id, payload.url);
       pageTitles.delete(tab.id);
       updateTab(tab.id, { url: payload.url, isLoading: true, title });
       applyZoomForTab(tab.id, payload.url);

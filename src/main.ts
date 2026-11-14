@@ -47,8 +47,20 @@ import {
   subscribe,
   togglePinTab,
   updateTab,
+  setTabFolder,
+  sleepTab,
+  wakeTab,
+  sleepTabsInFolder,
   type Tab,
 } from "./tabs";
+import {
+  createFolder,
+  getFoldersForWorkspace,
+  updateFolder,
+  toggleFolderCollapse,
+  subscribeFolders,
+  type TabFolder,
+} from "./folders";
 import {
   createWorkspace,
   cycleWorkspace,
@@ -258,13 +270,18 @@ function buildChrome(root: HTMLElement) {
     pinnedTabsGrid,
   ]);
 
-  // 6. Tab bar & new tab button
+  // 6. Tab bar, new tab & new folder buttons
   const newTabButton = el(
     "button",
     { class: "new-tab-btn tab-new-btn", type: "button", "aria-label": "Nova aba", title: "Nova aba (Ctrl+T)" },
     [icon("plus"), el("span", {}, ["Nova Aba"])],
   );
-  const newTabSection = el("div", { class: "new-tab-section" }, [newTabButton]);
+  const newFolderButton = el(
+    "button",
+    { class: "new-folder-btn", type: "button", "aria-label": "Nova pasta de abas", title: "Nova pasta de abas" },
+    [icon("folderPlus")],
+  );
+  const newTabSection = el("div", { class: "new-tab-section" }, [newTabButton, newFolderButton]);
   const tabList = el("div", { class: "tabs-list tab-list", role: "tablist" });
   const tabBar = el("div", { class: "tabs-section tab-bar" }, [tabList, newTabSection]);
 
@@ -447,6 +464,7 @@ function buildChrome(root: HTMLElement) {
   return {
     tabList,
     newTabButton,
+    newFolderButton,
     navButtons,
     sidebarToggleBtn,
     floatingTopBar,
@@ -644,6 +662,27 @@ window.addEventListener("DOMContentLoaded", () => {
       getCurrentWorkspaceId() {
         return getActiveWorkspaceId();
       },
+      onSleepTab(tabId) {
+        hibernateTab(tabId);
+      },
+      onWakeTab(tabId) {
+        wakeTabAndRestore(tabId);
+      },
+      isSleeping(tabId) {
+        return getTab(tabId)?.isSleeping ?? false;
+      },
+      onMoveToFolder(tabId, folderId) {
+        setTabFolder(tabId, folderId);
+      },
+      getFolders() {
+        return getFoldersForWorkspace(getActiveWorkspaceId());
+      },
+      getCurrentFolderId(tabId) {
+        return getTab(tabId)?.folderId;
+      },
+      onCreateFolderWithTab(tabId) {
+        handleCreateFolder(tabId);
+      },
     },
     syncWebviewVisibility,
   );
@@ -832,6 +871,15 @@ window.addEventListener("DOMContentLoaded", () => {
         if (targetUrl) {
           glance.open(targetUrl, target?.title);
         }
+      },
+      createTabFolder() {
+        handleCreateFolder();
+      },
+      hibernateInactiveTabs() {
+        hibernateInactiveTabs();
+      },
+      wakeAllTabs() {
+        wakeAllTabs();
       },
     },
     syncWebviewVisibility,
@@ -1067,11 +1115,52 @@ window.addEventListener("DOMContentLoaded", () => {
     webview.navigate(tabId, url).catch(() => updateTab(tabId, { isLoading: false }));
   }
 
-  function openTab(url?: string) {
+  function openTab(url?: string, folderId?: string) {
     const target = url ?? getSettings().homepage;
-    const tab = createTab(target, false, getActiveWorkspaceId());
+    const tab = createTab(target, false, getActiveWorkspaceId(), folderId);
     if (target) navigate(tab.id, target);
     if (!url) focusOmnibar();
+  }
+
+  function hibernateTab(tabId: string) {
+    const tab = getTab(tabId);
+    if (!tab || tab.active || tab.isSleeping) return;
+    if (sleepTab(tabId)) {
+      webview.close(tabId);
+      syncWebviewVisibility();
+    }
+  }
+
+  function wakeTabAndRestore(tabId: string) {
+    const tab = getTab(tabId);
+    if (!tab) return;
+    wakeTab(tabId);
+    if (tab.url) {
+      navigate(tabId, tab.url);
+    }
+  }
+
+  function hibernateInactiveTabs() {
+    const inactive = getTabs().filter((t) => !t.active && !t.isPinned && !t.isSleeping);
+    for (const t of inactive) {
+      hibernateTab(t.id);
+    }
+  }
+
+  function wakeAllTabs() {
+    const sleeping = getTabs().filter((t) => t.isSleeping);
+    for (const t of sleeping) {
+      wakeTabAndRestore(t.id);
+    }
+  }
+
+  function handleCreateFolder(withTabId?: string) {
+    const name = window.prompt("Nome da pasta:", "Nova pasta");
+    if (name === null) return;
+    const folder = createFolder(name.trim() || "Nova pasta", getActiveWorkspaceId());
+    if (withTabId) {
+      setTabFolder(withTabId, folder.id);
+    }
   }
 
   // Reuses the active tab when it is still blank instead of piling up empty tabs.
@@ -1123,15 +1212,23 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function createTabElement(tabId: string): HTMLElement {
-    const node = el("div", { class: "tab", role: "tab", tabindex: "0", "data-tab-id": tabId }, [
-      el("span", { class: "tab-favicon" }),
-      el("span", { class: "tab-title" }),
-      el(
-        "button",
-        { class: "tab-close", type: "button", "aria-label": "Fechar aba", title: "Fechar aba (Ctrl+W)" },
-        [icon("close")],
-      ),
-    ]);
+    const node = el(
+      "div",
+      { class: "tab", role: "tab", tabindex: "0", draggable: "true", "data-tab-id": tabId },
+      [
+        el("span", { class: "tab-favicon" }),
+        el("span", { class: "tab-title" }),
+        el(
+          "button",
+          { class: "tab-close", type: "button", "aria-label": "Fechar aba", title: "Fechar aba (Ctrl+W)" },
+          [icon("close")],
+        ),
+      ],
+    );
+    node.addEventListener("dragstart", (e) => {
+      e.dataTransfer?.setData("text/moss-tab-id", tabId);
+      e.dataTransfer?.setData("text/plain", tabId);
+    });
     tabElements.set(tabId, node);
     return node;
   }
@@ -1139,9 +1236,23 @@ window.addEventListener("DOMContentLoaded", () => {
   function renderTab(node: HTMLElement, tab: Tab) {
     node.classList.toggle("tab--active", tab.active);
     node.classList.toggle("tab--loading", tab.isLoading);
+    node.classList.toggle("tab--sleeping", Boolean(tab.isSleeping));
     node.setAttribute("aria-selected", String(tab.active));
-    node.title = tab.url ? `${tab.title}\n${tab.url}` : tab.title;
-    node.querySelector(".tab-title")!.textContent = tab.title;
+    const statusSuffix = tab.isSleeping ? " (Hibernada — clique para acordar)" : "";
+    node.title = tab.url ? `${tab.title}\n${tab.url}${statusSuffix}` : `${tab.title}${statusSuffix}`;
+
+    const titleEl = node.querySelector(".tab-title")!;
+    titleEl.textContent = tab.title;
+
+    let sleepIndicator = node.querySelector(".tab-sleeping-indicator");
+    if (tab.isSleeping) {
+      if (!sleepIndicator) {
+        sleepIndicator = el("span", { class: "tab-sleeping-indicator", title: "Aba hibernada" }, [icon("moon")]);
+        titleEl.before(sleepIndicator);
+      }
+    } else if (sleepIndicator) {
+      sleepIndicator.remove();
+    }
 
     const favicon = node.querySelector(".tab-favicon")!;
     const iconName = tab.isLoading ? "spinner" : "globe";
@@ -1181,10 +1292,90 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const folderElements = new Map<string, HTMLElement>();
+
+  function createFolderElement(folder: TabFolder): HTMLElement {
+    const chevron = el("span", { class: "tab-folder-chevron" }, [icon("chevronDown")]);
+    const dot = el("span", {
+      class: "tab-folder-dot",
+      style: `--folder-color: ${folder.color ?? "#99bc58"}`,
+    });
+    const title = el("span", { class: "tab-folder-title" }, [folder.name]);
+    const badge = el("span", { class: "tab-folder-badge" }, ["0"]);
+    const addBtn = el(
+      "button",
+      {
+        class: "tab-folder-add-btn",
+        type: "button",
+        "aria-label": "Nova aba nesta pasta",
+        title: "Nova aba nesta pasta",
+      },
+      [icon("plus")],
+    );
+
+    addBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openTab(undefined, folder.id);
+    });
+
+    const header = el(
+      "div",
+      { class: "tab-folder-header", role: "button", tabindex: "0" },
+      [chevron, dot, title, badge, addBtn],
+    );
+
+    header.addEventListener("click", () => {
+      toggleFolderCollapse(folder.id);
+    });
+
+    header.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const action = window.confirm(
+        `Pasta: "${folder.name}"\n\nOK = Renomear pasta\nCancelar = Hibernar abas desta pasta`,
+      );
+      if (action) {
+        const nextName = window.prompt("Novo nome da pasta:", folder.name);
+        if (nextName !== null && nextName.trim()) {
+          updateFolder(folder.id, { name: nextName.trim() });
+        }
+      } else {
+        const sleeping = sleepTabsInFolder(folder.id);
+        for (const id of sleeping) webview.close(id);
+        syncWebviewVisibility();
+      }
+    });
+
+    header.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      container.classList.add("tab-folder--dragover");
+    });
+    header.addEventListener("dragleave", () => {
+      container.classList.remove("tab-folder--dragover");
+    });
+    header.addEventListener("drop", (e) => {
+      e.preventDefault();
+      container.classList.remove("tab-folder--dragover");
+      const draggedTabId = e.dataTransfer?.getData("text/moss-tab-id");
+      if (draggedTabId) {
+        setTabFolder(draggedTabId, folder.id);
+      }
+    });
+
+    const tabsContainer = el("div", { class: "tab-folder-tabs" });
+    const container = el("div", { class: "tab-folder", "data-folder-id": folder.id }, [
+      header,
+      tabsContainer,
+    ]);
+    folderElements.set(folder.id, container);
+    return container;
+  }
+
   function renderTabBar(tabs: readonly Tab[]) {
     const curWsId = getActiveWorkspaceId();
     const pinned = tabs.filter((t) => t.isPinned);
     const unpinned = tabs.filter((t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId);
+    const currentFolders = getFoldersForWorkspace(curWsId);
 
     ui.pinnedTabsSection.style.display = pinned.length > 0 ? "" : "none";
 
@@ -1213,14 +1404,63 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Render unpinned tabs in tabList
-    unpinned.forEach((tab, index) => {
-      const node = tabElements.get(tab.id) ?? createTabElement(tab.id);
-      renderTab(node, tab);
-      if (ui.tabList.children[index] !== node) {
-        ui.tabList.insertBefore(node, ui.tabList.children[index]);
+    // Clean up removed folders
+    for (const [fId, node] of folderElements) {
+      if (!currentFolders.some((f) => f.id === fId)) {
+        node.remove();
+        folderElements.delete(fId);
+      }
+    }
+
+    // Render folder nodes and their tabs
+    currentFolders.forEach((folder) => {
+      const fNode = folderElements.get(folder.id) ?? createFolderElement(folder);
+      fNode.classList.toggle("tab-folder--collapsed", folder.isCollapsed);
+      const title = fNode.querySelector(".tab-folder-title");
+      if (title) title.textContent = folder.name;
+      const folderTabs = unpinned.filter((t) => t.folderId === folder.id);
+      const badge = fNode.querySelector(".tab-folder-badge");
+      if (badge) badge.textContent = String(folderTabs.length);
+
+      const tabsContainer = fNode.querySelector(".tab-folder-tabs")!;
+      folderTabs.forEach((tab, index) => {
+        const node = tabElements.get(tab.id) ?? createTabElement(tab.id);
+        renderTab(node, tab);
+        if (tabsContainer.children[index] !== node) {
+          tabsContainer.insertBefore(node, tabsContainer.children[index]);
+        }
+      });
+      while (tabsContainer.children.length > folderTabs.length) {
+        tabsContainer.lastElementChild?.remove();
       }
     });
+
+    // Render root tabs (not in any folder)
+    const rootTabs = unpinned.filter(
+      (t) => !t.folderId || !currentFolders.some((f) => f.id === t.folderId),
+    );
+
+    let currentChildIndex = 0;
+    currentFolders.forEach((folder) => {
+      const fNode = folderElements.get(folder.id)!;
+      if (ui.tabList.children[currentChildIndex] !== fNode) {
+        ui.tabList.insertBefore(fNode, ui.tabList.children[currentChildIndex]);
+      }
+      currentChildIndex++;
+    });
+
+    rootTabs.forEach((tab) => {
+      const node = tabElements.get(tab.id) ?? createTabElement(tab.id);
+      renderTab(node, tab);
+      if (ui.tabList.children[currentChildIndex] !== node) {
+        ui.tabList.insertBefore(node, ui.tabList.children[currentChildIndex]);
+      }
+      currentChildIndex++;
+    });
+
+    while (ui.tabList.children.length > currentChildIndex) {
+      ui.tabList.lastElementChild?.remove();
+    }
   }
 
   function renderBookmarkToggle() {
@@ -1312,6 +1552,10 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleTabClick(tabId: string) {
+    const target = getTab(tabId);
+    if (target?.isSleeping) {
+      wakeTabAndRestore(tabId);
+    }
     if (isSplitActive()) {
       const splitState = getSplitState();
       if (tabId === splitState.primaryTabId) {
@@ -1409,7 +1653,22 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  ui.tabList.addEventListener("dragover", (event) => {
+    event.preventDefault();
+  });
+
+  ui.tabList.addEventListener("drop", (event) => {
+    const target = event.target as HTMLElement;
+    if (!target.closest(".tab-folder")) {
+      const draggedTabId = event.dataTransfer?.getData("text/moss-tab-id");
+      if (draggedTabId) {
+        setTabFolder(draggedTabId, undefined);
+      }
+    }
+  });
+
   ui.newTabButton.addEventListener("click", () => openTab());
+  ui.newFolderButton.addEventListener("click", () => handleCreateFolder());
 
   for (const { action } of NAV_BUTTONS) {
     ui.navButtons[action].addEventListener("click", () => runNavAction(action));
@@ -1897,6 +2156,9 @@ window.addEventListener("DOMContentLoaded", () => {
     syncViewport();
     syncWebviewVisibility();
   });
+  subscribeFolders(() => {
+    render(getTabs());
+  });
 
   // Restore persisted session tabs if enabled, otherwise fallback to pinned tabs
   const sessionTabs = loadSession();
@@ -1904,7 +2166,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (shouldRestoreSession) {
     for (const s of sessionTabs) {
-      const tab = createTab(s.url, s.isPinned, s.workspaceId);
+      const tab = createTab(s.url, s.isPinned, s.workspaceId, s.folderId);
       if (s.title && s.title !== NEW_TAB_TITLE) {
         updateTab(tab.id, { title: s.title });
       }

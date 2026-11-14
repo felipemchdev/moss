@@ -5856,6 +5856,200 @@
   overflow: hidden;
 }
 
+/* ==========================================================================
+   Tab Folders & Tab Sleeping (Hibernation)
+   ========================================================================== */
+
+.tab--sleeping {
+  opacity: 0.62;
+}
+
+.tab--sleeping .tab-title {
+  font-style: italic;
+}
+
+.tab-sleeping-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-fg-muted);
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  opacity: 0.8;
+}
+
+.tab-sleeping-indicator svg {
+  width: 11px;
+  height: 11px;
+}
+
+.tab-folder {
+  margin: 4px 0;
+  border-radius: var(--radius-md);
+  transition: background var(--motion-fast);
+}
+
+.tab-folder--dragover {
+  background: var(--glass-bg-hover);
+  outline: 1.5px dashed var(--color-accent-primary);
+}
+
+.tab-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-fg-secondary);
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.tab-folder-header:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.tab-folder-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--color-fg-muted);
+  transition: transform var(--motion-fast);
+}
+
+.tab-folder-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+.tab-folder--collapsed .tab-folder-chevron {
+  transform: rotate(-90deg);
+}
+
+.tab-folder-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--folder-color, var(--color-accent-primary));
+  box-shadow: 0 0 6px var(--folder-color, var(--color-accent-primary));
+  flex-shrink: 0;
+}
+
+.tab-folder-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-folder-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--glass-bg-subtle);
+  color: var(--color-fg-muted);
+}
+
+.tab-folder-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--motion-fast), background var(--motion-fast), color var(--motion-fast);
+}
+
+.tab-folder-header:hover .tab-folder-add-btn {
+  opacity: 1;
+}
+
+.tab-folder-add-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.tab-folder-add-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.tab-folder-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  margin-top: 2px;
+  border-left: 1.5px solid var(--glass-border-subtle);
+  margin-left: 12px;
+}
+
+.tab-folder--collapsed .tab-folder-tabs {
+  display: none;
+}
+
+#app.sidebar-collapsed .tab-folder-header {
+  padding: 4px 0;
+  justify-content: center;
+}
+
+#app.sidebar-collapsed .tab-folder-title,
+#app.sidebar-collapsed .tab-folder-chevron,
+#app.sidebar-collapsed .tab-folder-badge,
+#app.sidebar-collapsed .tab-folder-add-btn {
+  display: none !important;
+}
+
+#app.sidebar-collapsed .tab-folder-tabs {
+  padding-left: 0;
+  margin-left: 0;
+  border-left: none;
+}
+
+.new-folder-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--color-fg-secondary);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+
+.new-folder-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+  border-color: var(--color-accent-border);
+}
+
+.new-folder-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+
 
 
 

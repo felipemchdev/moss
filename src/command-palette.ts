@@ -57,6 +57,9 @@ export interface CommandPaletteActions {
   isSidebarCollapsed: () => boolean;
   reopenClosedTab: () => void;
   openGlance: (url?: string) => void;
+  createTabFolder?: () => void;
+  hibernateInactiveTabs?: () => void;
+  wakeAllTabs?: () => void;
 }
 
 export interface CommandPaletteController {
@@ -323,6 +326,36 @@ export function createCommandPalette(
         shortcut: ["Ctrl", "Shift", "G"],
         keywords: ["glance", "peek", "espiar", "previa", "preview", "link"],
         run: () => actions.openGlance(),
+      },
+      {
+        id: "action-new-folder",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Nova Pasta de Abas",
+        subtitle: "Agrupar e organizar abas em pastas recolhíveis",
+        iconName: "folderPlus",
+        keywords: ["pasta", "folder", "grupo", "agrupar", "organizar"],
+        run: () => actions.createTabFolder?.(),
+      },
+      {
+        id: "action-hibernate-inactive",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Hibernar Abas Inativas (Economizar Memória)",
+        subtitle: "Descarregar webviews de abas em segundo plano para liberar RAM",
+        iconName: "moon",
+        keywords: ["hibernar", "dormir", "sleep", "memoria", "ram", "saver", "economizar"],
+        run: () => actions.hibernateInactiveTabs?.(),
+      },
+      {
+        id: "action-wake-all",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Acordar Todas as Abas Hibernadas",
+        subtitle: "Reativar webviews de todas as abas suspensas",
+        iconName: "sun",
+        keywords: ["acordar", "wake", "reativar", "restaurar", "abas"],
+        run: () => actions.wakeAllTabs?.(),
       },
       {
         id: "action-find-in-page",

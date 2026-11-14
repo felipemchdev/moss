@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-11-14
+
+### Added
+- Tab Folders (Pastas de Abas) & Hierarchical Tab Grouping inspired by Zen Browser (`src/folders.ts`, `src/tabs.ts`, `src/styles/browser-chrome.css`).
+- Collapsible folder sections in vertical sidebar with custom colors, tab counter badge, chevron toggle, and quick add button.
+- Drag & Drop support to group tabs into folders or move them back to root list.
+- Tab Hibernation / Sleeping Tabs (Memory Saver): unload background webview native HWNDs (`webview.close`) while preserving tab snapshot, URL, and metadata.
+- Automatic lazy re-activation and navigation upon selecting sleeping tabs.
+- Sleeping tab indicator with moon icon and dim styling.
+- Context menu actions on tabs: "Mover para pasta", "Remover da pasta", "Criar pasta com esta aba", "Hibernar aba (Economizar memória)".
+- Folder header context actions: rename folder and hibernate all tabs in folder.
+- Command Palette actions: "Nova Pasta de Abas", "Hibernar Abas Inativas", "Acordar Todas as Abas".
+
 ## [0.12.0] - 2026-11-14
 
 ### Added

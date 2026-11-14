@@ -16,6 +16,13 @@ export interface TabContextMenuActions {
   onMoveToWorkspace?: (tabId: string, workspaceId: string) => void;
   getWorkspaces?: () => readonly { id: string; name: string }[];
   getCurrentWorkspaceId?: () => string;
+  onSleepTab?: (tabId: string) => void;
+  onWakeTab?: (tabId: string) => void;
+  isSleeping?: (tabId: string) => boolean;
+  onMoveToFolder?: (tabId: string, folderId: string | undefined) => void;
+  getFolders?: () => readonly { id: string; name: string; color?: string }[];
+  getCurrentFolderId?: (tabId: string) => string | undefined;
+  onCreateFolderWithTab?: (tabId: string) => void;
 }
 
 export interface TabContextMenu {
@@ -143,6 +150,83 @@ export function createTabContextMenu(
     element.append(glanceButton);
   }
 
+  let sleepButton: HTMLButtonElement | null = null;
+  function buildSleepButton(tabId: string) {
+    if (sleepButton) sleepButton.remove();
+    if (!actions.onSleepTab) return;
+    const sleeping = actions.isSleeping ? actions.isSleeping(tabId) : false;
+    const label = sleeping ? "Acordar aba" : "Hibernar aba (Economizar memória)";
+    sleepButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [label],
+    ) as HTMLButtonElement;
+    sleepButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      if (sleeping) actions.onWakeTab?.(tabId);
+      else actions.onSleepTab?.(tabId);
+    });
+    element.append(sleepButton);
+  }
+
+  let folderButtons: HTMLButtonElement[] = [];
+  function buildFolderButtons(tabId: string) {
+    for (const b of folderButtons) b.remove();
+    folderButtons = [];
+    if (!actions.onMoveToFolder) return;
+
+    const currentFolderId = actions.getCurrentFolderId?.(tabId);
+    const availableFolders = actions.getFolders?.() ?? [];
+
+    if (currentFolderId) {
+      const currentFolder = availableFolders.find((f) => f.id === currentFolderId);
+      const removeBtn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [`Remover da pasta (${currentFolder ? currentFolder.name : "Pasta"})`],
+      ) as HTMLButtonElement;
+      removeBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        menu.close();
+        actions.onMoveToFolder!(tabId, undefined);
+      });
+      element.append(removeBtn);
+      folderButtons.push(removeBtn);
+    }
+
+    const otherFolders = availableFolders.filter((f) => f.id !== currentFolderId);
+    for (const f of otherFolders) {
+      const btn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [`Mover para pasta: ${f.name}`],
+      ) as HTMLButtonElement;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        menu.close();
+        actions.onMoveToFolder!(tabId, f.id);
+      });
+      element.append(btn);
+      folderButtons.push(btn);
+    }
+
+    if (actions.onCreateFolderWithTab) {
+      const newFolderBtn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        ["+ Criar pasta com esta aba"],
+      ) as HTMLButtonElement;
+      newFolderBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        menu.close();
+        actions.onCreateFolderWithTab!(tabId);
+      });
+      element.append(newFolderBtn);
+      folderButtons.push(newFolderBtn);
+    }
+  }
+
   let workspaceButtons: HTMLButtonElement[] = [];
 
   function buildWorkspaceButtons() {
@@ -205,6 +289,8 @@ export function createTabContextMenu(
       buildPinButton(tabId);
       buildSplitButton(tabId);
       buildWorkspaceButtons();
+      buildFolderButtons(tabId);
+      buildSleepButton(tabId);
       buildReopenButton();
       buildGlanceButton(tabId);
 

@@ -15,6 +15,9 @@ export interface Tab {
   canGoForward: boolean;
   isPinned: boolean;
   workspaceId?: string;
+  folderId?: string;
+  isSleeping?: boolean;
+  lastAccessedAt?: number;
 }
 
 export interface ClosedTab {
@@ -23,6 +26,7 @@ export interface ClosedTab {
   workspaceId?: string;
   isPinned: boolean;
   closedAt: number;
+  folderId?: string;
 }
 
 export interface SessionTab {
@@ -31,6 +35,7 @@ export interface SessionTab {
   workspaceId?: string;
   isPinned: boolean;
   active: boolean;
+  folderId?: string;
 }
 
 export type TabPatch = Partial<Omit<Tab, "id" | "active">>;
@@ -102,6 +107,7 @@ export function saveSession(): void {
         workspaceId: t.workspaceId,
         isPinned: t.isPinned,
         active: t.active,
+        folderId: t.folderId,
       }));
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionTabs));
   } catch {
@@ -172,7 +178,12 @@ export function getTabsForWorkspace(workspaceId: string): readonly Tab[] {
   return tabs.filter((t) => t.isPinned || (t.workspaceId ?? "default") === workspaceId);
 }
 
-export function createTab(initialUrl = "", pinned = false, workspaceId?: string): Tab {
+export function createTab(
+  initialUrl = "",
+  pinned = false,
+  workspaceId?: string,
+  folderId?: string,
+): Tab {
   const curWsId = getActiveWorkspaceId();
   const wsId = workspaceId ?? (pinned ? undefined : curWsId);
   const shouldActivate = pinned || wsId === curWsId;
@@ -187,6 +198,9 @@ export function createTab(initialUrl = "", pinned = false, workspaceId?: string)
     canGoForward: false,
     isPinned: pinned,
     workspaceId: wsId,
+    folderId,
+    isSleeping: false,
+    lastAccessedAt: Date.now(),
   };
 
   tabs = shouldActivate
@@ -208,6 +222,7 @@ export function closeTab(id: string) {
       title: closed.title || NEW_TAB_TITLE,
       workspaceId: closed.workspaceId,
       isPinned: closed.isPinned,
+      folderId: closed.folderId,
       closedAt: Date.now(),
     });
     if (closedTabsStack.length > MAX_CLOSED_TABS) {
@@ -243,7 +258,7 @@ export function reopenLastClosedTab(): Tab | undefined {
   saveClosedTabs();
   if (!closed) return undefined;
 
-  const tab = createTab(closed.url, closed.isPinned, closed.workspaceId);
+  const tab = createTab(closed.url, closed.isPinned, closed.workspaceId, closed.folderId);
   if (closed.title && closed.title !== NEW_TAB_TITLE) {
     updateTab(tab.id, { title: closed.title });
   }
@@ -265,9 +280,14 @@ export function clearClosedTabs(): void {
 }
 
 export function selectTab(id: string) {
-  if (!getTab(id) || getTab(id)?.active) return;
+  const current = getTab(id);
+  if (!current) return;
   tabs = tabs.map((tab) =>
-    tab.active !== (tab.id === id) ? { ...tab, active: tab.id === id } : tab,
+    tab.id === id
+      ? { ...tab, active: true, isSleeping: false, lastAccessedAt: Date.now() }
+      : tab.active
+        ? { ...tab, active: false }
+        : tab,
   );
   notify();
 }
@@ -299,4 +319,51 @@ export function moveTabToWorkspace(tabId: string, targetWorkspaceId: string) {
   if (!tab || tab.workspaceId === targetWorkspaceId) return;
   tabs = tabs.map((t) => (t.id === tabId ? { ...t, workspaceId: targetWorkspaceId } : t));
   notify();
+}
+
+export function setTabFolder(tabId: string, folderId?: string) {
+  const tab = getTab(tabId);
+  if (!tab || tab.folderId === folderId) return;
+  updateTab(tabId, { folderId });
+}
+
+export function sleepTab(tabId: string): boolean {
+  const tab = getTab(tabId);
+  if (!tab || tab.active || tab.isSleeping) return false;
+  updateTab(tabId, { isSleeping: true });
+  return true;
+}
+
+export function wakeTab(tabId: string) {
+  const tab = getTab(tabId);
+  if (!tab || !tab.isSleeping) return;
+  updateTab(tabId, { isSleeping: false, lastAccessedAt: Date.now() });
+}
+
+export function getTabsInFolder(folderId: string): readonly Tab[] {
+  return tabs.filter((t) => t.folderId === folderId);
+}
+
+export function sleepTabsInFolder(folderId: string): string[] {
+  const folderTabs = tabs.filter((t) => t.folderId === folderId && !t.active && !t.isSleeping);
+  const ids: string[] = [];
+  for (const t of folderTabs) {
+    if (sleepTab(t.id)) ids.push(t.id);
+  }
+  return ids;
+}
+
+export function getSleepingTabsCount(): number {
+  return tabs.filter((t) => t.isSleeping).length;
+}
+
+export function getInactiveTabs(olderThanMs = 20 * 60 * 1000): readonly Tab[] {
+  const now = Date.now();
+  return tabs.filter(
+    (t) =>
+      !t.active &&
+      !t.isPinned &&
+      !t.isSleeping &&
+      now - (t.lastAccessedAt ?? 0) > olderThanMs,
+  );
 }

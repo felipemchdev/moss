@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-11-14
+
+### Added
+- Media Controls Widget na Sidebar (Mini Player Global de Áudio & Vídeo) inspired by Zen Browser (`src/media.ts`, `src/media-widget.ts`, `src-tauri/src/lib.rs`).
+- Global media detection tracking playing audio/video across active and background tabs with title and artist extraction (`navigator.mediaSession`).
+- Sidebar Mini Player card displaying track cover, title, artist, Play/Pause control, and Mute control.
+- Click to jump: clicking track title in the media widget brings user directly to the emitting tab.
+- Audio indicator pill on tabs (`volume2` / `volumeX`) with live waveform pulse and one-click mute/unmute without switching tabs.
+- Native Tauri backend commands: `set_tab_muted`, `toggle_tab_media_playback`, and `sync_tab_media_state`.
+
 ## [0.15.0] - 2026-11-14
 
 ### Added

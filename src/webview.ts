@@ -56,6 +56,12 @@ export const webview = {
     call("apply_tab_boost", { tabId, css }),
   startElementZapper: (tabId: string) =>
     call("start_element_zapper", { tabId }),
+  setTabMuted: (tabId: string, muted: boolean) =>
+    call("set_tab_muted", { tabId, muted }),
+  toggleTabMediaPlayback: (tabId: string) =>
+    call("toggle_tab_media_playback", { tabId }),
+  syncTabMediaState: (tabId: string) =>
+    call("sync_tab_media_state", { tabId }),
 };
 
 export const windowControls = {

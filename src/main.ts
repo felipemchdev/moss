@@ -7,6 +7,8 @@ import { createDownloadsPanel } from "./downloads-panel";
 import { createGlance } from "./glance";
 import { createBoostsPopover } from "./boosts-popover";
 import { applyBoostToTab, addDomainZapRule } from "./boosts";
+import { createMediaWidget } from "./media-widget";
+import { updateTabMediaState, clearTabMediaState, getMediaStateForTab, toggleMute } from "./media";
 import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
@@ -377,6 +379,13 @@ function buildChrome(root: HTMLElement) {
   // 8.5. Workspace section
   const workspaceSection = el("div", { class: "workspace-section" });
 
+  // 8.6. Media Controller Widget
+  const mediaWidget = createMediaWidget({
+    onSelectTab(tabId) {
+      selectTab(tabId);
+    },
+  });
+
   // 9. Assemble sidebar
   const sidebar = el("aside", { class: "sidebar" }, [
     sidebarHeader,
@@ -385,6 +394,7 @@ function buildChrome(root: HTMLElement) {
     workspaceSection,
     tabBar,
     bookmarksBar,
+    mediaWidget,
     sidebarFooter,
   ]);
 
@@ -1258,6 +1268,7 @@ window.addEventListener("DOMContentLoaded", () => {
     closeTab(tabId);
     clearTabZoom(tabId);
     privacyShield.clearTabCount(tabId);
+    clearTabMediaState(tabId);
     histories.delete(tabId);
     pageTitles.delete(tabId);
     webview.close(tabId);
@@ -1335,6 +1346,29 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     } else if (sleepIndicator) {
       sleepIndicator.remove();
+    }
+
+    const mediaState = getMediaStateForTab(tab.id);
+    let audioIndicator = node.querySelector<HTMLElement>(".tab-audio-indicator");
+    if (mediaState && (mediaState.playing || mediaState.hasMedia)) {
+      if (!audioIndicator) {
+        audioIndicator = el("button", {
+          class: "tab-audio-indicator",
+          type: "button",
+          title: mediaState.muted ? "Ativar som da aba" : "Silenciar aba",
+          "aria-label": mediaState.muted ? "Ativar som da aba" : "Silenciar aba",
+        });
+        audioIndicator.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleMute(tab.id);
+        });
+        titleEl.after(audioIndicator);
+      }
+      const audioIconName = mediaState.muted ? "volumeX" : "volume2";
+      audioIndicator.replaceChildren(icon(audioIconName));
+      audioIndicator.title = mediaState.muted ? "Ativar som da aba" : "Silenciar aba";
+    } else if (audioIndicator) {
+      audioIndicator.remove();
     }
 
     const favicon = node.querySelector(".tab-favicon")!;
@@ -2154,6 +2188,32 @@ window.addEventListener("DOMContentLoaded", () => {
       showToast(`Elemento eliminado (${payload.selector})! Regra salva para ${payload.domain}.`);
     },
   );
+
+  listen<{
+    tab_id: string;
+    has_media: boolean;
+    playing: boolean;
+    title: string;
+    artist: string;
+    muted: boolean;
+  }>("media-state-updated", ({ payload }) => {
+    updateTabMediaState({
+      tabId: payload.tab_id,
+      hasMedia: payload.has_media,
+      playing: payload.playing,
+      title: payload.title,
+      artist: payload.artist,
+      muted: payload.muted,
+    });
+    renderTabBar(getTabs());
+  });
+
+  setInterval(() => {
+    const activeTab = getActiveTab();
+    if (activeTab && activeTab.url && isWebUrl(activeTab.url)) {
+      webview.syncTabMediaState(activeTab.id).catch(() => {});
+    }
+  }, 2500);
 
   listen<{ tabId: string; title: string }>("tab://title", ({ payload }) => {
     const tab = getTab(payload.tabId);

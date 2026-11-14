@@ -31,6 +31,9 @@
     "allow-sync-site-permissions",
     "allow-reset-site-permissions",
     "allow-apply-tab-boost",
-    "allow-start-element-zapper"
+    "allow-start-element-zapper",
+    "allow-set-tab-muted",
+    "allow-toggle-tab-media-playback",
+    "allow-sync-tab-media-state"
   ]
 }

@@ -6498,6 +6498,162 @@
   border-color: var(--color-danger);
 }
 
+/* ==========================================================================
+   Sidebar Media Controller Widget & Tab Audio Indicators
+   ========================================================================== */
+
+.sidebar-media-widget {
+  margin: 8px 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border: 1px solid var(--glass-border-strong);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.sidebar-media-widget--playing .media-widget-cover {
+  box-shadow: 0 0 10px var(--color-accent-glow);
+  animation: media-pulse 2s ease-in-out infinite;
+}
+
+@keyframes media-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.media-widget-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: rgba(130, 199, 96, 0.15);
+  color: var(--color-accent-primary);
+  flex-shrink: 0;
+}
+
+.media-widget-cover svg {
+  width: 14px;
+  height: 14px;
+}
+
+.media-widget-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.media-widget-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-widget-info:hover .media-widget-title {
+  color: var(--color-accent-primary);
+}
+
+.media-widget-artist {
+  font-size: 10px;
+  color: var(--color-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-widget-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.media-widget-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-fg-secondary);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+
+.media-widget-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.media-widget-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+#app.sidebar-collapsed .sidebar-media-widget {
+  margin: 4px auto;
+  padding: 4px;
+  width: 38px;
+  height: 38px;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+#app.sidebar-collapsed .sidebar-media-widget .media-widget-info,
+#app.sidebar-collapsed .sidebar-media-widget .media-widget-btn--mute {
+  display: none !important;
+}
+
+#app.sidebar-collapsed .sidebar-media-widget .media-widget-cover {
+  display: none !important;
+}
+
+#app.sidebar-collapsed .sidebar-media-widget .media-widget-btn--play {
+  width: 30px;
+  height: 30px;
+}
+
+/* Tab Audio Indicator Pill */
+.tab-audio-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--color-accent-primary);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: transform var(--motion-fast), opacity var(--motion-fast);
+  margin-right: 2px;
+}
+
+.tab-audio-indicator:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  background: var(--glass-bg-hover);
+}
+
+.tab-audio-indicator svg {
+  width: 13px;
+  height: 13px;
+}
+
+
 
 
 

@@ -1275,6 +1275,110 @@ fn start_element_zapper(app: AppHandle, tab_id: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Clone, serde::Serialize)]
+struct MediaStatePayload {
+    tab_id: String,
+    has_media: bool,
+    playing: bool,
+    title: String,
+    artist: String,
+    muted: bool,
+}
+
+#[tauri::command]
+fn set_tab_muted(app: AppHandle, tab_id: String, muted: bool) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let script = format!("document.querySelectorAll('audio, video').forEach(m => m.muted = {muted});");
+    let _ = tab.eval(&script);
+    Ok(())
+}
+
+#[tauri::command]
+fn toggle_tab_media_playback(app: AppHandle, tab_id: String) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let script = r#"(() => {
+  const media = Array.from(document.querySelectorAll('video, audio'));
+  if (media.length === 0) return;
+  const playing = media.find(m => !m.paused && !m.ended);
+  if (playing) {
+    media.forEach(m => m.pause());
+  } else {
+    media[0].play().catch(() => {});
+  }
+})()"#;
+    let _ = tab.eval(script);
+    Ok(())
+}
+
+#[tauri::command]
+fn sync_tab_media_state(app: AppHandle, tab_id: String) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let app_clone = app.clone();
+    let tab_id_clone = tab_id;
+    let script = r#"(() => {
+  try {
+    const media = Array.from(document.querySelectorAll('video, audio'));
+    const playing = media.find(m => !m.paused && !m.ended && m.currentTime > 0);
+    let title = '';
+    let artist = '';
+    if (navigator.mediaSession && navigator.mediaSession.metadata) {
+      title = navigator.mediaSession.metadata.title || '';
+      artist = navigator.mediaSession.metadata.artist || '';
+    }
+    if (!title) {
+      title = document.title || '';
+    }
+    return JSON.stringify({
+      has_media: media.length > 0,
+      playing: Boolean(playing),
+      title: title.slice(0, 80),
+      artist: artist.slice(0, 50),
+      muted: playing ? playing.muted : (media[0] ? media[0].muted : false),
+    });
+  } catch (_) {
+    return JSON.stringify({ has_media: false, playing: false, title: '', artist: '', muted: false });
+  }
+})()"#;
+
+    let _ = tab.eval_with_callback(script, move |res| {
+        let unquoted = if res.starts_with('"') && res.ends_with('"') && res.len() >= 2 {
+            serde_json::from_str::<String>(&res).unwrap_or_else(|_| res.to_string())
+        } else {
+            res.to_string()
+        };
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&unquoted) {
+            let has_media = val.get("has_media").and_then(|v| v.as_bool()).unwrap_or(false);
+            let playing = val.get("playing").and_then(|v| v.as_bool()).unwrap_or(false);
+            let title = val.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let artist = val.get("artist").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let muted = val.get("muted").and_then(|v| v.as_bool()).unwrap_or(false);
+
+            emit_to_chrome(
+                &app_clone,
+                "media-state-updated",
+                MediaStatePayload {
+                    tab_id: tab_id_clone.clone(),
+                    has_media,
+                    playing,
+                    title,
+                    artist,
+                    muted,
+                },
+            );
+        }
+    });
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1307,6 +1411,9 @@ pub fn run() {
             reset_site_permissions,
             apply_tab_boost,
             start_element_zapper,
+            set_tab_muted,
+            toggle_tab_media_playback,
+            sync_tab_media_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

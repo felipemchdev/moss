@@ -1,3 +1,5 @@
+const PINNED_STORAGE_KEY = "moss:pinned_tabs";
+
 export interface Tab {
   id: string;
   title: string;
@@ -6,6 +8,7 @@ export interface Tab {
   isLoading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  isPinned: boolean;
 }
 
 export type TabPatch = Partial<Omit<Tab, "id" | "active">>;
@@ -19,6 +22,28 @@ const listeners = new Set<Listener>();
 
 function notify() {
   for (const listener of listeners) listener(tabs);
+  savePinnedUrls();
+}
+
+function savePinnedUrls() {
+  try {
+    const pinned = tabs.filter((t) => t.isPinned && t.url).map((t) => t.url);
+    localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinned));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function loadPinnedUrls(): string[] {
+  try {
+    const raw = localStorage.getItem(PINNED_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v): v is string => typeof v === "string" && v.length > 0);
+  } catch {
+    return [];
+  }
 }
 
 export function subscribe(listener: Listener): () => void {
@@ -39,7 +64,7 @@ export function getActiveTab(): Tab | undefined {
   return tabs.find((tab) => tab.active);
 }
 
-export function createTab(initialUrl = ""): Tab {
+export function createTab(initialUrl = "", pinned = false): Tab {
   const tab: Tab = {
     id: String(nextId++),
     title: NEW_TAB_TITLE,
@@ -48,6 +73,7 @@ export function createTab(initialUrl = ""): Tab {
     isLoading: false,
     canGoBack: false,
     canGoForward: false,
+    isPinned: pinned,
   };
   tabs = [...tabs.map((t) => (t.active ? { ...t, active: false } : t)), tab];
   notify();
@@ -86,4 +112,10 @@ export function updateTab(id: string, patch: TabPatch) {
   if (!changed) return;
   tabs = tabs.map((tab) => (tab.id === id ? { ...tab, ...patch } : tab));
   notify();
+}
+
+export function togglePinTab(id: string) {
+  const tab = getTab(id);
+  if (!tab) return;
+  updateTab(id, { isPinned: !tab.isPinned });
 }

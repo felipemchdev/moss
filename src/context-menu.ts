@@ -5,6 +5,8 @@ export interface TabContextMenuActions {
   onDuplicate: (tabId: string) => void;
   onClose: (tabId: string) => void;
   onCloseOthers: (tabId: string) => void;
+  onTogglePin: (tabId: string) => void;
+  isPinned: (tabId: string) => boolean;
 }
 
 export interface TabContextMenu {
@@ -28,32 +30,48 @@ export function createTabContextMenu(
     style: "display: none;",
   });
 
-  const menuOptions: { label: string; action: (tabId: string) => void }[] = [
+  // Pin button is dynamic — rebuilt on each open
+  let pinButton: HTMLButtonElement | null = null;
+
+  const staticOptions: { label: string; action: (tabId: string) => void }[] = [
     { label: "Recarregar", action: actions.onReload },
     { label: "Duplicar", action: actions.onDuplicate },
     { label: "Fechar aba", action: actions.onClose },
     { label: "Fechar outras abas", action: actions.onCloseOthers },
   ];
 
-  for (const option of menuOptions) {
+  // Build static items
+  for (const option of staticOptions) {
     const itemButton = el(
       "button",
-      {
-        class: "tab-context-menu__item",
-        type: "button",
-        role: "menuitem",
-      },
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
       [option.label],
     );
-
     itemButton.addEventListener("click", (event) => {
       event.stopPropagation();
       const targetTabId = activeTabId;
       menu.close();
       if (targetTabId) option.action(targetTabId);
     });
-
     element.append(itemButton);
+  }
+
+  // Pin button (prepended dynamically before first item)
+  function buildPinButton(tabId: string) {
+    if (pinButton) pinButton.remove();
+    const label = actions.isPinned(tabId) ? "Desafixar aba" : "Fixar aba";
+    pinButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [label],
+    ) as HTMLButtonElement;
+    pinButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const targetTabId = activeTabId;
+      menu.close();
+      if (targetTabId) actions.onTogglePin(targetTabId);
+    });
+    element.prepend(pinButton);
   }
 
   function onPointerDown(event: PointerEvent) {
@@ -75,12 +93,10 @@ export function createTabContextMenu(
     const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      const nextIndex = (index + 1) % buttons.length;
-      buttons[nextIndex]?.focus();
+      buttons[(index + 1) % buttons.length]?.focus();
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      const prevIndex = (index - 1 + buttons.length) % buttons.length;
-      buttons[prevIndex]?.focus();
+      buttons[(index - 1 + buttons.length) % buttons.length]?.focus();
     }
   });
 
@@ -90,13 +106,14 @@ export function createTabContextMenu(
     open(tabId: string, x: number, y: number) {
       activeTabId = tabId;
       open = true;
+      buildPinButton(tabId);
+
       element.style.visibility = "hidden";
       element.style.display = "flex";
 
       const rect = element.getBoundingClientRect();
       const width = rect.width || 180;
       const height = rect.height || 160;
-
       const left = Math.max(8, Math.min(x, window.innerWidth - width - 8));
       const top = Math.max(8, Math.min(y, window.innerHeight - height - 8));
 
@@ -108,8 +125,7 @@ export function createTabContextMenu(
       document.addEventListener("keydown", onKeyDown);
       onChange?.();
 
-      const firstItem = element.querySelector<HTMLButtonElement>(".tab-context-menu__item");
-      firstItem?.focus();
+      element.querySelector<HTMLButtonElement>(".tab-context-menu__item")?.focus();
     },
     close() {
       if (!open) return;

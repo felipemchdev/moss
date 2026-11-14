@@ -114,6 +114,14 @@
   --color-success-bg:    rgba(34, 197, 94, 0.12);
   --color-success-border: rgba(34, 197, 94, 0.25);
 
+  /* --- Window Button Colors (Semantic, theme-aware) --- */
+  --color-window-close:       #ff5f57;
+  --color-window-close-hover: #ff7b73;
+  --color-window-minimize:       #febc2e;
+  --color-window-minimize-hover: #ffcd5a;
+  --color-window-maximize:       #28ca42;
+  --color-window-maximize-hover: #5ae46c;
+
   /* --- Glass / Frosted Glass Tokens --- */
   --glass-blur:           blur(24px);
   --glass-blur-strong:    blur(40px);
@@ -214,7 +222,7 @@
   --tab-max-width:         300px;
   --tab-height:            34px;
   --tab-radius:            var(--radius-pill);
-  --sidebar-width:         300px;
+  --sidebar-width:         260px;
   --sidebar-collapsed:     56px;
   --status-bar-height:     24px;
   --command-palette-width: 680px;
@@ -349,6 +357,14 @@
     --color-accent-active:    var(--color-moss-450);
     --color-accent-glow:      rgba(93, 142, 66, 0.3);
     --color-accent-glow-strong: rgba(78, 120, 55, 0.45);
+
+    /* Window button colors (light theme - softer) */
+    --color-window-close:       #e04034;
+    --color-window-close-hover: #f06054;
+    --color-window-minimize:       #d4a018;
+    --color-window-minimize-hover: #e4b038;
+    --color-window-maximize:       #1ea038;
+    --color-window-maximize-hover: #3ec058;
 
     --glass-bg:             var(--color-bg-glass);
     --glass-bg-strong:      var(--color-bg-glass-strong);

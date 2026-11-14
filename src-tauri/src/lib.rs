@@ -270,6 +270,32 @@ fn close_tab(app: AppHandle, tab_id: String) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn minimize_window(app: AppHandle) -> Result<(), String> {
+    app.get_window(CHROME_LABEL)
+        .ok_or("main window not found")?
+        .minimize()
+        .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+fn toggle_maximize_window(app: AppHandle) -> Result<(), String> {
+    let window = app.get_window(CHROME_LABEL).ok_or("main window not found")?;
+    if window.is_maximized().map_err(|err| err.to_string())? {
+        window.unmaximize().map_err(|err| err.to_string())
+    } else {
+        window.maximize().map_err(|err| err.to_string())
+    }
+}
+
+#[tauri::command]
+fn close_window(app: AppHandle) -> Result<(), String> {
+    app.get_window(CHROME_LABEL)
+        .ok_or("main window not found")?
+        .close()
+        .map_err(|err| err.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -283,6 +309,9 @@ pub fn run() {
             go_forward,
             show_tab,
             close_tab,
+            minimize_window,
+            toggle_maximize_window,
+            close_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

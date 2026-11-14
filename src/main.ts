@@ -19,12 +19,14 @@ import {
   getActiveTab,
   getTab,
   getTabs,
+  loadPinnedUrls,
   selectTab,
   subscribe,
+  togglePinTab,
   updateTab,
   type Tab,
 } from "./tabs";
-import { webview } from "./webview";
+import { webview, windowControls } from "./webview";
 
 type NavAction = NavIntent;
 
@@ -64,14 +66,37 @@ function historyOf(tabId: string): NavHistory {
 }
 
 function buildChrome(root: HTMLElement) {
-  const newTabButton = el(
-    "button",
-    { class: "tab-new-btn", type: "button", "aria-label": "Nova aba", title: "Nova aba (Ctrl+T)" },
-    [icon("plus")],
-  );
-  const tabList = el("div", { class: "tab-list", role: "tablist" }, [newTabButton]);
-  const tabBar = el("div", { class: "tab-bar" }, [tabList]);
+  // 1. Window controls
+  const closeWindowBtn = el("button", {
+    class: "window-btn window-btn--close",
+    type: "button",
+    "aria-label": "Fechar janela",
+    title: "Fechar janela",
+  });
+  const minimizeWindowBtn = el("button", {
+    class: "window-btn window-btn--minimize",
+    type: "button",
+    "aria-label": "Minimizar janela",
+    title: "Minimizar janela",
+  });
+  const maximizeWindowBtn = el("button", {
+    class: "window-btn window-btn--maximize",
+    type: "button",
+    "aria-label": "Maximizar janela",
+    title: "Maximizar janela",
+  });
 
+  closeWindowBtn.addEventListener("click", () => windowControls.close());
+  minimizeWindowBtn.addEventListener("click", () => windowControls.minimize());
+  maximizeWindowBtn.addEventListener("click", () => windowControls.toggleMaximize());
+
+  const windowControlsEl = el("div", { class: "window-controls" }, [
+    closeWindowBtn,
+    minimizeWindowBtn,
+    maximizeWindowBtn,
+  ]);
+
+  // 2. Navigation buttons
   const navButtons = {} as Record<NavAction, HTMLButtonElement>;
   for (const { action, label, icon: iconName } of NAV_BUTTONS) {
     navButtons[action] = el(
@@ -80,7 +105,12 @@ function buildChrome(root: HTMLElement) {
       [icon(iconName)],
     );
   }
+  const navRow = el("div", { class: "nav-row" }, Object.values(navButtons));
 
+  // 3. Sidebar header
+  const sidebarHeader = el("div", { class: "sidebar-header", "data-tauri-drag-region": "" }, [windowControlsEl, navRow]);
+
+  // 4. Sidebar omnibar
   const omnibarInput = el("input", {
     class: "omnibar-input",
     type: "text",
@@ -94,39 +124,99 @@ function buildChrome(root: HTMLElement) {
     { class: "omnibar-star-btn", type: "button", "aria-pressed": "false" },
     [icon("star")],
   );
-  const omnibar = el("form", { class: "omnibar", role: "search" }, [
+  const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
     el("span", { class: "omnibar-icon" }, [icon("search")]),
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
     el("div", { class: "omnibar-actions" }, [bookmarkToggle]),
   ]);
 
-  const toggleAttrs = { class: "nav-btn", type: "button", [PANEL_TOGGLE_ATTR]: "" };
+  // 5. Pinned tabs section
+  const pinnedTabsLabel = el("div", { class: "pinned-tabs-label" }, ["Fixadas"]);
+  const pinnedTabsGrid = el("div", {
+    class: "pinned-tabs-grid",
+    role: "tablist",
+    "aria-label": "Abas fixadas",
+  });
+  const pinnedTabsSection = el("div", { class: "pinned-tabs-section", style: "display: none;" }, [
+    pinnedTabsLabel,
+    pinnedTabsGrid,
+  ]);
+
+  // 6. Tab bar & new tab button
+  const newTabButton = el(
+    "button",
+    { class: "new-tab-btn tab-new-btn", type: "button", "aria-label": "Nova aba", title: "Nova aba (Ctrl+T)" },
+    [icon("plus"), el("span", {}, ["Nova Aba"])],
+  );
+  const newTabSection = el("div", { class: "new-tab-section" }, [newTabButton]);
+  const tabList = el("div", { class: "tabs-list tab-list", role: "tablist" });
+  const tabBar = el("div", { class: "tabs-section tab-bar" }, [tabList, newTabSection]);
+
+  // 7. Bookmarks bar
+  const bookmarksList = el("ul", { class: "bookmarks-list" });
+  const bookmarksBar = el(
+    "nav",
+    { class: "bookmarks-bar bookmarks-section", "aria-label": "Favoritos", style: "display: none;" },
+    [
+      el("div", { class: "bookmarks-header" }, [
+        el("span", { class: "bookmarks-title" }, ["Favoritos"]),
+      ]),
+      bookmarksList,
+    ],
+  );
+
+  // 8. Sidebar footer
+  const toggleAttrs = { type: "button", [PANEL_TOGGLE_ATTR]: "" };
   const historyButton = el(
     "button",
-    { ...toggleAttrs, "aria-label": "Histórico", title: "Histórico (Ctrl+H)" },
+    {
+      ...toggleAttrs,
+      class: "footer-btn footer-btn--privacy nav-btn",
+      "aria-label": "Privacidade",
+      title: "Histórico e Privacidade (Ctrl+H)",
+    },
     [icon("history")],
   );
   const settingsButton = el(
     "button",
-    { ...toggleAttrs, "aria-label": "Configurações", title: "Configurações (Ctrl+,)" },
+    {
+      ...toggleAttrs,
+      class: "footer-btn footer-btn--settings nav-btn",
+      "aria-label": "Configurações",
+      title: "Configurações (Ctrl+,)",
+    },
     [icon("settings")],
   );
-
-  // Native tab webviews render above the HTML, so the loading bar must live in the chrome.
-  const loadingBar = el("div", { class: "webview-loading" });
-  const toolbar = el("header", { class: "toolbar" }, [
-    el("nav", { class: "toolbar-group nav-group" }, Object.values(navButtons)),
-    el("div", { class: "toolbar-group omnibar-group" }, [omnibar]),
-    el("div", { class: "toolbar-group action-group" }, [historyButton, settingsButton]),
-    loadingBar,
+  const downloadsButton = el(
+    "button",
+    {
+      class: "footer-btn footer-btn--downloads nav-btn",
+      type: "button",
+      "aria-label": "Downloads",
+      title: "Downloads",
+    },
+    [icon("download")],
+  );
+  const sidebarFooter = el("footer", { class: "sidebar-footer" }, [
+    historyButton,
+    settingsButton,
+    downloadsButton,
   ]);
 
-  const bookmarksList = el("ul", { class: "bookmarks-list" });
-  const bookmarksBar = el("nav", { class: "bookmarks-bar", "aria-label": "Favoritos" }, [bookmarksList]);
+  // 9. Assemble sidebar
+  const sidebar = el("aside", { class: "sidebar" }, [
+    sidebarHeader,
+    omnibar,
+    pinnedTabsSection,
+    tabBar,
+    bookmarksBar,
+    sidebarFooter,
+  ]);
 
-  const emptyState = el("div", { class: "empty-state" }, [
-    el("h1", { class: "empty-state-title" }, ["moss"]),
-    el("p", { class: "empty-state-hint" }, ["Digite um endereço na omnibar para começar."]),
+  // 10. Main view with floating webview container
+  const emptyState = el("div", { class: "viewport-empty empty-state" }, [
+    el("h1", { class: "viewport-empty-title empty-state-title" }, ["moss"]),
+    el("p", { class: "viewport-empty-hint empty-state-hint" }, ["Digite um endereço na omnibar para começar."]),
     el(
       "div",
       { class: "empty-state-shortcuts" },
@@ -135,10 +225,13 @@ function buildChrome(root: HTMLElement) {
       ),
     ),
   ]);
-  const webviewContainer = el("div", { class: "webview-container" }, [emptyState]);
-  const mainView = el("main", { class: "main-view" }, [webviewContainer]);
+  const loadingBar = el("div", { class: "viewport-loading webview-loading" });
+  const webviewContainer = el("div", { class: "webview-container" }, [emptyState, loadingBar]);
+  const viewportCard = el("div", { class: "viewport-card" }, [webviewContainer]);
+  const mainView = el("main", { class: "main-view viewport-area" }, [viewportCard]);
 
-  root.append(tabBar, toolbar, bookmarksBar, mainView);
+  root.append(sidebar, mainView);
+
   return {
     tabList,
     newTabButton,
@@ -148,16 +241,18 @@ function buildChrome(root: HTMLElement) {
     bookmarkToggle,
     historyButton,
     settingsButton,
+    downloadsButton,
     bookmarksBar,
     bookmarksList,
     emptyState,
     loadingBar,
     webviewContainer,
+    pinnedTabsSection,
+    pinnedTabsGrid,
   };
 }
 
 function renderBookmarksBar(bar: HTMLElement, list: HTMLElement, bookmarks: readonly Bookmark[]) {
-  // The bar sets display:flex, which would override [hidden].
   bar.style.display = bookmarks.length === 0 ? "none" : "";
   list.replaceChildren(
     ...bookmarks.map((bookmark) =>
@@ -186,6 +281,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const ui = buildChrome(root);
   const tabElements = new Map<string, HTMLElement>();
+  const pinnedTabElements = new Map<string, HTMLElement>();
   let shownTabId: string | null = null;
   let shownUrl = "";
   let visibleWebviewId: string | null | undefined;
@@ -218,11 +314,17 @@ window.addEventListener("DOMContentLoaded", () => {
         closeTabAndWebview(tabId);
       },
       onCloseOthers(tabId) {
-        const otherTabs = getTabs().filter((t) => t.id !== tabId);
+        const otherTabs = getTabs().filter((t) => t.id !== tabId && !t.isPinned);
         for (const t of otherTabs) {
           closeTabAndWebview(t.id);
         }
         selectTab(tabId);
+      },
+      onTogglePin(tabId) {
+        togglePinTab(tabId);
+      },
+      isPinned(tabId) {
+        return getTab(tabId)?.isPinned ?? false;
       },
     },
     syncWebviewVisibility,
@@ -239,6 +341,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const downloadController = initDownloads(root);
   window.addEventListener("beforeunload", () => downloadController.destroy());
+
+  ui.downloadsButton.addEventListener("click", () => {
+    downloadController.show("moss-download", 100, true);
+  });
 
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {
@@ -286,7 +392,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Reuses the active tab when it is still blank instead of piling up empty tabs.
   function openUrl(url: string) {
     const tab = getActiveTab();
-    if (tab && !tab.url) navigate(tab.id, url);
+    if (tab && !tab.url && !tab.isPinned) navigate(tab.id, url);
     else openTab(url);
   }
 
@@ -341,14 +447,69 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function createPinnedTabElement(tabId: string): HTMLElement {
+    const node = el(
+      "div",
+      { class: "pinned-tab", role: "tab", tabindex: "0", "data-tab-id": tabId },
+      [
+        el("span", { class: "pinned-tab-favicon" }),
+        el(
+          "button",
+          { class: "pinned-tab-close", type: "button", "aria-label": "Fechar aba fixada", title: "Fechar aba" },
+          [icon("close")],
+        ),
+      ],
+    );
+    pinnedTabElements.set(tabId, node);
+    return node;
+  }
+
+  function renderPinnedTab(node: HTMLElement, tab: Tab) {
+    node.classList.toggle("pinned-tab--active", tab.active);
+    node.setAttribute("aria-selected", String(tab.active));
+    node.title = tab.url ? `${tab.title}\n${tab.url}` : tab.title;
+
+    const favicon = node.querySelector(".pinned-tab-favicon")!;
+    const iconName = tab.isLoading ? "spinner" : "globe";
+    if (favicon.getAttribute("data-icon") !== iconName) {
+      favicon.setAttribute("data-icon", iconName);
+      favicon.replaceChildren(icon(iconName));
+    }
+  }
+
   function renderTabBar(tabs: readonly Tab[]) {
+    const pinned = tabs.filter((t) => t.isPinned);
+    const unpinned = tabs.filter((t) => !t.isPinned);
+
+    ui.pinnedTabsSection.style.display = pinned.length > 0 ? "" : "none";
+
+    // Clean up removed or unpinned tabs from pinnedTabElements
+    for (const [id, node] of pinnedTabElements) {
+      if (!pinned.some((t) => t.id === id)) {
+        node.remove();
+        pinnedTabElements.delete(id);
+      }
+    }
+
+    // Render pinned tabs in grid
+    pinned.forEach((tab, index) => {
+      const node = pinnedTabElements.get(tab.id) ?? createPinnedTabElement(tab.id);
+      renderPinnedTab(node, tab);
+      if (ui.pinnedTabsGrid.children[index] !== node) {
+        ui.pinnedTabsGrid.insertBefore(node, ui.pinnedTabsGrid.children[index]);
+      }
+    });
+
+    // Clean up removed or pinned tabs from tabElements
     for (const [id, node] of tabElements) {
-      if (!tabs.some((tab) => tab.id === id)) {
+      if (!unpinned.some((t) => t.id === id)) {
         node.remove();
         tabElements.delete(id);
       }
     }
-    tabs.forEach((tab, index) => {
+
+    // Render unpinned tabs in tabList
+    unpinned.forEach((tab, index) => {
       const node = tabElements.get(tab.id) ?? createTabElement(tab.id);
       renderTab(node, tab);
       if (ui.tabList.children[index] !== node) {
@@ -394,9 +555,9 @@ window.addEventListener("DOMContentLoaded", () => {
     shownUrl = activeUrl;
   }
 
+  // Tab list (unpinned tabs) event handling
   ui.tabList.addEventListener("click", (event) => {
     const target = event.target as Element;
-    if (target.closest(".tab-new-btn")) return openTab();
     const tabId = target.closest<HTMLElement>(".tab")?.dataset.tabId;
     if (!tabId) return;
     if (target.closest(".tab-close")) closeTabAndWebview(tabId);
@@ -427,6 +588,42 @@ window.addEventListener("DOMContentLoaded", () => {
       selectTab(tabId);
     }
   });
+
+  // Pinned tabs grid event handling
+  ui.pinnedTabsGrid.addEventListener("click", (event) => {
+    const target = event.target as Element;
+    const tabId = target.closest<HTMLElement>(".pinned-tab")?.dataset.tabId;
+    if (!tabId) return;
+    if (target.closest(".pinned-tab-close")) closeTabAndWebview(tabId);
+    else selectTab(tabId);
+  });
+
+  ui.pinnedTabsGrid.addEventListener("auxclick", (event) => {
+    if (event.button !== 1) return;
+    const tabId = (event.target as Element).closest<HTMLElement>(".pinned-tab")?.dataset.tabId;
+    if (tabId) closeTabAndWebview(tabId);
+  });
+
+  ui.pinnedTabsGrid.addEventListener("contextmenu", (event) => {
+    const target = event.target as Element;
+    const tabNode = target.closest<HTMLElement>(".pinned-tab");
+    if (!tabNode) return;
+    const tabId = tabNode.dataset.tabId;
+    if (!tabId) return;
+    event.preventDefault();
+    closePanels();
+    tabContextMenu.open(tabId, event.clientX, event.clientY);
+  });
+
+  ui.pinnedTabsGrid.addEventListener("keydown", (event) => {
+    const tabId = (event.target as Element).closest<HTMLElement>(".pinned-tab")?.dataset.tabId;
+    if (tabId && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      selectTab(tabId);
+    }
+  });
+
+  ui.newTabButton.addEventListener("click", () => openTab());
 
   for (const { action } of NAV_BUTTONS) {
     ui.navButtons[action].addEventListener("click", () => runNavAction(action));
@@ -565,5 +762,21 @@ window.addEventListener("DOMContentLoaded", () => {
     renderBookmarksBar(ui.bookmarksBar, ui.bookmarksList, bookmarks);
     renderBookmarkToggle();
   });
-  openTab();
+
+  // Restore persisted pinned tabs, then open initial tab if needed
+  const pinnedUrls = loadPinnedUrls();
+  for (const url of pinnedUrls) {
+    const tab = createTab(url, true);
+    if (url) navigate(tab.id, url);
+  }
+
+  const existingTabs = getTabs();
+  if (existingTabs.length === 0 || existingTabs.every((t) => t.isPinned)) {
+    openTab();
+  } else {
+    const active = getActiveTab();
+    if (!active && existingTabs[0]) {
+      selectTab(existingTabs[0].id);
+    }
+  }
 });

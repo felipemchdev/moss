@@ -7,7 +7,7 @@ export interface Viewport {
   height: number;
 }
 
-function call(command: string, args: Record<string, unknown>) {
+function call(command: string, args: Record<string, unknown> = {}) {
   const pending = invoke(command, args);
   pending.catch((error) => console.error(`[moss] ${command} failed:`, error));
   return pending;
@@ -21,4 +21,10 @@ export const webview = {
   forward: (tabId: string) => call("go_forward", { tabId }),
   show: (tabId: string | null) => call("show_tab", { tabId }),
   close: (tabId: string) => call("close_tab", { tabId }),
+};
+
+export const windowControls = {
+  minimize: () => call("minimize_window"),
+  toggleMaximize: () => call("toggle_maximize_window"),
+  close: () => call("close_window"),
 };

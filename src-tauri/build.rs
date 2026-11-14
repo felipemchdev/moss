@@ -6,6 +6,9 @@ const COMMANDS: &[&str] = &[
     "go_forward",
     "show_tab",
     "close_tab",
+    "minimize_window",
+    "toggle_maximize_window",
+    "close_window",
 ];
 
 fn main() {

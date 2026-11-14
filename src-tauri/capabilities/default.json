@@ -12,6 +12,9 @@
     "allow-go-back",
     "allow-go-forward",
     "allow-show-tab",
-    "allow-close-tab"
+    "allow-close-tab",
+    "allow-minimize-window",
+    "allow-toggle-maximize-window",
+    "allow-close-window"
   ]
 }

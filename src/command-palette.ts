@@ -52,6 +52,8 @@ export interface CommandPaletteActions {
   navigateActiveTab: (url: string) => void;
   getTargetTab: () => Tab | undefined;
   isSplitActive: () => boolean;
+  toggleSidebar: () => void;
+  isSidebarCollapsed: () => boolean;
 }
 
 export interface CommandPaletteController {
@@ -242,6 +244,21 @@ export function createCommandPalette(
         shortcut: ["Ctrl", "\\"],
         keywords: ["split", "dividir", "divisao", "lado", "telas", "duas"],
         run: () => actions.toggleSplitView(),
+      },
+      {
+        id: "action-toggle-sidebar",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: actions.isSidebarCollapsed()
+          ? "Expandir Barra Lateral"
+          : "Recolher Barra Lateral (Modo Compacto)",
+        subtitle: actions.isSidebarCollapsed()
+          ? "Exibir barra lateral completa com nomes e abas"
+          : "Modo compacto com dock de ícones de 56px",
+        iconName: "sidebar",
+        shortcut: ["Ctrl", "B"],
+        keywords: ["sidebar", "barra", "lateral", "compacto", "recolher", "expandir", "dock"],
+        run: () => actions.toggleSidebar(),
       },
     ];
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-11-14
+
+### Added
+- Collapsible Sidebar & Compact Mode (`Ctrl+B`) inspired by Zen Browser Compact Mode (`src/sidebar.ts`, `src/styles/browser-chrome.css`).
+- 56px ultra-compact dock layout (`#app.sidebar-collapsed`) preserving tab favicons, active status indicators, compact window controls, workspace icon indicator, and centered quick action buttons.
+- Floating Top Bar (`.floating-top-bar`) activated in compact mode offering seamless Back, Forward, Reload navigation buttons, security status lock icon, interactive URL / search chip with `Ctrl+K` hint, reader mode, split view, bookmark star, and expand sidebar action.
+- Automatic viewport geometry calculation with zero HWND occlusion: `webviewContainer` dynamically resizes to fill the expanded horizontal space and adjusts vertically below the floating top bar with full `ResizeObserver` and `transitionend` synchronization.
+- Quick Search integration: clicking the collapsed omnibar or pressing `Ctrl+L` in compact mode automatically invokes the Command Palette (`Ctrl+K`).
+- Full keyboard integration with `Ctrl+B` toggle, command palette action, and shortcuts modal documentation (`src/shortcuts-modal.ts`).
+- Persistent sidebar state stored in `localStorage` (`moss:sidebar_collapsed`).
+
+### Security
+- Native child webviews remain strictly isolated with zero IPC permissions required for remote tabs. All sidebar and floating top bar controls interact purely within the secure main window shell.
+
 ## [0.8.0] - 2026-11-14
 
 ### Added

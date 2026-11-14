@@ -54,6 +54,7 @@ import {
   subscribeWorkspaces,
 } from "./workspaces";
 import { createWorkspaceSwitcher } from "./workspace-switcher";
+import { isSidebarCollapsed, toggleSidebar, subscribeSidebar } from "./sidebar";
 import { createFindInPage } from "./find-in-page";
 import { createReaderView } from "./reader-view";
 import { createSiteInfoPopover } from "./site-info-popover";
@@ -143,6 +144,23 @@ function buildChrome(root: HTMLElement) {
     maximizeWindowBtn,
   ]);
 
+  const sidebarToggleBtn = el(
+    "button",
+    {
+      class: "sidebar-toggle-btn nav-btn",
+      type: "button",
+      "aria-label": "Recolher barra lateral (Ctrl+B)",
+      title: "Recolher barra lateral (Ctrl+B)",
+    },
+    [icon("sidebar")],
+  );
+
+  const sidebarHeaderTop = el(
+    "div",
+    { class: "sidebar-header-top", "data-tauri-drag-region": "" },
+    [windowControlsEl, sidebarToggleBtn],
+  );
+
   // 2. Navigation buttons
   const navButtons = {} as Record<NavAction, HTMLButtonElement>;
   for (const { action, label, icon: iconName } of NAV_BUTTONS) {
@@ -155,7 +173,10 @@ function buildChrome(root: HTMLElement) {
   const navRow = el("div", { class: "nav-row" }, Object.values(navButtons));
 
   // 3. Sidebar header
-  const sidebarHeader = el("div", { class: "sidebar-header", "data-tauri-drag-region": "" }, [windowControlsEl, navRow]);
+  const sidebarHeader = el("div", { class: "sidebar-header", "data-tauri-drag-region": "" }, [
+    sidebarHeaderTop,
+    navRow,
+  ]);
 
   // 4. Sidebar omnibar
   const omnibarInput = el("input", {
@@ -330,7 +351,76 @@ function buildChrome(root: HTMLElement) {
     sidebarFooter,
   ]);
 
-  // 10. Main view with floating webview container
+  // 10. Floating top bar for compact mode
+  const floatingBackBtn = el(
+    "button",
+    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Voltar", title: "Voltar (Alt+←)", disabled: "" },
+    [icon("back")],
+  );
+  const floatingForwardBtn = el(
+    "button",
+    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Avançar", title: "Avançar (Alt+→)", disabled: "" },
+    [icon("forward")],
+  );
+  const floatingReloadBtn = el(
+    "button",
+    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Recarregar", title: "Recarregar (F5)", disabled: "" },
+    [icon("reload")],
+  );
+
+  const floatingSecurityIcon = el("span", { class: "floating-security-icon" }, [icon("globe")]);
+  const floatingUrlText = el("span", { class: "floating-url-text" }, ["Pesquise ou digite um endereço"]);
+  const floatingShortcut = el("kbd", { class: "floating-shortcut" }, ["Ctrl+K"]);
+  const floatingOmnibarPill = el(
+    "div",
+    {
+      class: "floating-omnibar-pill",
+      role: "button",
+      tabindex: "0",
+      "aria-label": "Pesquisar ou digitar endereço",
+      title: "Pesquisar ou digitar endereço (Ctrl+K)",
+    },
+    [floatingSecurityIcon, floatingUrlText, floatingShortcut],
+  );
+
+  const floatingReaderBtn = el(
+    "button",
+    { class: "nav-btn floating-action-btn", type: "button", "aria-label": "Modo leitura (Ctrl+Alt+R)", title: "Modo leitura (Ctrl+Alt+R)" },
+    [icon("book")],
+  );
+  const floatingSplitBtn = el(
+    "button",
+    { class: "nav-btn floating-action-btn", type: "button", "aria-label": "Alternar tela dividida (Ctrl+\\)", title: "Alternar tela dividida (Ctrl+\\)" },
+    [icon("split")],
+  );
+  const floatingStarBtn = el(
+    "button",
+    { class: "nav-btn floating-action-btn", type: "button", "aria-label": "Favoritos", title: "Favoritar esta página" },
+    [icon("star")],
+  );
+  const floatingExpandBtn = el(
+    "button",
+    {
+      class: "nav-btn floating-action-btn floating-expand-btn",
+      type: "button",
+      "aria-label": "Expandir barra lateral (Ctrl+B)",
+      title: "Expandir barra lateral (Ctrl+B)",
+    },
+    [icon("sidebarCollapsed")],
+  );
+
+  const floatingTopBar = el("header", { class: "floating-top-bar", "aria-label": "Navegação rápida compacta" }, [
+    el("div", { class: "floating-nav-group" }, [floatingBackBtn, floatingForwardBtn, floatingReloadBtn]),
+    floatingOmnibarPill,
+    el("div", { class: "floating-actions-group" }, [
+      floatingReaderBtn,
+      floatingSplitBtn,
+      floatingStarBtn,
+      floatingExpandBtn,
+    ]),
+  ]);
+
+  // 11. Main view with floating webview container
   const emptyState = el("div", { class: "viewport-empty empty-state" }, [
     el("h1", { class: "viewport-empty-title empty-state-title" }, ["moss"]),
     el("p", { class: "viewport-empty-hint empty-state-hint" }, ["Digite um endereço na omnibar para começar."]),
@@ -344,7 +434,7 @@ function buildChrome(root: HTMLElement) {
   ]);
   const loadingBar = el("div", { class: "viewport-loading webview-loading" });
   const webviewContainer = el("div", { class: "webview-container" }, [emptyState, loadingBar]);
-  const viewportCard = el("div", { class: "viewport-card" }, [webviewContainer]);
+  const viewportCard = el("div", { class: "viewport-card" }, [floatingTopBar, webviewContainer]);
   const mainView = el("main", { class: "main-view viewport-area" }, [viewportCard]);
 
   root.append(sidebar, mainView);
@@ -353,6 +443,20 @@ function buildChrome(root: HTMLElement) {
     tabList,
     newTabButton,
     navButtons,
+    sidebarToggleBtn,
+    floatingTopBar,
+    floatingNavButtons: {
+      back: floatingBackBtn,
+      forward: floatingForwardBtn,
+      reload: floatingReloadBtn,
+    },
+    floatingOmnibarPill,
+    floatingSecurityIcon,
+    floatingUrlText,
+    floatingReaderBtn,
+    floatingSplitBtn,
+    floatingStarBtn,
+    floatingExpandBtn,
     omnibar,
     omnibarInput,
     securityButton,
@@ -683,6 +787,12 @@ window.addEventListener("DOMContentLoaded", () => {
       isSplitActive() {
         return isSplitActive();
       },
+      toggleSidebar() {
+        toggleSidebar();
+      },
+      isSidebarCollapsed() {
+        return isSidebarCollapsed();
+      },
     },
     syncWebviewVisibility,
   );
@@ -892,6 +1002,10 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function focusOmnibar() {
+    if (isSidebarCollapsed()) {
+      commandPalette.open();
+      return;
+    }
     ui.omnibarInput.focus();
     ui.omnibarInput.select();
   }
@@ -1066,9 +1180,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function renderSecurityButton(url: string | undefined) {
     ui.securityButton.classList.remove("omnibar-security-btn--secure", "omnibar-security-btn--insecure");
+    ui.floatingSecurityIcon.classList.remove("floating-security-icon--secure", "floating-security-icon--insecure");
     if (!url) {
       ui.securityButton.replaceChildren(icon("globe"));
       ui.securityButton.title = "Informações da página";
+      ui.floatingSecurityIcon.replaceChildren(icon("globe"));
       return;
     }
     try {
@@ -1077,17 +1193,23 @@ window.addEventListener("DOMContentLoaded", () => {
         ui.securityButton.classList.add("omnibar-security-btn--secure");
         ui.securityButton.replaceChildren(icon("lock"));
         ui.securityButton.title = `Conexão Segura — ${parsed.hostname}`;
+        ui.floatingSecurityIcon.classList.add("floating-security-icon--secure");
+        ui.floatingSecurityIcon.replaceChildren(icon("lock"));
       } else if (parsed.protocol === "http:") {
         ui.securityButton.classList.add("omnibar-security-btn--insecure");
         ui.securityButton.replaceChildren(icon("unlock"));
         ui.securityButton.title = `Conexão Não Segura — ${parsed.hostname}`;
+        ui.floatingSecurityIcon.classList.add("floating-security-icon--insecure");
+        ui.floatingSecurityIcon.replaceChildren(icon("unlock"));
       } else {
         ui.securityButton.replaceChildren(icon("globe"));
         ui.securityButton.title = `Página local — ${url}`;
+        ui.floatingSecurityIcon.replaceChildren(icon("globe"));
       }
     } catch {
       ui.securityButton.replaceChildren(icon("globe"));
       ui.securityButton.title = "Informações da página";
+      ui.floatingSecurityIcon.replaceChildren(icon("globe"));
     }
   }
 
@@ -1098,6 +1220,14 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.navButtons.back.disabled = !target?.canGoBack;
     ui.navButtons.forward.disabled = !target?.canGoForward;
     ui.navButtons.reload.disabled = !target?.url;
+    ui.floatingNavButtons.back.disabled = !target?.canGoBack;
+    ui.floatingNavButtons.forward.disabled = !target?.canGoForward;
+    ui.floatingNavButtons.reload.disabled = !target?.url;
+    ui.floatingUrlText.textContent = target?.url || "Pesquise ou digite um endereço";
+    ui.floatingReaderBtn.classList.toggle("floating-action-btn--active", readerView.isOpen());
+    ui.floatingSplitBtn.classList.toggle("floating-action-btn--active", isSplitActive());
+    const isTargetBookmarked = target?.url ? isBookmarked(target.url) : false;
+    ui.floatingStarBtn.classList.toggle("floating-action-btn--active", isTargetBookmarked);
     ui.emptyState.style.display = target?.url ? "none" : "";
     ui.loadingBar.style.display = target?.isLoading ? "" : "none";
     document.title = target?.url ? `${target.title} — Moss` : "Moss";
@@ -1232,6 +1362,62 @@ window.addEventListener("DOMContentLoaded", () => {
   ui.omnibarSplitBtn.addEventListener("click", () => toggleSplitView());
   ui.historyButton.addEventListener("click", () => togglePanel(historyPanel));
   ui.settingsButton.addEventListener("click", () => togglePanel(settingsPanel));
+
+  ui.sidebarToggleBtn.addEventListener("click", () => toggleSidebar());
+  ui.floatingExpandBtn.addEventListener("click", () => toggleSidebar());
+
+  ui.floatingNavButtons.back.addEventListener("click", () => runNavAction("back"));
+  ui.floatingNavButtons.forward.addEventListener("click", () => runNavAction("forward"));
+  ui.floatingNavButtons.reload.addEventListener("click", () => runNavAction("reload"));
+
+  ui.floatingOmnibarPill.addEventListener("click", () => commandPalette.open());
+  ui.floatingOmnibarPill.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      commandPalette.open();
+    }
+  });
+
+  ui.floatingReaderBtn.addEventListener("click", () => toggleReaderMode());
+  ui.floatingSplitBtn.addEventListener("click", () => toggleSplitView());
+  ui.floatingStarBtn.addEventListener("click", () => {
+    const tab = getTargetTab();
+    if (!tab || !isWebUrl(tab.url)) return;
+    if (isBookmarked(tab.url)) removeBookmark(tab.url);
+    else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
+  });
+
+  ui.omnibar.addEventListener("click", (e) => {
+    if (isSidebarCollapsed()) {
+      e.preventDefault();
+      commandPalette.open();
+    }
+  });
+
+  const appRoot = document.getElementById("app");
+  subscribeSidebar((collapsed) => {
+    appRoot?.classList.toggle("sidebar-collapsed", collapsed);
+    ui.sidebarToggleBtn.title = collapsed
+      ? "Expandir barra lateral (Ctrl+B)"
+      : "Recolher barra lateral (Ctrl+B)";
+    ui.sidebarToggleBtn.setAttribute("aria-label", ui.sidebarToggleBtn.title);
+    ui.sidebarToggleBtn.replaceChildren(icon(collapsed ? "sidebarCollapsed" : "sidebar"));
+    syncViewport();
+    syncWebviewVisibility();
+  });
+
+  if (isSidebarCollapsed()) {
+    appRoot?.classList.add("sidebar-collapsed");
+    ui.sidebarToggleBtn.title = "Expandir barra lateral (Ctrl+B)";
+    ui.sidebarToggleBtn.setAttribute("aria-label", ui.sidebarToggleBtn.title);
+    ui.sidebarToggleBtn.replaceChildren(icon("sidebarCollapsed"));
+  }
+
+  appRoot?.addEventListener("transitionend", (e) => {
+    if (e.target === appRoot && e.propertyName === "grid-template-columns") {
+      syncViewport();
+    }
+  });
 
   ui.bookmarkToggle.addEventListener("click", () => {
     const tab = getTargetTab();
@@ -1455,6 +1641,11 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!wasOpen) {
         commandPalette.open();
       }
+      return;
+    }
+    if (key === "b" && !event.shiftKey) {
+      event.preventDefault();
+      toggleSidebar();
       return;
     }
     if (key === "h") togglePanel(historyPanel);

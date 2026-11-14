@@ -45,6 +45,21 @@ Combina a ergonomia espacial do **Zen Browser** e **Arc** com a elegância glass
 
 ---
 
+### 🧩 Tabela de Componentes
+
+| Subsistema | Módulos Principais | Tecnologia | Responsabilidade |
+| --- | --- | --- | --- |
+| **Shell & UI Chrome** | `main.ts`, `dom.ts`, `icons.ts`, `tokens.css` | TypeScript, CSS3 | Layout glassmorphic, barra vertical e ciclo de vida da interface. |
+| **Abas & Pastas** | `tabs.ts`, `folders.ts`, `split-view.ts` | TypeScript, DOM API | Gerenciamento de abas, pastas hierárquicas e hibernação de memória. |
+| **Roteamento & Espaços** | `workspaces.ts`, `space-routing.ts`, `toast.ts` | TypeScript | Mapeamento inteligente de domínios e isolamento de contextos. |
+| **Inspeção & Estilização** | `boosts.ts`, `boosts-popover.ts`, `glance.ts` | TypeScript, CSS | Element Zapper, Smart Dark Mode, CSS injetado e Glance modal. |
+| **Multimídia** | `media.ts`, `media-widget.ts` | TypeScript, MediaSession API | Detecção global de faixas, mini-player e mute direto em abas. |
+| **Segurança & Sistema** | `privacy-shield.ts`, `permissions.ts`, `downloads.ts` | TypeScript | Bloqueio de rastreadores, permissões e gerenciamento de arquivos. |
+| **Onboarding** | `welcome-wizard.ts`, `settings.ts` | TypeScript | Assistente inicial de 5 passos e sincronização de preferências. |
+| **Backend Core** | `src-tauri/src/lib.rs` | Rust, Tauri 2, Tokio | Gerenciamento de child webviews nativas, IPC assíncrono e HWNDs. |
+
+---
+
 ### ✨ Funcionalidades Principais
 
 #### 🗄️ Zen Vertical Sidebar & Modo Compacto (`Ctrl+B`)
@@ -159,7 +174,194 @@ pnpm tauri build
 
 Minimalist, ultra-fast, and tranquil web browser built with **Tauri 2.x**, **Rust**, **TypeScript**, **Vite**, and **WebView2**.
 
-Inspired by **Zen Browser** and **Arc**, featuring vertical tabs, workspaces with automatic domain routing, collapsible tab folders with memory hibernation, non-destructive link glancing, DOM element zapping, and background media controls.
+Combines the spatial ergonomics of **Zen Browser** and **Arc** with the glassmorphic elegance of **macOS (Apple Motion)** over a serene moss green palette (*Sage*, *Matcha*, *Moss Pastel*).
 
-### License
-MIT License. Created with passion for a calmer web.
+---
+
+### 🏛️ System Architecture
+
+```
+                  ┌──────────────────────────────────────────────┐
+                  │             Moss Browser Chrome              │
+                  │       (TypeScript + HTML5 + CSS Tokens)      │
+                  │  Vertical Sidebar · Workspaces · Omnibar     │
+                  │  Tab Folders · Boosts · Zapper · Media Widget│
+                  └──────────────────────┬───────────────────────┘
+                                         │
+                                Tauri 2 IPC Bridge
+                                         │
+                  ┌──────────────────────▼───────────────────────┐
+                  │              Tauri Core (Rust)               │
+                  │   Child Webviews · Viewports · Media State   │
+                  │   Ad-Block Engine · Native Permissions · OS  │
+                  └──────────────────────┬───────────────────────┘
+                                         │
+                               Native System Engine
+                                         │
+                  ┌──────────────────────▼───────────────────────┐
+                  │            WebView2 / WebKit Child           │
+                  │      tab-1         tab-2         tab-N       │
+                  │         (100% Isolated Remote Context)       │
+                  └──────────────────────────────────────────────┘
+```
+
+---
+
+### 🧩 Component Specifications
+
+| Subsystem | Key Modules | Technology | Responsibility |
+| --- | --- | --- | --- |
+| **Shell & Chrome UI** | `main.ts`, `dom.ts`, `icons.ts`, `tokens.css` | TypeScript, CSS3 | Glassmorphic layout, vertical sidebar, and UI lifecycle. |
+| **Tabs & Folders** | `tabs.ts`, `folders.ts`, `split-view.ts` | TypeScript, DOM API | Tab lifecycle, folder grouping, and memory hibernation. |
+| **Spaces & Routing** | `workspaces.ts`, `space-routing.ts`, `toast.ts` | TypeScript | Domain-to-workspace routing and context isolation. |
+| **Page Customization** | `boosts.ts`, `boosts-popover.ts`, `glance.ts` | TypeScript, CSS | Element Zapper, Smart Dark Mode, custom CSS, and Glance modal. |
+| **Media Controller** | `media.ts`, `media-widget.ts` | TypeScript, MediaSession API | Global audio tracking, sidebar player, and tab mute controls. |
+| **Security & System** | `privacy-shield.ts`, `permissions.ts`, `downloads.ts` | TypeScript | Native ad-blocking, permission rules, and file downloads. |
+| **Onboarding** | `welcome-wizard.ts`, `settings.ts` | TypeScript | Guided setup wizard and persistent configuration storage. |
+| **Backend Core** | `src-tauri/src/lib.rs` | Rust, Tauri 2, Tokio | Native child webview control, async runtime, and HWND handling. |
+
+---
+
+### ⚙️ Technical Specifications
+
+#### 1. Native Webview Isolation
+- The application separates the browser chrome from web content execution.
+- Remote tabs run inside isolated child webviews (`tab-<id>`) with zero IPC capabilities.
+- The chrome webview executes with restricted Tauri privileges on an isolated origin.
+
+#### 2. Tab Hibernation & Memory Optimization
+- When memory optimization activates, the background native webview unloads completely.
+- The operating system destroys the native HWND handle.
+- Tab metadata, scroll coordinates, and title remain stored in memory.
+- When the user selects a sleeping tab, the system recreates the webview and restores page state.
+
+#### 3. Asynchronous Element Zapper
+- The Element Zapper uses non-blocking runtime tasks via `tauri::async_runtime::spawn`.
+- Polling runs at regular 150ms intervals using `tokio::time::sleep` without blocking the main event thread.
+- Selected CSS selectors persist in `localStorage` under domain-specific keys (`moss:domain_zap_rules`).
+
+#### 4. Design Token Hierarchy
+- The system consolidates design tokens in `tokens.css` as the canonical source of truth.
+- Standardized z-index scale:
+  - `--z-tooltip`: `600`
+  - `--z-toast`: `700`
+  - `--z-command-palette`: `800`
+  - `--z-wizard`: `900`
+  - `--z-glass-overlay`: `1000`
+
+---
+
+### ✨ Features
+
+#### 🗄️ Vertical Sidebar & Compact Mode (`Ctrl+B`)
+- Vertical sidebar (260px) with native window controls and pinned tabs grid.
+- Compact mode collapses the sidebar to a 56px icon dock.
+- Floating top bar automatically appears during compact navigation.
+
+#### 🧭 Workspaces & Domain Space Routing
+- Isolated workspaces (Personal, Work, Development, or Custom) accessible via `Ctrl+Alt+1..9`.
+- Space Routing intercepts navigation and assigns domains to workspaces automatically.
+- Supports automatic migration or user confirmation prompts with glassmorphic toast notifications.
+
+#### 📁 Tab Folders & Hibernation
+- Hierarchical tab grouping with custom colors and collapsible folder headers.
+- Drag-and-drop tab reordering.
+- Background tab hibernation unloads native webviews to save memory.
+- Hibernated tabs show a moon icon indicator.
+
+#### ⚡ Zen Boosts & Element Zapper (`Ctrl+Shift+Z`)
+- Element Zapper targets and removes page elements with persistent domain rules.
+- Smart Dark Mode inverts page colors while preserving media and canvas elements.
+- Real-time brightness and contrast sliders, sepia filter, and custom CSS injection.
+
+#### 👁️ Glance Link Peeking (`Shift+Click` / `Ctrl+Shift+G`)
+- Non-destructive floating preview modal for hyperlinks.
+- Automatically hides underlying webviews to prevent HWND occlusion.
+- Quick actions: open in standard tab (`Ctrl+O`), copy URL, or close (`Esc`).
+
+#### 🎵 Media Controls Widget
+- Global audio and video detection polling `navigator.mediaSession` across background tabs.
+- Sidebar mini-player with track information, playback toggle, and direct tab jump.
+- Interactive audio indicators on tabs with one-click mute.
+
+#### 🪟 Native Split View (`Ctrl+\`)
+- Side-by-side dual tab browsing with adjustable split ratio and focus management.
+
+#### 🎉 Zen Welcome Setup Wizard
+- Guided initial setup for new users:
+  1. Theme selection (Dark, Light, System).
+  2. Search engine selection (Google, DuckDuckGo, Bing, Ecosia, Kagi).
+  3. Privacy Shield configuration.
+  4. Essential web applications launcher.
+  5. Completion screen.
+
+#### 🛡️ Privacy Shield & Permissions
+- Integrated ad-blocker and anti-tracking engine.
+- Omnibar shield icon showing blocked tracker statistics.
+- Granular permission management per site (Camera, Microphone, Geolocation, Notifications).
+
+#### 📖 Reader Mode (`Ctrl+Alt+R`)
+- Distraction-free article reader with customizable typography and color themes.
+
+#### ⚡ Command Palette (`Ctrl+K` / `Ctrl+P`)
+- Unified launcher searching open tabs, browsing history, bookmarks, and browser actions.
+
+#### 📥 Download Manager (`Ctrl+J`)
+- Dedicated downloads panel with real-time progress bars and system file explorer integration.
+
+---
+
+### ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl + T` | New tab |
+| `Ctrl + W` | Close active tab |
+| `Ctrl + Shift + T` | Reopen closed tab |
+| `Ctrl + B` | Toggle sidebar (Compact mode) |
+| `Ctrl + K` / `Ctrl + P` | Command palette (Quick launcher) |
+| `Ctrl + \` / `Ctrl + Shift + S` | Toggle split view |
+| `Ctrl + Shift + G` | Glance active URL |
+| `Shift + Click` | Glance clicked hyperlink |
+| `Ctrl + Shift + Z` | Start Element Zapper |
+| `Ctrl + Alt + R` | Toggle reader mode |
+| `Ctrl + F` | Find in page |
+| `F3` / `Shift + F3` | Next / previous search match |
+| `Ctrl + +` / `Ctrl + -` | Zoom in / zoom out |
+| `Ctrl + 0` | Reset zoom (100%) |
+| `Ctrl + Alt + 1-9` | Switch workspace |
+| `Ctrl + Tab` / `Ctrl + Shift + Tab` | Next / previous tab |
+| `Ctrl + L` | Focus Omnibar |
+| `Ctrl + H` | Open browsing history |
+| `Ctrl + J` | Open download manager |
+| `Ctrl + ,` | Open settings |
+| `Ctrl + /` or `?` | Open keyboard shortcuts |
+| `F5` | Reload page |
+| `Alt + ←` / `Alt + →` | Navigate backward / forward |
+| `Esc` | Close modals and cancel modes |
+
+---
+
+### 🚀 Getting Started
+
+#### Prerequisites
+- [Node.js](https://nodejs.org/) (v18+)
+- [pnpm](https://pnpm.io/)
+- [Rust](https://www.rust-lang.org/) (MSVC build tools on Windows)
+
+```sh
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build production bundle
+pnpm tauri build
+```
+
+---
+
+### 📄 License
+
+MIT License. Copyright (c) 2026 felipemchdev.

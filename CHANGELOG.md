@@ -7,12 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-11-14
 
-### Release v1.0.0 — Production Ready
-- Lançamento oficial da versão 1.0.0 do Moss Browser.
-- Conclusão integral de todas as 25 fases do roadmap arquitetural (Fases 0 a 24).
-- Otimização rigorosa do bundle de produção com tree-shaking, lazy loading de webviews nativas e tempo de boot sub-200ms.
-- Configuração de empacotador de produção para Windows x64 (NSIS + MSI) em `src-tauri/tauri.conf.json`.
-- Documentação completa da arquitetura, especificações técnicas e atalhos em `README.md`.
+### Production Release — Version 1.0.0
+- Complete delivery of architectural phases 0 through 24.
+- Production bundle optimization with tree-shaking, lazy native webview loading, and sub-200ms cold startup.
+- Production package configuration for Windows x64 (NSIS and MSI targets) in `src-tauri/tauri.conf.json`.
+- Complete system architecture documentation, component index, and keyboard shortcuts in `README.md`.
+
+### Added
+- **Phase 18: Glance Link Peeking** (`src/glance.ts`, `src/main.ts`, `src/styles/browser-chrome.css`):
+  - Non-destructive floating modal preview for hyperlinks triggered via `Shift+Click` or `Ctrl+Shift+G`.
+  - Native HWND occlusion management that conceals underlying webviews while the preview modal is active.
+  - Automatic viewport state restoration when the user closes the Glance preview window.
+  - Quick action controls to open URL in a standard tab (`Ctrl+O`), copy URL to clipboard, or dismiss (`Esc`).
+- **Phase 19: Zen Space Routing** (`src/space-routing.ts`, `src/settings-panel.ts`, `src/toast.ts`):
+  - Navigation interception engine mapping web domains directly to designated workspaces.
+  - Automatic workspace switching and tab migration for matched domain rules.
+  - Configurable routing policy supporting automatic routing mode or confirmation prompt mode.
+  - Glassmorphic toast notification component (`.moss-toast`) with action triggers and timed dismissal.
+  - Settings panel section to configure, add, and remove domain routing assignments.
+- **Phase 20: Tab Folders & Tab Hibernation** (`src/folders.ts`, `src/tabs.ts`, `src/styles/browser-chrome.css`):
+  - Hierarchical tab grouping with custom colors, tab counters, and collapsible sections.
+  - Drag-and-drop tab organization for moving tabs into, between, and out of folders.
+  - Native tab hibernation engine that unloads background child webviews and destroys their OS HWNDs to reduce RAM usage.
+  - Metadata, scroll position, and navigation history preservation during tab hibernation.
+  - Transparent webview reconstruction upon user selection, marked with a sleeping moon indicator.
+- **Phase 21: Zen Boosts & Element Zapper** (`src/boosts.ts`, `src/boosts-popover.ts`, `src-tauri/src/lib.rs`):
+  - Interactive Element Zapper mode (`Ctrl+Shift+Z`) with real-time target bounding boxes and CSS selector extraction.
+  - Non-blocking asynchronous runtime polling implemented via `tauri::async_runtime::spawn` and `tokio::time::sleep`.
+  - Persistent domain element removal rules stored in `localStorage` (`moss:domain_zap_rules`).
+  - Domain styling controls: Smart Dark Mode with media color preservation, brightness and contrast sliders, and sepia filter.
+  - Per-site custom CSS editor with dynamic stylesheet injection.
+- **Phase 22: Media Controls Widget** (`src/media.ts`, `src/media-widget.ts`, `src-tauri/src/lib.rs`):
+  - Global audio and video monitor polling `navigator.mediaSession` across active and non-hibernated background tabs.
+  - Sidebar mini-player component displaying track title, artist name, artwork, play/pause toggle, and mute control.
+  - Direct navigation jump to the source tab when the user clicks the track title.
+  - Interactive tab audio indicator pills with real-time audio animation and one-click sound muting.
+  - Explicit widget lifecycle cleanup method (`destroy()`) that detaches reactive store subscriptions.
+- **Phase 23: Zen Welcome Wizard** (`src/welcome-wizard.ts`, `src/settings.ts`, `src/styles/browser-chrome.css`):
+  - Five-step guided initial onboarding flow (`moss:onboarding_completed`) for first launch.
+  - System theme preference mapping and synchronization for dark, light, and automatic modes.
+  - Persistent privacy shield and ad-blocking toggle configuration (`moss:shield_enabled`).
+  - Essential web applications launcher grid that initializes tabs and navigates child webviews.
+- **Phase 24: Design Token Consolidation** (`src/styles/tokens.css`, `src/styles/browser-chrome.css`):
+  - Consolidated single source of truth for design tokens in `tokens.css`.
+  - Standardized z-index scale hierarchy: tooltip (`600`), toast (`700`), command palette (`800`), wizard (`900`), and glass overlay (`1000`).
+  - Standardized backdrop filter variables (`--glass-backdrop-strong`, `--wizard-backdrop-bg`, `--wizard-backdrop-filter`).
+  - Modal corner radius standardization (`--radius-modal`) and elevation shadow tokens (`--glass-shadow`).
+  - Responsive layout breakpoints for onboarding and modal dialogs on compact displays.
+
+### Fixed
+- Element Zapper thread block: replaced synchronous polling with background async runtime task spawning.
+- Native webview occlusion: resolved overlay clipping by clearing active webview visibility during modal lifecycle.
+- Background media evaluation: expanded polling routine from active tab to all non-hibernated tabs.
+- Media widget memory leak: added subscription disposal handling to remove listeners on interface teardown.
 
 ## [0.17.0] - 2026-11-14
 

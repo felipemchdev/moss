@@ -62,6 +62,7 @@ export interface CommandPaletteActions {
   wakeAllTabs?: () => void;
   routeCurrentDomainToCurrentSpace?: () => void;
   openSpaceRoutingSettings?: () => void;
+  openWelcomeWizard?: () => void;
 }
 
 export interface CommandPaletteController {
@@ -378,6 +379,16 @@ export function createCommandPalette(
         iconName: "settings",
         keywords: ["roteamento", "regras", "espacos", "workspace", "configurar", "gerenciar"],
         run: () => actions.openSpaceRoutingSettings?.(),
+      },
+      {
+        id: "action-open-welcome-wizard",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Assistente de Boas-Vindas (Zen Welcome)",
+        subtitle: "Reiniciar o assistente de configuração inicial e temas",
+        iconName: "sparkles",
+        keywords: ["welcome", "onboarding", "boas-vindas", "assistente", "setup", "wizard", "inicio"],
+        run: () => actions.openWelcomeWizard?.(),
       },
       {
         id: "action-find-in-page",

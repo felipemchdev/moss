@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-11-14
+
+### Added
+- Zen Welcome & Setup Wizard Inicial (Onboarding) inspired by Zen Browser (`src/welcome-wizard.ts`, `src/styles/browser-chrome.css`).
+- Automatic first-run detection (`moss:onboarding_completed`) with interactive 5-step guided wizard:
+  - Step 0: Welcome splash with spring typography and visual theme picker (Dark / Light / Auto).
+  - Step 1: Default search engine selector (Google, DuckDuckGo, Bing, Ecosia, Kagi).
+  - Step 2: Privacy Shield & anti-tracking activation card.
+  - Step 3: Essentials Web Apps grid selector (GitHub, YouTube, Notion, Spotify, Reddit, Wikipédia) with instant tab creation.
+  - Step 4: Final ready screen with cinematic fade-out transition.
+- Command Palette action: "Assistente de Boas-Vindas (Zen Welcome)" to re-trigger onboarding wizard on demand.
+
 ## [0.16.0] - 2026-11-14
 
 ### Added

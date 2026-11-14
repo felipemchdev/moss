@@ -9,6 +9,7 @@ import { createBoostsPopover } from "./boosts-popover";
 import { applyBoostToTab, addDomainZapRule } from "./boosts";
 import { createMediaWidget } from "./media-widget";
 import { updateTabMediaState, clearTabMediaState, getMediaStateForTab, toggleMute } from "./media";
+import { createWelcomeWizard, isOnboardingCompleted } from "./welcome-wizard";
 import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
@@ -769,6 +770,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const boostsPopover = createBoostsPopover(syncWebviewVisibility);
 
+  const welcomeWizard = createWelcomeWizard(() => {
+    syncViewport();
+    syncWebviewVisibility();
+  });
+
   const commandPalette = createCommandPalette(
     {
       openTab(url) {
@@ -928,6 +934,11 @@ window.addEventListener("DOMContentLoaded", () => {
         closePanels();
         togglePanel(settingsPanel);
       },
+      openWelcomeWizard() {
+        closePanels();
+        welcomeWizard.open();
+        syncWebviewVisibility();
+      },
     },
     syncWebviewVisibility,
   );
@@ -961,6 +972,7 @@ window.addEventListener("DOMContentLoaded", () => {
     commandPalette.element,
     glance.overlay,
     boostsPopover.element,
+    welcomeWizard.element,
   );
 
   const downloadController = initDownloads(root);
@@ -1034,7 +1046,8 @@ window.addEventListener("DOMContentLoaded", () => {
       readerView.isOpen() ||
       siteInfoPopover.isOpen() ||
       commandPalette.isOpen() ||
-      boostsPopover.isOpen();
+      boostsPopover.isOpen() ||
+      welcomeWizard.isOpen();
 
     if (isBlocked) {
       if (visibleWebviewId !== null) {
@@ -1149,6 +1162,7 @@ window.addEventListener("DOMContentLoaded", () => {
     siteInfoPopover.close();
     commandPalette.close();
     if (boostsPopover.isOpen()) boostsPopover.close();
+    if (welcomeWizard.isOpen()) welcomeWizard.close();
     if (glance.isOpen()) glance.close();
   }
 
@@ -2376,5 +2390,10 @@ window.addEventListener("DOMContentLoaded", () => {
         selectTab(wsTabs[0].id);
       }
     }
+  }
+
+  if (!isOnboardingCompleted()) {
+    welcomeWizard.open();
+    syncWebviewVisibility();
   }
 });

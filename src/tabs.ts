@@ -1,3 +1,5 @@
+import { getActiveWorkspaceId } from "./workspaces";
+
 const PINNED_STORAGE_KEY = "moss:pinned_tabs";
 
 export interface Tab {
@@ -9,6 +11,7 @@ export interface Tab {
   canGoBack: boolean;
   canGoForward: boolean;
   isPinned: boolean;
+  workspaceId?: string;
 }
 
 export type TabPatch = Partial<Omit<Tab, "id" | "active">>;
@@ -60,22 +63,39 @@ export function getTab(id: string): Tab | undefined {
   return tabs.find((tab) => tab.id === id);
 }
 
-export function getActiveTab(): Tab | undefined {
-  return tabs.find((tab) => tab.active);
+export function getActiveTab(workspaceId = getActiveWorkspaceId()): Tab | undefined {
+  const isVisibleInWs = (t: Tab) => t.isPinned || (t.workspaceId ?? "default") === workspaceId;
+  const active = tabs.find((tab) => tab.active && isVisibleInWs(tab));
+  if (active) return active;
+  const first = tabs.find(isVisibleInWs);
+  return first;
 }
 
-export function createTab(initialUrl = "", pinned = false): Tab {
+export function getTabsForWorkspace(workspaceId: string): readonly Tab[] {
+  return tabs.filter((t) => t.isPinned || (t.workspaceId ?? "default") === workspaceId);
+}
+
+export function createTab(initialUrl = "", pinned = false, workspaceId?: string): Tab {
+  const curWsId = getActiveWorkspaceId();
+  const wsId = workspaceId ?? (pinned ? undefined : curWsId);
+  const shouldActivate = pinned || wsId === curWsId;
+
   const tab: Tab = {
     id: String(nextId++),
     title: NEW_TAB_TITLE,
     url: initialUrl,
-    active: true,
+    active: shouldActivate,
     isLoading: false,
     canGoBack: false,
     canGoForward: false,
     isPinned: pinned,
+    workspaceId: wsId,
   };
-  tabs = [...tabs.map((t) => (t.active ? { ...t, active: false } : t)), tab];
+
+  tabs = shouldActivate
+    ? [...tabs.map((t) => (t.active ? { ...t, active: false } : t)), tab]
+    : [...tabs, tab];
+
   notify();
   return tab;
 }
@@ -84,11 +104,22 @@ export function closeTab(id: string) {
   const index = tabs.findIndex((tab) => tab.id === id);
   if (index === -1) return;
 
-  const wasActive = tabs[index].active;
+  const closed = tabs[index];
+  const wasActive = closed.active;
+  const wsId = closed.workspaceId ?? getActiveWorkspaceId();
   const remaining = tabs.filter((tab) => tab.id !== id);
+
   if (wasActive && remaining.length > 0) {
-    const nextActive = remaining[Math.min(index, remaining.length - 1)];
-    tabs = remaining.map((tab) => (tab === nextActive ? { ...tab, active: true } : tab));
+    const sameWs = remaining.filter((t) => (t.workspaceId ?? "default") === wsId);
+    if (sameWs.length > 0) {
+      const wsTabsBefore = tabs.filter((t) => (t.workspaceId ?? "default") === wsId);
+      const localIndex = wsTabsBefore.findIndex((t) => t.id === id);
+      const nextActive = sameWs[Math.min(Math.max(0, localIndex), sameWs.length - 1)];
+      tabs = remaining.map((tab) => (tab === nextActive ? { ...tab, active: true } : tab));
+    } else {
+      const nextActive = remaining[Math.min(index, remaining.length - 1)];
+      tabs = remaining.map((tab) => (tab === nextActive ? { ...tab, active: true } : tab));
+    }
   } else {
     tabs = remaining;
   }
@@ -117,5 +148,17 @@ export function updateTab(id: string, patch: TabPatch) {
 export function togglePinTab(id: string) {
   const tab = getTab(id);
   if (!tab) return;
-  updateTab(id, { isPinned: !tab.isPinned });
+  const nextPinned = !tab.isPinned;
+  const patch: TabPatch = { isPinned: nextPinned };
+  if (!nextPinned && !tab.workspaceId) {
+    patch.workspaceId = getActiveWorkspaceId();
+  }
+  updateTab(id, patch);
+}
+
+export function moveTabToWorkspace(tabId: string, targetWorkspaceId: string) {
+  const tab = getTab(tabId);
+  if (!tab || tab.workspaceId === targetWorkspaceId) return;
+  tabs = tabs.map((t) => (t.id === tabId ? { ...t, workspaceId: targetWorkspaceId } : t));
+  notify();
 }

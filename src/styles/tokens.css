@@ -251,6 +251,16 @@
   --split-pane-active-ring:    0 0 0 2px var(--color-accent-glow), 0 0 0 4px var(--color-bg-primary);
   --split-pane-active-shadow:  inset 0 0 0 1px var(--color-accent-primary), var(--glass-shadow-strong);
 
+  /* --- Workspace Tokens --- */
+  --workspace-pill-height:     32px;
+  --workspace-pill-radius:     var(--radius-pill);
+  --workspace-pill-bg:         var(--glass-bg);
+  --workspace-pill-hover:      var(--glass-bg-hover);
+  --workspace-pill-border:     var(--glass-border);
+  --workspace-popover-width:   280px;
+  --workspace-popover-bg:      var(--glass-bg-strong);
+  --workspace-item-radius:     var(--radius-md);
+
   /* --- Z-Index Scale --- */
   --z-base:              0;
   --z-dropdown:          100;

@@ -37,12 +37,22 @@ import {
   getTab,
   getTabs,
   loadPinnedUrls,
+  moveTabToWorkspace,
   selectTab,
   subscribe,
   togglePinTab,
   updateTab,
   type Tab,
 } from "./tabs";
+import {
+  cycleWorkspace,
+  deleteWorkspace,
+  getActiveWorkspaceId,
+  getWorkspaces,
+  setActiveWorkspace,
+  subscribeWorkspaces,
+} from "./workspaces";
+import { createWorkspaceSwitcher } from "./workspace-switcher";
 import { webview, windowControls } from "./webview";
 
 type NavAction = NavIntent;
@@ -256,11 +266,15 @@ function buildChrome(root: HTMLElement) {
     downloadsButton,
   ]);
 
+  // 8.5. Workspace section
+  const workspaceSection = el("div", { class: "workspace-section" });
+
   // 9. Assemble sidebar
   const sidebar = el("aside", { class: "sidebar" }, [
     sidebarHeader,
     omnibar,
     pinnedTabsSection,
+    workspaceSection,
     tabBar,
     bookmarksBar,
     sidebarFooter,
@@ -305,6 +319,7 @@ function buildChrome(root: HTMLElement) {
     webviewContainer,
     pinnedTabsSection,
     pinnedTabsGrid,
+    workspaceSection,
   };
 }
 
@@ -402,9 +417,43 @@ window.addEventListener("DOMContentLoaded", () => {
       isSplitTab(tabId) {
         return getSecondaryTabId() === tabId;
       },
+      onMoveToWorkspace(tabId, workspaceId) {
+        moveTabToWorkspace(tabId, workspaceId);
+        const activeWs = getActiveWorkspaceId();
+        const curActive = getActiveTab();
+        if (curActive?.id === tabId) {
+          const remainingWsTabs = getTabs().filter(
+            (t) => !t.isPinned && (t.workspaceId ?? "default") === activeWs && t.id !== tabId,
+          );
+          if (remainingWsTabs.length > 0) {
+            selectTab(remainingWsTabs[0].id);
+          } else {
+            openTab();
+          }
+        }
+        syncViewport();
+        syncWebviewVisibility();
+      },
+      getWorkspaces() {
+        return getWorkspaces();
+      },
+      getCurrentWorkspaceId() {
+        return getActiveWorkspaceId();
+      },
     },
     syncWebviewVisibility,
   );
+
+  const workspaceSwitcher = createWorkspaceSwitcher({
+    onSwitch(workspaceId) {
+      handleSwitchWorkspace(workspaceId);
+    },
+    onDeleteWorkspace(workspaceId) {
+      handleDeleteWorkspace(workspaceId);
+    },
+    onVisibilityChange: syncWebviewVisibility,
+  });
+  ui.workspaceSection.append(workspaceSwitcher.element);
 
   const privacyShield = createPrivacyShield(ui.privacyButton, syncWebviewVisibility);
 
@@ -416,12 +465,14 @@ window.addEventListener("DOMContentLoaded", () => {
     shortcutsPanel.element,
     tabContextMenu.element,
     privacyShield.popover,
+    workspaceSwitcher.popover,
   );
 
   const downloadController = initDownloads(root);
   window.addEventListener("beforeunload", () => {
     downloadController.destroy();
     privacyShield.destroy();
+    workspaceSwitcher.destroy();
   });
 
   ui.privacyButton.addEventListener("click", () => {
@@ -445,7 +496,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const isBlocked =
       panels.some((panel) => panel.isOpen()) ||
       tabContextMenu.isOpen() ||
-      privacyShield.isOpen();
+      privacyShield.isOpen() ||
+      workspaceSwitcher.isOpen();
 
     if (isBlocked) {
       if (visibleWebviewId !== null) {
@@ -473,6 +525,36 @@ window.addEventListener("DOMContentLoaded", () => {
     webview.show(target);
   }
 
+  function handleSwitchWorkspace(workspaceId: string) {
+    setActiveWorkspace(workspaceId);
+    const tabs = getTabs();
+    const wsTabs = tabs.filter((t) => !t.isPinned && (t.workspaceId ?? "default") === workspaceId);
+    if (wsTabs.length > 0) {
+      const activeInWs = wsTabs.find((t) => t.active);
+      if (activeInWs) {
+        selectTab(activeInWs.id);
+      } else {
+        selectTab(wsTabs[0].id);
+      }
+    } else {
+      const newTab = createTab(getSettings().homepage, false, workspaceId);
+      if (newTab.url) navigate(newTab.id, newTab.url);
+    }
+    syncViewport();
+    syncWebviewVisibility();
+  }
+
+  function handleDeleteWorkspace(workspaceId: string) {
+    const tabsToClose = getTabs().filter(
+      (t) => !t.isPinned && (t.workspaceId ?? "default") === workspaceId,
+    );
+    for (const tab of tabsToClose) {
+      closeTabAndWebview(tab.id);
+    }
+    deleteWorkspace(workspaceId);
+    handleSwitchWorkspace(getActiveWorkspaceId());
+  }
+
   function handleToggleSplitForTab(tabId: string) {
     const active = getActiveTab();
     if (!active) return;
@@ -488,7 +570,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (other) {
           openSplit(tabId, other.id);
         } else {
-          const newTab = createTab(getSettings().homepage);
+          const newTab = createTab(getSettings().homepage, false, getActiveWorkspaceId());
           if (newTab.url) navigate(newTab.id, newTab.url);
           openSplit(tabId, newTab.id);
         }
@@ -524,6 +606,7 @@ window.addEventListener("DOMContentLoaded", () => {
     for (const panel of panels) panel.close();
     tabContextMenu.close();
     privacyShield.close();
+    workspaceSwitcher.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -548,7 +631,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function openTab(url?: string) {
     const target = url ?? getSettings().homepage;
-    const tab = createTab(target);
+    const tab = createTab(target, false, getActiveWorkspaceId());
     if (target) navigate(tab.id, target);
     if (!url) focusOmnibar();
   }
@@ -568,11 +651,16 @@ window.addEventListener("DOMContentLoaded", () => {
     webview.close(tabId);
     syncViewport();
     syncWebviewVisibility();
-    if (getTabs().length === 0) openTab();
+    const curWsId = getActiveWorkspaceId();
+    const remainingWsTabs = getTabs().filter(
+      (t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId,
+    );
+    if (remainingWsTabs.length === 0) openTab();
   }
 
   function cycleTabs(step: number) {
-    const tabs = getTabs();
+    const curWsId = getActiveWorkspaceId();
+    const tabs = getTabs().filter((t) => t.isPinned || (t.workspaceId ?? "default") === curWsId);
     const index = tabs.findIndex((tab) => tab.active);
     if (index === -1 || tabs.length < 2) return;
     selectTab(tabs[(index + step + tabs.length) % tabs.length].id);
@@ -645,8 +733,9 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderTabBar(tabs: readonly Tab[]) {
+    const curWsId = getActiveWorkspaceId();
     const pinned = tabs.filter((t) => t.isPinned);
-    const unpinned = tabs.filter((t) => !t.isPinned);
+    const unpinned = tabs.filter((t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId);
 
     ui.pinnedTabsSection.style.display = pinned.length > 0 ? "" : "none";
 
@@ -904,6 +993,40 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    if (event.ctrlKey && event.altKey && !event.metaKey && !event.shiftKey) {
+      const digit = parseInt(event.key, 10);
+      if (!isNaN(digit) && digit >= 1 && digit <= 9) {
+        event.preventDefault();
+        const wsList = getWorkspaces();
+        if (wsList[digit - 1]) {
+          handleSwitchWorkspace(wsList[digit - 1].id);
+        }
+        return;
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        const nextWs = cycleWorkspace(event.key === "ArrowRight" ? 1 : -1);
+        handleSwitchWorkspace(nextWs.id);
+        return;
+      }
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "m") {
+      event.preventDefault();
+      const targetTab = getTargetTab();
+      if (targetTab && !targetTab.isPinned) {
+        const wsList = getWorkspaces();
+        if (wsList.length > 1) {
+          const curWsId = targetTab.workspaceId ?? getActiveWorkspaceId();
+          const curIdx = wsList.findIndex((w) => w.id === curWsId);
+          const nextWs = wsList[(curIdx + 1) % wsList.length];
+          moveTabToWorkspace(targetTab.id, nextWs.id);
+          handleSwitchWorkspace(nextWs.id);
+        }
+      }
+      return;
+    }
+
     if (
       (event.ctrlKey || event.metaKey) &&
       event.shiftKey &&
@@ -1037,6 +1160,17 @@ window.addEventListener("DOMContentLoaded", () => {
     renderBookmarksBar(ui.bookmarksBar, ui.bookmarksList, bookmarks);
     renderBookmarkToggle();
   });
+  subscribeWorkspaces((_workspaces, activeWsId) => {
+    const wsTabs = getTabs().filter(
+      (t) => !t.isPinned && (t.workspaceId ?? "default") === activeWsId,
+    );
+    if (wsTabs.length > 0 && !wsTabs.some((t) => t.active)) {
+      selectTab(wsTabs[0].id);
+    }
+    render(getTabs());
+    syncViewport();
+    syncWebviewVisibility();
+  });
 
   // Restore persisted pinned tabs, then open initial tab if needed
   const pinnedUrls = loadPinnedUrls();
@@ -1045,13 +1179,17 @@ window.addEventListener("DOMContentLoaded", () => {
     if (url) navigate(tab.id, url);
   }
 
+  const curWsId = getActiveWorkspaceId();
   const existingTabs = getTabs();
-  if (existingTabs.length === 0 || existingTabs.every((t) => t.isPinned)) {
+  const wsTabs = existingTabs.filter(
+    (t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId,
+  );
+  if (wsTabs.length === 0) {
     openTab();
   } else {
-    const active = getActiveTab();
-    if (!active && existingTabs[0]) {
-      selectTab(existingTabs[0].id);
+    const active = wsTabs.find((t) => t.active);
+    if (!active && wsTabs[0]) {
+      selectTab(wsTabs[0].id);
     }
   }
 });

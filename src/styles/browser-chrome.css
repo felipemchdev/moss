@@ -3491,3 +3491,391 @@
   color: var(--color-fg-muted);
   opacity: 0.7;
 }
+
+/* ==========================================================================
+   WORKSPACES (Zen Workspaces)
+   ========================================================================== */
+
+.workspace-header-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.workspace-pill-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--workspace-pill-height, 32px);
+  padding: 0 var(--space-2);
+  background: var(--workspace-pill-bg, var(--glass-bg));
+  border: 1px solid var(--workspace-pill-border, var(--glass-border));
+  border-radius: var(--workspace-pill-radius, var(--radius-pill));
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-spring);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+}
+
+.workspace-pill-btn:hover {
+  background: var(--workspace-pill-hover, var(--glass-bg-hover));
+  border-color: var(--glass-border-strong);
+  transform: translateY(-1px);
+}
+
+.workspace-pill-btn:active {
+  transform: translateY(0);
+}
+
+.workspace-pill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--active-workspace-color, var(--color-accent-primary));
+}
+
+.workspace-pill-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.workspace-pill-name {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-pill-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--color-fg-muted);
+}
+
+.workspace-pill-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+.workspace-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-fg-tertiary);
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.workspace-nav-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.workspace-nav-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Workspace Popover */
+.workspace-popover {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: var(--workspace-popover-width, 280px);
+  padding: var(--space-3);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation-high);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  z-index: 1000;
+  animation: workspace-popover-fade var(--duration-fast) var(--ease-spring);
+}
+
+@keyframes workspace-popover-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.workspace-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.workspace-popover-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.workspace-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--workspace-item-radius, var(--radius-md));
+  cursor: pointer;
+  transition: background var(--motion-fast);
+}
+
+.workspace-item:hover {
+  background: var(--glass-bg-hover);
+}
+
+.workspace-item--active {
+  background: var(--color-accent-subtle, rgba(184, 235, 154, 0.12));
+  border-left: 2px solid var(--color-accent-primary);
+}
+
+.workspace-item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--color-accent-primary);
+}
+
+.workspace-item-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.workspace-item-name {
+  font-size: var(--font-size-sm);
+  color: var(--color-fg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-item-badge {
+  font-size: var(--font-size-2xs);
+  color: var(--color-fg-muted);
+  background: var(--glass-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
+.workspace-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.workspace-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition: color var(--motion-fast), background var(--motion-fast);
+}
+
+.workspace-action-btn--delete:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.workspace-action-btn--confirming {
+  width: auto;
+  min-width: 52px;
+  height: 20px;
+  padding: 0 var(--space-2);
+  background: var(--color-danger);
+  color: #ffffff;
+  border-radius: var(--radius-xs);
+  transition: all var(--motion-fast);
+}
+
+.workspace-action-btn--confirming:hover {
+  background: var(--color-danger-hover, #e04343);
+  color: #ffffff;
+}
+
+.workspace-confirm-text {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.workspace-action-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.workspace-add-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  margin-top: var(--space-1);
+  background: transparent;
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+
+.workspace-add-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--color-accent-primary);
+  color: var(--color-fg-primary);
+}
+
+.workspace-add-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Workspace Create Form */
+.workspace-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--glass-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.workspace-name-input {
+  width: 100%;
+  padding: var(--space-2);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-xs);
+  outline: none;
+}
+
+.workspace-name-input:focus {
+  border-color: var(--color-accent-primary);
+}
+
+.workspace-icon-picker {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: space-between;
+}
+
+.workspace-icon-opt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-fg-secondary);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+}
+
+.workspace-icon-opt:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.workspace-icon-opt--selected {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.workspace-icon-opt svg {
+  width: 14px;
+  height: 14px;
+}
+
+.workspace-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.workspace-cancel-btn {
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-2xs);
+  cursor: pointer;
+}
+
+.workspace-cancel-btn:hover {
+  color: var(--color-fg-primary);
+}
+
+.workspace-submit-btn {
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-accent-primary);
+  color: #121f15;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-2xs);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity var(--motion-fast);
+}
+
+.workspace-submit-btn:hover {
+  opacity: 0.9;
+}

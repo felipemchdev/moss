@@ -10,6 +10,9 @@ export interface TabContextMenuActions {
   onToggleSplit?: (tabId: string) => void;
   isSplitActive?: () => boolean;
   isSplitTab?: (tabId: string) => boolean;
+  onMoveToWorkspace?: (tabId: string, workspaceId: string) => void;
+  getWorkspaces?: () => readonly { id: string; name: string }[];
+  getCurrentWorkspaceId?: () => string;
 }
 
 export interface TabContextMenu {
@@ -99,6 +102,33 @@ export function createTabContextMenu(
     element.append(splitButton);
   }
 
+  let workspaceButtons: HTMLButtonElement[] = [];
+
+  function buildWorkspaceButtons() {
+    for (const b of workspaceButtons) b.remove();
+    workspaceButtons = [];
+    if (!actions.getWorkspaces || !actions.onMoveToWorkspace) return;
+    const currentWsId = actions.getCurrentWorkspaceId?.() ?? "default";
+    const others = actions.getWorkspaces().filter((w) => w.id !== currentWsId);
+    if (others.length === 0) return;
+
+    for (const ws of others) {
+      const btn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [`Mover para ${ws.name}`],
+      ) as HTMLButtonElement;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const targetTabId = activeTabId;
+        menu.close();
+        if (targetTabId) actions.onMoveToWorkspace!(targetTabId, ws.id);
+      });
+      element.append(btn);
+      workspaceButtons.push(btn);
+    }
+  }
+
   function onPointerDown(event: PointerEvent) {
     const target = event.target;
     if (target instanceof Node && element.contains(target)) return;
@@ -133,6 +163,7 @@ export function createTabContextMenu(
       open = true;
       buildPinButton(tabId);
       buildSplitButton(tabId);
+      buildWorkspaceButtons();
 
       element.style.visibility = "hidden";
       element.style.display = "flex";

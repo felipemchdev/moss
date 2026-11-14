@@ -237,7 +237,8 @@ window.addEventListener("DOMContentLoaded", () => {
     tabContextMenu.element,
   );
 
-  initDownloads(root);
+  const downloadController = initDownloads(root);
+  window.addEventListener("beforeunload", () => downloadController.destroy());
 
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {

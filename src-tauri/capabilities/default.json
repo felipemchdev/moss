@@ -23,6 +23,7 @@
     "allow-reset-trackers-count",
     "allow-export-data-file",
     "allow-find-in-page",
-    "allow-clear-find-in-page"
+    "allow-clear-find-in-page",
+    "allow-extract-reader-content"
   ]
 }

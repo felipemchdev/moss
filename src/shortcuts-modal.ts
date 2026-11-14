@@ -34,6 +34,10 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     title: "Recursos e Atalhos",
     items: [
       { keys: ["Ctrl", "L"], description: "Focar na omnibar" },
+      { keys: ["Ctrl", "Alt", "R"], description: "Modo leitura (Reader Mode)" },
+      { keys: ["Ctrl", "Shift", "T"], description: "Alternar tema de leitura" },
+      { keys: ["Ctrl", "Shift", "F"], description: "Alternar fonte de leitura" },
+      { keys: ["Ctrl", "Shift", "./,"], description: "Aumentar/diminuir fonte" },
       { keys: ["Ctrl", "F"], description: "Localizar na página" },
       { keys: ["F3"], description: "Próxima ocorrência" },
       { keys: ["Shift", "F3"], description: "Ocorrência anterior" },

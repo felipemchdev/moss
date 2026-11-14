@@ -17,6 +17,7 @@ const COMMANDS: &[&str] = &[
     "export_data_file",
     "find_in_page",
     "clear_find_in_page",
+    "extract_reader_content",
 ];
 
 fn main() {

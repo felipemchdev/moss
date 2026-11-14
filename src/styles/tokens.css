@@ -271,6 +271,19 @@
   --find-match-color:          #ffd43b;
   --find-match-active-color:   #ff922b;
 
+  /* --- Reader Mode Tokens --- */
+  --reader-bg-color:           #121a14;
+  --reader-text-color:         #d8e5d8;
+  --reader-link-color:         #b8eb9a;
+  --reader-border-color:       rgba(255, 255, 255, 0.08);
+  --reader-font-sans:          var(--font-family-sans);
+  --reader-font-serif:         'Merriweather', 'Georgia', 'Cambria', serif;
+  --reader-font-mono:          var(--font-family-mono);
+  --reader-max-width-compact:  640px;
+  --reader-max-width-normal:   760px;
+  --reader-max-width-wide:     900px;
+  --reader-toolbar-height:     42px;
+
   /* --- Z-Index Scale --- */
   --z-base:              0;
   --z-dropdown:          100;

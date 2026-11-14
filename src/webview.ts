@@ -42,6 +42,7 @@ export const webview = {
   ) =>
     call("find_in_page", { tabId, query, forward, caseSensitive, findNext }),
   clearFindInPage: (tabId: string) => call("clear_find_in_page", { tabId }),
+  extractReaderContent: (tabId: string) => call("extract_reader_content", { tabId }),
 };
 
 export const windowControls = {

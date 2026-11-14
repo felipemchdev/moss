@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-11-14
+
+### Added
+- Modo Leitura / Reader Mode (`Ctrl+Alt+R`): distraction-free article reader powered by non-destructive Rust DOM cloning and candidate scoring, with reading time and word count metadata (`src/reader-view.ts`, `src-tauri/src/lib.rs`).
+- Floating reader toolbar pill with real-time typography controls: custom fonts (Sans, Serif, Mono), font size stepper (14–24px), column widths (compact, normal, wide), and custom themes (*Moss Dark*, *Light Cream*, *Parchment Sepia*).
+- Reader mode link interception opening remote links in new browser tabs while preserving in-article anchor jumps (`#hash`).
+- Localizar na Página / Find in Page (`Ctrl+F`): in-page text search with non-destructive `CSS.highlights` (`::highlight(__moss-find-match)`, `::highlight(__moss-find-active)`), case sensitivity toggle (`Aa`), and match navigation buttons (`src/find-in-page.ts`).
+- Zen Workspaces switcher and management (`src/workspaces.ts`, `src/workspace-switcher.ts`): scoped workspace views, tab isolation, and two-step workspace deletion.
+
+### Security
+- Fail-closed reader mode HTML sanitizer stripping unsafe tags (`script`, `style`, `base`, `meta`, `link`, `iframe`, `object`, `embed`, `form`, `input`, `button`, `textarea`, `select`) and dangerous attributes (`on*`, `style`, `srcdoc`, `srcset`, `formaction`, and obfuscated `javascript:` URLs).
+- Strict IPC capability isolation: `extract_reader_content` is strictly scoped to the `main` chrome webview with zero IPC granted to remote tab webviews.
+
 ## [0.4.0] - 2026-11-14
 
 ### Added

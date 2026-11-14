@@ -54,6 +54,7 @@ import {
 } from "./workspaces";
 import { createWorkspaceSwitcher } from "./workspace-switcher";
 import { createFindInPage } from "./find-in-page";
+import { createReaderView } from "./reader-view";
 import { webview, windowControls } from "./webview";
 
 type NavAction = NavIntent;
@@ -154,6 +155,17 @@ function buildChrome(root: HTMLElement) {
     { class: "omnibar-star-btn", type: "button", "aria-pressed": "false" },
     [icon("star")],
   );
+  const readerButton = el(
+    "button",
+    {
+      class: "omnibar-reader-btn",
+      type: "button",
+      "aria-label": "Modo leitura (Ctrl+Alt+R)",
+      "aria-pressed": "false",
+      title: "Modo leitura (Ctrl+Alt+R)",
+    },
+    [icon("book")],
+  );
   const omnibarSplitBtn = el(
     "button",
     {
@@ -168,7 +180,7 @@ function buildChrome(root: HTMLElement) {
   const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
     el("span", { class: "omnibar-icon" }, [icon("search")]),
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
-    el("div", { class: "omnibar-actions" }, [omnibarSplitBtn, bookmarkToggle]),
+    el("div", { class: "omnibar-actions" }, [readerButton, omnibarSplitBtn, bookmarkToggle]),
   ]);
 
   // 5. Pinned tabs section
@@ -307,6 +319,7 @@ function buildChrome(root: HTMLElement) {
     omnibar,
     omnibarInput,
     bookmarkToggle,
+    readerButton,
     omnibarSplitBtn,
     splitButton,
     privacyButton,
@@ -472,6 +485,36 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   ui.viewportCard.prepend(findInPage.element);
 
+  const readerView = createReaderView({
+    onOpen() {
+      ui.readerButton.classList.add("omnibar-reader-btn--active");
+      ui.readerButton.setAttribute("aria-pressed", "true");
+      syncWebviewVisibility();
+    },
+    onClose() {
+      ui.readerButton.classList.remove("omnibar-reader-btn--active");
+      ui.readerButton.setAttribute("aria-pressed", "false");
+      syncWebviewVisibility();
+    },
+    onNavigate(url) {
+      openTab(url);
+    },
+  });
+  ui.viewportCard.append(readerView.element);
+
+  function toggleReaderMode() {
+    const target = getTargetTab();
+    if (!target) return;
+    if (readerView.isOpen() && readerView.getActiveTabId() === target.id) {
+      readerView.close();
+    } else {
+      closePanels();
+      readerView.open(target.id);
+    }
+  }
+
+  ui.readerButton.addEventListener("click", () => toggleReaderMode());
+
   root.append(
     historyPanel.element,
     settings.overlay,
@@ -489,6 +532,7 @@ window.addEventListener("DOMContentLoaded", () => {
     privacyShield.destroy();
     workspaceSwitcher.destroy();
     findInPage.destroy();
+    readerView.destroy();
   });
 
   ui.privacyButton.addEventListener("click", () => {
@@ -513,7 +557,8 @@ window.addEventListener("DOMContentLoaded", () => {
       panels.some((panel) => panel.isOpen()) ||
       tabContextMenu.isOpen() ||
       privacyShield.isOpen() ||
-      workspaceSwitcher.isOpen();
+      workspaceSwitcher.isOpen() ||
+      readerView.isOpen();
 
     if (isBlocked) {
       if (visibleWebviewId !== null) {
@@ -624,6 +669,7 @@ window.addEventListener("DOMContentLoaded", () => {
     privacyShield.close();
     workspaceSwitcher.close();
     findInPage.close();
+    readerView.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -982,6 +1028,11 @@ window.addEventListener("DOMContentLoaded", () => {
         findInPage.close();
         return;
       }
+      if (readerView.isOpen()) {
+        event.preventDefault();
+        readerView.close();
+        return;
+      }
     }
 
     if (event.key === "F3" && !event.ctrlKey && !event.altKey && !event.metaKey) {
@@ -1029,6 +1080,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (event.ctrlKey && event.altKey && !event.metaKey && !event.shiftKey) {
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        toggleReaderMode();
+        return;
+      }
       const digit = parseInt(event.key, 10);
       if (!isNaN(digit) && digit >= 1 && digit <= 9) {
         event.preventDefault();
@@ -1060,6 +1116,29 @@ window.addEventListener("DOMContentLoaded", () => {
         }
       }
       return;
+    }
+
+    if (readerView.isOpen() && (event.ctrlKey || event.metaKey) && event.shiftKey) {
+      if (event.key.toLowerCase() === "t") {
+        event.preventDefault();
+        readerView.cycleTheme();
+        return;
+      }
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        readerView.cycleFont();
+        return;
+      }
+      if (event.key === "." || event.key === ">") {
+        event.preventDefault();
+        readerView.adjustFontSize(1);
+        return;
+      }
+      if (event.key === "," || event.key === "<") {
+        event.preventDefault();
+        readerView.adjustFontSize(-1);
+        return;
+      }
     }
 
     if (
@@ -1209,6 +1288,9 @@ window.addEventListener("DOMContentLoaded", () => {
     render(tabs);
     if (findInPage.isOpen()) {
       findInPage.reapply();
+    }
+    if (readerView.isOpen() && readerView.getActiveTabId() !== getTargetTab()?.id) {
+      readerView.close();
     }
   });
   subscribeBookmarks((bookmarks) => {

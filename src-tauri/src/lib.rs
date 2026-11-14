@@ -100,6 +100,19 @@ struct FindResultPayload {
     total_matches: u32,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReaderContentPayload {
+    tab_id: String,
+    success: bool,
+    title: String,
+    byline: String,
+    site_name: String,
+    content_html: String,
+    word_count: u32,
+    reading_time_minutes: u32,
+}
+
 const TRACKER_BLOCKER_SCRIPT: &str = r#"
 (function() {
   if (window.__moss_shield_injected) return;
@@ -767,6 +780,155 @@ fn clear_find_in_page(app: AppHandle, tab_id: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn extract_reader_content(app: AppHandle, tab_id: String) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let app_clone = app.clone();
+    let tab_id_clone = tab_id;
+
+    let script = r#"(() => {
+  try {
+    const title =
+      document.querySelector('meta[property="og:title"]')?.content ||
+      document.querySelector('meta[name="twitter:title"]')?.content ||
+      document.querySelector('h1')?.textContent?.trim() ||
+      document.title ||
+      'Artigo sem título';
+
+    const byline =
+      document.querySelector('meta[name="author"]')?.content ||
+      document.querySelector('meta[property="article:author"]')?.content ||
+      document.querySelector('[rel="author"], .byline, .author, .author-name')?.textContent?.trim() ||
+      '';
+
+    const siteName =
+      document.querySelector('meta[property="og:site_name"]')?.content ||
+      location.hostname ||
+      '';
+
+    let root =
+      document.querySelector('article') ||
+      document.querySelector('[role="article"]') ||
+      document.querySelector('main') ||
+      document.querySelector('.article-body, .post-content, .entry-content, .content, #content');
+
+    if (!root) {
+      let maxScore = 0;
+      let bestElem = document.body;
+      const candidates = document.querySelectorAll('div, section, article');
+      for (const cand of candidates) {
+        const pCount = cand.querySelectorAll('p').length;
+        const textLen = (cand.textContent || '').trim().length;
+        const score = pCount * 50 + Math.min(textLen, 1000);
+        if (score > maxScore) {
+          maxScore = score;
+          bestElem = cand;
+        }
+      }
+      root = bestElem || document.body;
+    }
+
+    const clone = root.cloneNode(true);
+
+    const selectorsToRemove = [
+      'script', 'style', 'noscript', 'iframe', 'canvas', 'svg',
+      'nav', 'footer', 'header', 'aside', 'form', 'button',
+      '.ad', '.ads', '.advertisement', '.popup', '.banner',
+      '.share', '.social', '.comments', '.sidebar', '.menu',
+      '[aria-hidden="true"]', '[role="navigation"]', '[role="banner"]'
+    ];
+    for (const sel of selectorsToRemove) {
+      for (const el of clone.querySelectorAll(sel)) {
+        el.remove();
+      }
+    }
+
+    for (const img of clone.querySelectorAll('img')) {
+      if (img.dataset && img.dataset.src) img.src = img.dataset.src;
+      if (img.src) {
+        try {
+          img.src = new URL(img.src, location.href).href;
+        } catch (_) {}
+      }
+    }
+
+    for (const a of clone.querySelectorAll('a')) {
+      const rawHref = a.getAttribute('href');
+      if (rawHref && rawHref.startsWith('#')) continue;
+      if (a.href) {
+        try {
+          a.href = new URL(a.href, location.href).href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        } catch (_) {}
+      }
+    }
+
+    const contentHtml = clone.innerHTML;
+    const textContent = clone.textContent?.trim() || '';
+    const words = textContent.split(/\s+/).filter(Boolean).length;
+    const readingTimeMinutes = Math.max(1, Math.ceil(words / 200));
+
+    return JSON.stringify({
+      success: true,
+      title,
+      byline,
+      siteName,
+      contentHtml,
+      wordCount: words,
+      readingTimeMinutes,
+    });
+  } catch (err) {
+    return JSON.stringify({
+      success: false,
+      title: document.title || '',
+      byline: '',
+      siteName: location.hostname || '',
+      contentHtml: '<p>Não foi possível extrair o conteúdo legível desta página.</p>',
+      wordCount: 0,
+      readingTimeMinutes: 1,
+    });
+  }
+})()"#;
+
+    let _ = tab.eval_with_callback(script, move |res| {
+        let unquoted = if res.starts_with('"') && res.ends_with('"') && res.len() >= 2 {
+            serde_json::from_str::<String>(&res).unwrap_or_else(|_| res.to_string())
+        } else {
+            res.to_string()
+        };
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&unquoted) {
+            let success = val.get("success").and_then(|v| v.as_bool()).unwrap_or(false);
+            let title = val.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let byline = val.get("byline").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let site_name = val.get("siteName").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let content_html = val.get("contentHtml").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let word_count = val.get("wordCount").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            let reading_time_minutes = val.get("readingTimeMinutes").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
+
+            emit_to_chrome(
+                &app_clone,
+                "reader-content-result",
+                ReaderContentPayload {
+                    tab_id: tab_id_clone.clone(),
+                    success,
+                    title,
+                    byline,
+                    site_name,
+                    content_html,
+                    word_count,
+                    reading_time_minutes,
+                },
+            );
+        }
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -791,6 +953,7 @@ pub fn run() {
             export_data_file,
             find_in_page,
             clear_find_in_page,
+            extract_reader_content,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

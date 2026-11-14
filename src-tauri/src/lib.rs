@@ -499,6 +499,27 @@ fn reset_trackers_count(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn export_data_file(app: AppHandle, filename: String, content: String) -> Result<String, String> {
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        return Err("Invalid filename: directory separators and traversal are forbidden".to_string());
+    }
+    let path = std::path::Path::new(&filename);
+    if path.is_absolute() {
+        return Err("Invalid filename: absolute paths are forbidden".to_string());
+    }
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    if !ext.eq_ignore_ascii_case("html") && !ext.eq_ignore_ascii_case("json") {
+        return Err("Invalid filename: only .html and .json extensions are allowed".to_string());
+    }
+    let file_name = path.file_name().ok_or("Invalid filename")?;
+    let download_dir = app.path().download_dir().map_err(|e| e.to_string())?;
+    let target_path = download_dir.join(file_name);
+    std::fs::write(&target_path, content.as_bytes())
+        .map_err(|e| format!("Failed to write file {}: {}", target_path.display(), e))?;
+    Ok(target_path.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -518,6 +539,7 @@ pub fn run() {
             set_privacy_shield,
             sync_tab_trackers_blocked,
             reset_trackers_count,
+            export_data_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -98,6 +98,40 @@ export function clearHistory() {
   if (entries.length > 0) commit([]);
 }
 
+export function getHistory(): readonly HistoryEntry[] {
+  return entries;
+}
+
+export function importHistory(
+  items: Array<{ title: string; url: string; visitedAt?: number }>,
+): number {
+  const existingKeys = new Set(entries.map((e) => `${e.url}|${e.visitedAt}`));
+  const additions: HistoryEntry[] = [];
+
+  for (const item of items) {
+    if (!isWebUrl(item.url)) continue;
+    const visitedAt =
+      typeof item.visitedAt === "number" && !isNaN(item.visitedAt) ? item.visitedAt : Date.now();
+    const key = `${item.url}|${visitedAt}`;
+    if (existingKeys.has(key)) continue;
+    existingKeys.add(key);
+    additions.push({
+      id: crypto.randomUUID(),
+      title: item.title.trim() || item.url,
+      url: item.url,
+      visitedAt,
+    });
+  }
+
+  if (additions.length > 0) {
+    const merged = [...entries, ...additions]
+      .sort((a, b) => b.visitedAt - a.visitedAt)
+      .slice(0, MAX_ENTRIES);
+    commit(merged);
+  }
+  return additions.length;
+}
+
 // Mirrors the webview's session history from load events, since Tauri exposes no canGoBack/canGoForward.
 export class NavHistory {
   private entries: string[] = [];

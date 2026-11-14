@@ -1,4 +1,14 @@
+import { getBookmarks, importBookmarks } from "./bookmarks";
+import {
+  exportBackupToJson,
+  exportBookmarksToHtml,
+  parseBackupFromJson,
+  parseBookmarksFromHtml,
+  readFileAsText,
+  saveExportFile,
+} from "./data-transfer";
 import { el } from "./dom";
+import { getHistory, importHistory } from "./history";
 import { icon, type IconName } from "./icons";
 import { createPanel, type Panel } from "./panel";
 import {
@@ -64,7 +74,164 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     spellcheck: "false",
     "aria-describedby": "settings-homepage-hint",
   });
-  const homepageHint = el("p", { class: "settings-field-hint", id: "settings-homepage-hint", "aria-live": "polite" });
+  const homepageHint = el("p", {
+    class: "settings-field-hint",
+    id: "settings-homepage-hint",
+    "aria-live": "polite",
+  });
+
+  // Data transfer elements
+  const statusMsg = el("div", {
+    class: "settings-status-msg",
+    role: "status",
+    "aria-live": "polite",
+  });
+
+  let statusTimer: number | undefined;
+  function showStatus(text: string, type: "success" | "error") {
+    if (statusTimer) window.clearTimeout(statusTimer);
+    statusMsg.textContent = text;
+    statusMsg.classList.remove("settings-status-msg--success", "settings-status-msg--error");
+    statusMsg.classList.add(`settings-status-msg--${type}`);
+    statusTimer = window.setTimeout(() => {
+      statusMsg.textContent = "";
+      statusMsg.classList.remove("settings-status-msg--success", "settings-status-msg--error");
+    }, 6000);
+  }
+
+  // 1. Bookmarks export/import
+  const exportBookmarksBtn = el(
+    "button",
+    { class: "settings-action-btn settings-action-btn--primary", type: "button" },
+    [icon("download"), el("span", {}, ["Exportar HTML"])],
+  );
+  exportBookmarksBtn.addEventListener("click", async () => {
+    const list = getBookmarks();
+    if (list.length === 0) {
+      showStatus("Nenhum favorito para exportar.", "error");
+      return;
+    }
+    const html = exportBookmarksToHtml(list);
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `moss-bookmarks-${date}.html`;
+    try {
+      const savedPath = await saveExportFile(html, filename);
+      showStatus(`Exportados ${list.length} favoritos para: ${savedPath}`, "success");
+    } catch {
+      showStatus("Falha ao salvar arquivo de favoritos.", "error");
+    }
+  });
+
+  const bookmarksFileInput = el("input", {
+    type: "file",
+    accept: ".html,.htm,.json",
+    style: "display: none;",
+  }) as HTMLInputElement;
+
+  const importBookmarksBtn = el("button", { class: "settings-action-btn", type: "button" }, [
+    icon("plus"),
+    el("span", {}, ["Importar Favoritos"]),
+  ]);
+  importBookmarksBtn.addEventListener("click", () => {
+    bookmarksFileInput.click();
+  });
+
+  bookmarksFileInput.addEventListener("change", async () => {
+    const file = bookmarksFileInput.files?.[0];
+    if (!file) return;
+    try {
+      const content = await readFileAsText(file);
+      const lowerName = file.name.toLowerCase();
+      let count = 0;
+      if (lowerName.endsWith(".json")) {
+        const parsed = parseBackupFromJson(content);
+        if (!parsed || parsed.bookmarks.length === 0) {
+          showStatus("Nenhum favorito encontrado no arquivo JSON.", "error");
+          bookmarksFileInput.value = "";
+          return;
+        }
+        count = importBookmarks(parsed.bookmarks);
+      } else if (lowerName.endsWith(".html") || lowerName.endsWith(".htm")) {
+        const parsed = parseBookmarksFromHtml(content);
+        if (parsed.length === 0) {
+          showStatus("Nenhum favorito válido encontrado no arquivo HTML.", "error");
+          bookmarksFileInput.value = "";
+          return;
+        }
+        count = importBookmarks(parsed);
+      } else {
+        showStatus("Formato de arquivo não suportado. Use .html ou .json.", "error");
+        bookmarksFileInput.value = "";
+        return;
+      }
+      showStatus(`${count} novos favoritos importados com sucesso!`, "success");
+      onChange();
+    } catch {
+      showStatus("Falha ao ler o arquivo selecionado.", "error");
+    }
+    bookmarksFileInput.value = "";
+  });
+
+  // 2. Full backup export/restore
+  const exportBackupBtn = el(
+    "button",
+    { class: "settings-action-btn settings-action-btn--primary", type: "button" },
+    [icon("download"), el("span", {}, ["Exportar Backup (JSON)"])],
+  );
+  exportBackupBtn.addEventListener("click", async () => {
+    const b = getBookmarks();
+    const h = getHistory();
+    const json = exportBackupToJson(b, h);
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `moss-backup-${date}.json`;
+    try {
+      const savedPath = await saveExportFile(json, filename);
+      showStatus(
+        `Backup exportado (${b.length} favoritos, ${h.length} históricos) para: ${savedPath}`,
+        "success",
+      );
+    } catch {
+      showStatus("Falha ao salvar arquivo de backup.", "error");
+    }
+  });
+
+  const backupFileInput = el("input", {
+    type: "file",
+    accept: ".json",
+    style: "display: none;",
+  }) as HTMLInputElement;
+
+  const restoreBackupBtn = el("button", { class: "settings-action-btn", type: "button" }, [
+    icon("history"),
+    el("span", {}, ["Restaurar Backup (JSON)"]),
+  ]);
+  restoreBackupBtn.addEventListener("click", () => {
+    backupFileInput.click();
+  });
+
+  backupFileInput.addEventListener("change", async () => {
+    const file = backupFileInput.files?.[0];
+    if (!file) return;
+    try {
+      const content = await readFileAsText(file);
+      const parsed = parseBackupFromJson(content);
+      if (!parsed) {
+        showStatus("Arquivo de backup inválido ou com formato incompatível.", "error");
+        backupFileInput.value = "";
+        return;
+      }
+      const bCount = importBookmarks(parsed.bookmarks);
+      const hCount = importHistory(parsed.history);
+      showStatus(
+        `Backup restaurado: ${bCount} novos favoritos e ${hCount} novos históricos adicionados.`,
+        "success",
+      );
+      onChange();
+    } catch {
+      showStatus("Erro ao processar o arquivo de backup.", "error");
+    }
+    backupFileInput.value = "";
+  });
 
   const sections: { id: string; label: string; icon: IconName; content: HTMLElement[] }[] = [
     {
@@ -84,26 +251,70 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
       icon: "sun",
       content: [section("Tema", [field("settings-theme", "Tema da interface", themeSelect)])],
     },
+    {
+      id: "data",
+      label: "Dados",
+      icon: "download",
+      content: [
+        section("Favoritos", [
+          el("p", { class: "settings-toggle-desc" }, [
+            "Exporte ou importe seus favoritos no padrão Netscape HTML (compatível com Chrome, Firefox, Safari e Edge) ou JSON.",
+          ]),
+          el("div", { class: "settings-btn-row" }, [
+            exportBookmarksBtn,
+            importBookmarksBtn,
+            bookmarksFileInput,
+          ]),
+        ]),
+        section("Backup & Restauração", [
+          el("p", { class: "settings-toggle-desc" }, [
+            "Gere uma cópia completa de segurança contendo todos os seus favoritos e histórico de navegação em formato JSON.",
+          ]),
+          el("div", { class: "settings-btn-row" }, [
+            exportBackupBtn,
+            restoreBackupBtn,
+            backupFileInput,
+          ]),
+        ]),
+        statusMsg,
+      ],
+    },
   ];
 
   const navItems = sections.map(({ id, label, icon: iconName }) =>
     el(
       "button",
-      { class: "settings-nav-item", type: "button", "data-section": id, "aria-controls": `settings-panel-${id}` },
+      {
+        class: "settings-nav-item",
+        type: "button",
+        "data-section": id,
+        "aria-controls": `settings-panel-${id}`,
+      },
       [el("span", { class: "settings-nav-item-icon" }, [icon(iconName)]), el("span", {}, [label])],
     ),
   );
   const panels = sections.map(({ id, label, content }) =>
-    el("section", { class: "settings-panel", id: `settings-panel-${id}`, "aria-label": label }, content),
+    el(
+      "section",
+      { class: "settings-panel", id: `settings-panel-${id}`, "aria-label": label },
+      content,
+    ),
   );
 
-  const closeButton = el("button", { class: "settings-close", type: "button", "aria-label": "Fechar" }, [
-    icon("close"),
-  ]);
+  const closeButton = el(
+    "button",
+    { class: "settings-close", type: "button", "aria-label": "Fechar" },
+    [icon("close")],
+  );
   const overlay = el("div", { class: "settings-overlay", "aria-hidden": "true" });
   const element = el(
     "div",
-    { class: "settings-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "settings-title" },
+    {
+      class: "settings-modal",
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-labelledby": "settings-title",
+    },
     [
       el("header", { class: "settings-header" }, [
         el("h2", { class: "settings-title", id: "settings-title" }, ["Configurações"]),
@@ -139,6 +350,8 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     engineSelect.value = settings.searchEngine;
     homepageInput.value = settings.homepage;
     setHomepageError(false);
+    statusMsg.textContent = "";
+    statusMsg.classList.remove("settings-status-msg--success", "settings-status-msg--error");
   }
 
   function commitHomepage() {
@@ -152,7 +365,8 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
   const panel = createPanel({
     element,
     openClass: "settings-modal--open",
-    initialFocus: () => navItems.find((item) => item.classList.contains("settings-nav-item--active"))!,
+    initialFocus: () =>
+      navItems.find((item) => item.classList.contains("settings-nav-item--active"))!,
     onOpen: sync,
     onChange() {
       overlay.classList.toggle("settings-overlay--visible", panel.isOpen());
@@ -161,9 +375,12 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
   });
 
   showSection(sections[0].id);
-  for (const item of navItems) item.addEventListener("click", () => showSection(item.dataset.section!));
+  for (const item of navItems)
+    item.addEventListener("click", () => showSection(item.dataset.section!));
   closeButton.addEventListener("click", () => panel.close());
-  themeSelect.addEventListener("change", () => updateSettings({ theme: themeSelect.value as Theme }));
+  themeSelect.addEventListener("change", () =>
+    updateSettings({ theme: themeSelect.value as Theme }),
+  );
   engineSelect.addEventListener("change", () =>
     updateSettings({ searchEngine: engineSelect.value as SearchEngine }),
   );

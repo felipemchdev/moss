@@ -63,3 +63,30 @@ export function removeBookmark(idOrUrl: string) {
   const next = bookmarks.filter((bookmark) => bookmark.id !== idOrUrl && bookmark.url !== idOrUrl);
   if (next.length !== bookmarks.length) commit(next);
 }
+
+export function importBookmarks(
+  items: Array<{ title: string; url: string; createdAt?: number }>,
+): number {
+  let count = 0;
+  const existingUrls = new Set(bookmarks.map((b) => b.url));
+  const additions: Bookmark[] = [];
+
+  for (const item of items) {
+    if (!isWebUrl(item.url)) continue;
+    if (existingUrls.has(item.url)) continue;
+    existingUrls.add(item.url);
+    additions.push({
+      id: crypto.randomUUID(),
+      title: item.title.trim() || item.url,
+      url: item.url,
+      createdAt:
+        typeof item.createdAt === "number" && !isNaN(item.createdAt) ? item.createdAt : Date.now(),
+    });
+    count++;
+  }
+
+  if (additions.length > 0) {
+    commit([...bookmarks, ...additions]);
+  }
+  return count;
+}

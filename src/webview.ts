@@ -24,6 +24,8 @@ export const webview = {
   setPrivacyShield: (enabled: boolean) => call("set_privacy_shield", { enabled }),
   syncTrackersBlocked: (tabId: string) => call("sync_tab_trackers_blocked", { tabId }),
   resetTrackersCount: () => call("reset_trackers_count"),
+  exportDataFile: (filename: string, content: string) =>
+    call("export_data_file", { filename, content }),
 };
 
 export const windowControls = {

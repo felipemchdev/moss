@@ -18,6 +18,7 @@
     "allow-close-window",
     "allow-set-privacy-shield",
     "allow-sync-tab-trackers-blocked",
-    "allow-reset-trackers-count"
+    "allow-reset-trackers-count",
+    "allow-export-data-file"
   ]
 }

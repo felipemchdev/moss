@@ -12,6 +12,7 @@ const COMMANDS: &[&str] = &[
     "set_privacy_shield",
     "sync_tab_trackers_blocked",
     "reset_trackers_count",
+    "export_data_file",
 ];
 
 fn main() {

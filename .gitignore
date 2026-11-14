@@ -45,3 +45,8 @@ desktop.ini
 *.sw?
 
 kilo.json
+
+# Local development
+AGENTS.md
+*.log
+

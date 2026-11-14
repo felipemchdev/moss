@@ -15,6 +15,9 @@
     "allow-close-tab",
     "allow-minimize-window",
     "allow-toggle-maximize-window",
-    "allow-close-window"
+    "allow-close-window",
+    "allow-set-privacy-shield",
+    "allow-sync-tab-trackers-blocked",
+    "allow-reset-trackers-count"
   ]
 }

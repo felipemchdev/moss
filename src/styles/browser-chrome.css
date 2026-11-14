@@ -2599,3 +2599,246 @@
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   PRIVACY SHIELD (Ad-Block & Anti-Tracking Popover & Badge)
+   ========================================================================== */
+.shield-popover {
+  position: fixed;
+  left: calc(var(--sidebar-width) + 12px);
+  bottom: 12px;
+  width: 280px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2xl), 0 0 0 1px var(--color-accent-glow);
+  padding: var(--space-4);
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: shield-popover-in var(--motion-spring-gentle);
+  user-select: none;
+}
+
+@keyframes shield-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.shield-popover-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.shield-popover-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  transition: color var(--motion-fast), filter var(--motion-fast);
+}
+
+.shield-popover-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.shield-popover-icon--active {
+  color: var(--color-success);
+  filter: drop-shadow(0 0 6px var(--color-accent-glow));
+}
+
+.shield-popover-icon--inactive {
+  color: var(--color-fg-muted);
+}
+
+.shield-popover-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-primary);
+  margin: 0;
+}
+
+.shield-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) 0;
+}
+
+.shield-toggle-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fg-secondary);
+}
+
+/* Apple/Zen Switch Toggle */
+.shield-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.shield-switch-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.shield-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.shield-switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background: var(--color-fg-primary);
+  border-radius: 50%;
+  transition: transform var(--motion-spring-gentle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.shield-switch-input:checked + .shield-switch-slider {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.shield-switch-input:checked + .shield-switch-slider::before {
+  transform: translateX(20px);
+  background: var(--color-fg-inverse);
+}
+
+.shield-switch:focus-within .shield-switch-slider {
+  box-shadow: var(--shadow-focus);
+}
+
+.shield-counter-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-control);
+  text-align: center;
+  gap: 2px;
+}
+
+.shield-counter-number {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  color: var(--color-accent-primary);
+  line-height: 1.1;
+}
+
+.shield-counter-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-tertiary);
+}
+
+.shield-reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.shield-reset-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+  border-color: var(--glass-border-strong);
+  transform: translateY(-1px);
+}
+
+.shield-reset-btn:active {
+  transform: scale(0.98);
+}
+
+.shield-reset-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Shield Badge on Sidebar Button */
+.shield-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-primary);
+  color: var(--color-fg-inverse);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 6px var(--color-accent-glow);
+  pointer-events: none;
+  line-height: 1;
+  z-index: 10;
+  transition: transform var(--motion-fast), opacity var(--motion-fast), background var(--motion-fast);
+}
+
+.shield-badge--disabled {
+  background: var(--color-fg-muted);
+  box-shadow: none;
+}
+
+.footer-btn--shield-active {
+  color: var(--color-accent-primary);
+}
+
+.footer-btn--shield-paused {
+  color: var(--color-fg-muted);
+  opacity: 0.7;
+}

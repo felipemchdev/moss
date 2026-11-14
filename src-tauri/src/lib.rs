@@ -29,10 +29,20 @@ impl Viewport {
     }
 }
 
-#[derive(Default)]
 struct BrowserState {
     viewport: Mutex<Viewport>,
     shown_tab: Mutex<Option<String>>,
+    shield_enabled: Mutex<bool>,
+}
+
+impl Default for BrowserState {
+    fn default() -> Self {
+        Self {
+            viewport: Mutex::new(Viewport::default()),
+            shown_tab: Mutex::new(None),
+            shield_enabled: Mutex::new(true),
+        }
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -64,6 +74,129 @@ struct DownloadPayload {
     progress: Option<f64>,
     state: &'static str,
 }
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TrackerCountPayload {
+    tab_id: String,
+    count: u32,
+}
+
+const TRACKER_BLOCKER_SCRIPT: &str = r#"
+(function() {
+  if (window.__moss_shield_injected) return;
+  window.__moss_shield_injected = true;
+
+  const BLOCKED_DOMAINS = [
+    'google-analytics.com',
+    'googletagmanager.com',
+    'doubleclick.net',
+    'googlesyndication.com',
+    'googleadservices.com',
+    'connect.facebook.net',
+    'facebook.com/tr',
+    'hotjar.com',
+    'criteo.net',
+    'criteo.com',
+    'adservice.google.com',
+    'outbrain.com',
+    'taboola.com',
+    'adnxs.com',
+    'amazon-adsystem.com',
+    'ads.pubmatic.com',
+    'rubiconproject.com',
+    'scorecardresearch.com'
+  ];
+
+  function isTracker(url) {
+    if (!url || typeof url !== 'string') return false;
+    if (window.__moss_shield_enabled === false) return false;
+    try {
+      var parsed = new URL(url, window.location.href);
+      var host = parsed.hostname.toLowerCase();
+      for (var i = 0; i < BLOCKED_DOMAINS.length; i++) {
+        var d = BLOCKED_DOMAINS[i];
+        if (host === d || host.endsWith('.' + d)) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function countBlocked() {
+    if (window.__moss_shield_enabled === false) return;
+    window.__moss_trackers_blocked = (window.__moss_trackers_blocked || 0) + 1;
+    try {
+      window.dispatchEvent(new CustomEvent('moss-tracker-blocked', { detail: { count: window.__moss_trackers_blocked } }));
+    } catch (_) {}
+  }
+
+  // Stubs for analytics and tracking
+  if (window.__moss_shield_enabled !== false) {
+    window.ga = window.ga || function() { (window.ga.q = window.ga.q || []).push(arguments); };
+    window.ga.l = +new Date();
+    window.gtag = window.gtag || function() { (window.dataLayer = window.dataLayer || []).push(arguments); };
+    window.fbq = window.fbq || function() { (window.fbq.q = window.fbq.q || []).push(arguments); };
+    window.fbq.push = window.fbq;
+    window.fbq.loaded = true;
+    window.fbq.version = '2.0';
+  }
+
+  // Intercept document.createElement for <script>
+  const origCreateElement = Document.prototype.createElement;
+  Document.prototype.createElement = function(tagName, options) {
+    const el = origCreateElement.call(this, tagName, options);
+    if (typeof tagName === 'string' && tagName.toLowerCase() === 'script') {
+      const origSetAttribute = el.setAttribute;
+      el.setAttribute = function(name, val) {
+        if (name && name.toLowerCase() === 'src' && isTracker(val)) {
+          countBlocked();
+          return;
+        }
+        return origSetAttribute.call(this, name, val);
+      };
+      let actualSrc = '';
+      Object.defineProperty(el, 'src', {
+        get: function() { return actualSrc; },
+        set: function(val) {
+          if (isTracker(val)) {
+            countBlocked();
+            return;
+          }
+          actualSrc = val;
+          el.setAttribute('src', val);
+        },
+        configurable: true
+      });
+    }
+    return el;
+  };
+
+  // Intercept Node.prototype.appendChild & insertBefore
+  const origAppendChild = Node.prototype.appendChild;
+  Node.prototype.appendChild = function(child) {
+    if (child && child.nodeName === 'SCRIPT') {
+      const src = child.src || child.getAttribute('src');
+      if (isTracker(src)) {
+        countBlocked();
+        return child;
+      }
+    }
+    return origAppendChild.call(this, child);
+  };
+
+  const origInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function(newNode, refNode) {
+    if (newNode && newNode.nodeName === 'SCRIPT') {
+      const src = newNode.src || newNode.getAttribute('src');
+      if (isTracker(src)) {
+        countBlocked();
+        return newNode;
+      }
+    }
+    return origInsertBefore.call(this, newNode, refNode);
+  };
+})();
+"#;
 
 fn tab_label(tab_id: &str) -> String {
     format!("{TAB_LABEL_PREFIX}{tab_id}")
@@ -116,7 +249,15 @@ fn create_tab_webview<R: Runtime>(
     let open_app = app.clone();
     let download_app = app.clone();
 
+    let state = app.state::<BrowserState>();
+    let shield_on = state.shield_enabled.lock().map(|g| *g).unwrap_or(true);
+    let init_script = format!(
+        "window.__moss_shield_enabled = {};\n{}",
+        shield_on, TRACKER_BLOCKER_SCRIPT
+    );
+
     let builder = WebviewBuilder::new(tab_label(tab_id), WebviewUrl::External(url))
+        .initialization_script(&init_script)
         .on_download(move |_webview, event| {
             match event {
                 DownloadEvent::Requested { url, destination } => {
@@ -165,8 +306,26 @@ fn create_tab_webview<R: Runtime>(
             emit_to_chrome(
                 &load_app,
                 "tab://load",
-                TabLoadPayload { tab_id, url: payload.url().to_string(), state },
+                TabLoadPayload { tab_id: tab_id.clone(), url: payload.url().to_string(), state },
             );
+            if payload.event() == PageLoadEvent::Finished {
+                let count_app = load_app.clone();
+                let count_tab_id = tab_id;
+                let _ = webview.eval_with_callback(
+                    "(window.__moss_trackers_blocked || 0).toString()",
+                    move |res| {
+                        let count = res.trim_matches('"').parse::<u32>().unwrap_or(0);
+                        emit_to_chrome(
+                            &count_app,
+                            "tracker-blocked-count",
+                            TrackerCountPayload {
+                                tab_id: count_tab_id.clone(),
+                                count,
+                            },
+                        );
+                    },
+                );
+            }
         })
         .on_document_title_changed(move |webview, title| {
             let Some(tab_id) = tab_id_of(&webview) else { return };
@@ -296,6 +455,50 @@ fn close_window(app: AppHandle) -> Result<(), String> {
         .map_err(|err| err.to_string())
 }
 
+#[tauri::command]
+fn set_privacy_shield(
+    app: AppHandle,
+    state: State<'_, BrowserState>,
+    enabled: bool,
+) -> Result<(), String> {
+    *state.shield_enabled.lock().map_err(|err| err.to_string())? = enabled;
+    let script = format!("window.__moss_shield_enabled = {};", enabled);
+    for webview in tab_webviews(&app) {
+        let _ = webview.eval(&script);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn sync_tab_trackers_blocked(app: AppHandle, tab_id: String) -> Result<(), String> {
+    let tab = get_tab(&app, &tab_id)?;
+    let app_clone = app.clone();
+    let tab_id_clone = tab_id;
+    let _ = tab.eval_with_callback(
+        "(window.__moss_trackers_blocked || 0).toString()",
+        move |res| {
+            let count = res.trim_matches('"').parse::<u32>().unwrap_or(0);
+            emit_to_chrome(
+                &app_clone,
+                "tracker-blocked-count",
+                TrackerCountPayload {
+                    tab_id: tab_id_clone.clone(),
+                    count,
+                },
+            );
+        },
+    );
+    Ok(())
+}
+
+#[tauri::command]
+fn reset_trackers_count(app: AppHandle) -> Result<(), String> {
+    for webview in tab_webviews(&app) {
+        let _ = webview.eval("window.__moss_trackers_blocked = 0;");
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -312,6 +515,9 @@ pub fn run() {
             minimize_window,
             toggle_maximize_window,
             close_window,
+            set_privacy_shield,
+            sync_tab_trackers_blocked,
+            reset_trackers_count,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

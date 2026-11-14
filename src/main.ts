@@ -11,6 +11,7 @@ import { PANEL_TOGGLE_ATTR, type Panel } from "./panel";
 import { getSettings, searchUrl } from "./settings";
 import { createSettingsPanel } from "./settings-panel";
 import { createShortcutsModal } from "./shortcuts-modal";
+import { createPrivacyShield } from "./privacy-shield";
 import { isWebUrl } from "./storage";
 import {
   NEW_TAB_TITLE,
@@ -167,13 +168,23 @@ function buildChrome(root: HTMLElement) {
 
   // 8. Sidebar footer
   const toggleAttrs = { type: "button", [PANEL_TOGGLE_ATTR]: "" };
+  const privacyButton = el(
+    "button",
+    {
+      class: "footer-btn footer-btn--privacy nav-btn",
+      type: "button",
+      "aria-label": "Escudo de Privacidade",
+      title: "Escudo de Privacidade",
+    },
+    [icon("shield")],
+  );
   const historyButton = el(
     "button",
     {
       ...toggleAttrs,
-      class: "footer-btn footer-btn--privacy nav-btn",
-      "aria-label": "Privacidade",
-      title: "Histórico e Privacidade (Ctrl+H)",
+      class: "footer-btn nav-btn",
+      "aria-label": "Histórico",
+      title: "Histórico (Ctrl+H)",
     },
     [icon("history")],
   );
@@ -198,6 +209,7 @@ function buildChrome(root: HTMLElement) {
     [icon("download")],
   );
   const sidebarFooter = el("footer", { class: "sidebar-footer" }, [
+    privacyButton,
     historyButton,
     settingsButton,
     downloadsButton,
@@ -239,6 +251,7 @@ function buildChrome(root: HTMLElement) {
     omnibar,
     omnibarInput,
     bookmarkToggle,
+    privacyButton,
     historyButton,
     settingsButton,
     downloadsButton,
@@ -330,6 +343,8 @@ window.addEventListener("DOMContentLoaded", () => {
     syncWebviewVisibility,
   );
 
+  const privacyShield = createPrivacyShield(ui.privacyButton, syncWebviewVisibility);
+
   root.append(
     historyPanel.element,
     settings.overlay,
@@ -337,10 +352,26 @@ window.addEventListener("DOMContentLoaded", () => {
     shortcuts.overlay,
     shortcutsPanel.element,
     tabContextMenu.element,
+    privacyShield.popover,
   );
 
   const downloadController = initDownloads(root);
-  window.addEventListener("beforeunload", () => downloadController.destroy());
+  window.addEventListener("beforeunload", () => {
+    downloadController.destroy();
+    privacyShield.destroy();
+  });
+
+  ui.privacyButton.addEventListener("click", () => {
+    const wasOpen = privacyShield.isOpen();
+    closePanels();
+    if (!wasOpen) {
+      const activeTab = getActiveTab();
+      if (activeTab) {
+        webview.syncTrackersBlocked(activeTab.id);
+      }
+      privacyShield.open(ui.privacyButton);
+    }
+  });
 
   ui.downloadsButton.addEventListener("click", () => {
     downloadController.show("moss-download", 100, true);
@@ -349,7 +380,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {
     const target =
-      panels.some((panel) => panel.isOpen()) || tabContextMenu.isOpen()
+      panels.some((panel) => panel.isOpen()) || tabContextMenu.isOpen() || privacyShield.isOpen()
         ? null
         : (getActiveTab()?.id ?? null);
     if (target === visibleWebviewId) return;
@@ -360,6 +391,7 @@ window.addEventListener("DOMContentLoaded", () => {
   function closePanels() {
     for (const panel of panels) panel.close();
     tabContextMenu.close();
+    privacyShield.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -549,6 +581,9 @@ window.addEventListener("DOMContentLoaded", () => {
       shownTabId = activeId;
       ui.omnibarInput.value = activeUrl;
       if (!activeUrl) focusOmnibar();
+      if (activeId && isWebUrl(activeUrl)) {
+        webview.syncTrackersBlocked(activeId);
+      }
     } else if (activeUrl !== shownUrl && document.activeElement !== ui.omnibarInput) {
       ui.omnibarInput.value = activeUrl;
     }

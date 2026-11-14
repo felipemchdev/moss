@@ -21,6 +21,9 @@ export const webview = {
   forward: (tabId: string) => call("go_forward", { tabId }),
   show: (tabId: string | null) => call("show_tab", { tabId }),
   close: (tabId: string) => call("close_tab", { tabId }),
+  setPrivacyShield: (enabled: boolean) => call("set_privacy_shield", { enabled }),
+  syncTrackersBlocked: (tabId: string) => call("sync_tab_trackers_blocked", { tabId }),
+  resetTrackersCount: () => call("reset_trackers_count"),
 };
 
 export const windowControls = {

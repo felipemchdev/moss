@@ -9,6 +9,9 @@ const COMMANDS: &[&str] = &[
     "minimize_window",
     "toggle_maximize_window",
     "close_window",
+    "set_privacy_shield",
+    "sync_tab_trackers_blocked",
+    "reset_trackers_count",
 ];
 
 fn main() {

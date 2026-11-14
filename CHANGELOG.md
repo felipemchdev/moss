@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-14
+
+### Added
+- Session Restoration & Closed Tab Recovery (`Ctrl+Shift+T`) with LIFO tab recovery stack (`src/tabs.ts`).
+- `moss:closed_tabs_stack`: stores up to 30 closed tabs with original URL, page title, workspace affiliation, and pinned state.
+- `Ctrl+Shift+T` global keyboard shortcut restoring the most recently closed tab, recreating its native webview and navigating back to its page.
+- "Reabrir aba fechada" quick action in Command Palette (`Ctrl+K`) and Tab Context Menu (`src/context-menu.ts`, `src/command-palette.ts`).
+- Full Session Persistence (`moss:open_session`): automatically records active and background tabs across all workspaces, restoring complete browser session upon reopening when enabled (`restoreSession: true` in settings).
+- Settings integration with `restoreSession` setting (`src/settings.ts`).
+- Documentation in keyboard shortcuts modal (`src/shortcuts-modal.ts`).
+
 ## [0.9.0] - 2026-11-14
 
 ### Added

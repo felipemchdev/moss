@@ -1,6 +1,9 @@
 import { getActiveWorkspaceId } from "./workspaces";
 
 const PINNED_STORAGE_KEY = "moss:pinned_tabs";
+const CLOSED_TABS_STORAGE_KEY = "moss:closed_tabs_stack";
+const SESSION_STORAGE_KEY = "moss:open_session";
+const MAX_CLOSED_TABS = 30;
 
 export interface Tab {
   id: string;
@@ -14,6 +17,22 @@ export interface Tab {
   workspaceId?: string;
 }
 
+export interface ClosedTab {
+  url: string;
+  title: string;
+  workspaceId?: string;
+  isPinned: boolean;
+  closedAt: number;
+}
+
+export interface SessionTab {
+  url: string;
+  title: string;
+  workspaceId?: string;
+  isPinned: boolean;
+  active: boolean;
+}
+
 export type TabPatch = Partial<Omit<Tab, "id" | "active">>;
 type Listener = (tabs: readonly Tab[]) => void;
 
@@ -23,15 +42,93 @@ let tabs: Tab[] = [];
 let nextId = 1;
 const listeners = new Set<Listener>();
 
+function isRestorableUrl(url: string): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "about:blank") return false;
+  return !trimmed.startsWith("javascript:") && !trimmed.startsWith("data:");
+}
+
+function loadClosedTabs(): ClosedTab[] {
+  try {
+    const raw = localStorage.getItem(CLOSED_TABS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is ClosedTab =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof item.url === "string" &&
+        typeof item.title === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+let closedTabsStack: ClosedTab[] = loadClosedTabs();
+
+function saveClosedTabs() {
+  try {
+    localStorage.setItem(CLOSED_TABS_STORAGE_KEY, JSON.stringify(closedTabsStack));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 function notify() {
   for (const listener of listeners) listener(tabs);
   savePinnedUrls();
+  saveSession();
 }
 
 function savePinnedUrls() {
   try {
     const pinned = tabs.filter((t) => t.isPinned && t.url).map((t) => t.url);
     localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinned));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function saveSession(): void {
+  try {
+    const sessionTabs: SessionTab[] = tabs
+      .filter((t) => t.url && isRestorableUrl(t.url))
+      .map((t) => ({
+        url: t.url,
+        title: t.title,
+        workspaceId: t.workspaceId,
+        isPinned: t.isPinned,
+        active: t.active,
+      }));
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionTabs));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function loadSession(): SessionTab[] {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is SessionTab =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof item.url === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function clearSession(): void {
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
   } catch {
     /* storage unavailable */
   }
@@ -105,6 +202,20 @@ export function closeTab(id: string) {
   if (index === -1) return;
 
   const closed = tabs[index];
+  if (closed.url && isRestorableUrl(closed.url)) {
+    closedTabsStack.push({
+      url: closed.url,
+      title: closed.title || NEW_TAB_TITLE,
+      workspaceId: closed.workspaceId,
+      isPinned: closed.isPinned,
+      closedAt: Date.now(),
+    });
+    if (closedTabsStack.length > MAX_CLOSED_TABS) {
+      closedTabsStack.shift();
+    }
+    saveClosedTabs();
+  }
+
   const wasActive = closed.active;
   const wsId = closed.workspaceId ?? getActiveWorkspaceId();
   const remaining = tabs.filter((tab) => tab.id !== id);
@@ -124,6 +235,33 @@ export function closeTab(id: string) {
     tabs = remaining;
   }
   notify();
+}
+
+export function reopenLastClosedTab(): Tab | undefined {
+  if (closedTabsStack.length === 0) return undefined;
+  const closed = closedTabsStack.pop();
+  saveClosedTabs();
+  if (!closed) return undefined;
+
+  const tab = createTab(closed.url, closed.isPinned, closed.workspaceId);
+  if (closed.title && closed.title !== NEW_TAB_TITLE) {
+    updateTab(tab.id, { title: closed.title });
+  }
+  selectTab(tab.id);
+  return tab;
+}
+
+export function getClosedTabsCount(): number {
+  return closedTabsStack.length;
+}
+
+export function getClosedTabs(): readonly ClosedTab[] {
+  return closedTabsStack;
+}
+
+export function clearClosedTabs(): void {
+  closedTabsStack = [];
+  saveClosedTabs();
 }
 
 export function selectTab(id: string) {

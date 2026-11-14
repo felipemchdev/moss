@@ -7,6 +7,7 @@ export interface Settings {
   theme: Theme;
   searchEngine: SearchEngine;
   homepage: string;
+  restoreSession: boolean;
 }
 
 export const THEMES: { value: Theme; label: string }[] = [
@@ -22,19 +23,25 @@ export const SEARCH_ENGINES: { value: SearchEngine; label: string; url: string }
 ];
 
 const STORAGE_KEY = "moss.settings";
-const DEFAULTS: Settings = { theme: "system", searchEngine: "duckduckgo", homepage: "" };
+const DEFAULTS: Settings = {
+  theme: "system",
+  searchEngine: "duckduckgo",
+  homepage: "",
+  restoreSession: true,
+};
 const systemLight = window.matchMedia("(prefers-color-scheme: light)");
 
 function load(): Settings {
   const stored = loadJson(STORAGE_KEY);
   if (!isRecord(stored)) return { ...DEFAULTS };
-  const { theme, searchEngine, homepage } = stored;
+  const { theme, searchEngine, homepage, restoreSession } = stored;
   return {
     theme: THEMES.some((t) => t.value === theme) ? (theme as Theme) : DEFAULTS.theme,
     searchEngine: SEARCH_ENGINES.some((e) => e.value === searchEngine)
       ? (searchEngine as SearchEngine)
       : DEFAULTS.searchEngine,
     homepage: typeof homepage === "string" && isWebUrl(homepage) ? homepage : DEFAULTS.homepage,
+    restoreSession: typeof restoreSession === "boolean" ? restoreSession : DEFAULTS.restoreSession,
   };
 }
 

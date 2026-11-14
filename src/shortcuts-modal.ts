@@ -18,6 +18,7 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     items: [
       { keys: ["Ctrl", "T"], description: "Nova aba" },
       { keys: ["Ctrl", "W"], description: "Fechar aba atual" },
+      { keys: ["Ctrl", "Shift", "T"], description: "Reabrir aba fechada" },
       { keys: ["Ctrl", "B"], description: "Alternar barra lateral (Modo Compacto)" },
       { keys: ["Ctrl", "\\"], description: "Alternar tela dividida (Split View)" },
       { keys: ["Ctrl", "Shift", "S"], description: "Alternar tela dividida" },

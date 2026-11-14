@@ -7,6 +7,8 @@ export interface TabContextMenuActions {
   onCloseOthers: (tabId: string) => void;
   onTogglePin: (tabId: string) => void;
   isPinned: (tabId: string) => boolean;
+  onReopenClosedTab?: () => void;
+  canReopenClosedTab?: () => boolean;
   onToggleSplit?: (tabId: string) => void;
   isSplitActive?: () => boolean;
   isSplitTab?: (tabId: string) => boolean;
@@ -39,6 +41,7 @@ export function createTabContextMenu(
   // Pin button is dynamic — rebuilt on each open
   let pinButton: HTMLButtonElement | null = null;
   let splitButton: HTMLButtonElement | null = null;
+  let reopenButton: HTMLButtonElement | null = null;
 
   const staticOptions: { label: string; action: (tabId: string) => void }[] = [
     { label: "Recarregar", action: actions.onReload },
@@ -100,6 +103,25 @@ export function createTabContextMenu(
       if (targetTabId) actions.onToggleSplit?.(targetTabId);
     });
     element.append(splitButton);
+  }
+
+  // Reopen closed tab button
+  function buildReopenButton() {
+    if (reopenButton) reopenButton.remove();
+    if (!actions.onReopenClosedTab) return;
+    const canReopen = actions.canReopenClosedTab ? actions.canReopenClosedTab() : true;
+    if (!canReopen) return;
+    reopenButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      ["Reabrir aba fechada (Ctrl+Shift+T)"],
+    ) as HTMLButtonElement;
+    reopenButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onReopenClosedTab?.();
+    });
+    element.append(reopenButton);
   }
 
   let workspaceButtons: HTMLButtonElement[] = [];
@@ -164,6 +186,7 @@ export function createTabContextMenu(
       buildPinButton(tabId);
       buildSplitButton(tabId);
       buildWorkspaceButtons();
+      buildReopenButton();
 
       element.style.visibility = "hidden";
       element.style.display = "flex";

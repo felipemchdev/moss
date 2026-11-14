@@ -54,6 +54,7 @@ export interface CommandPaletteActions {
   isSplitActive: () => boolean;
   toggleSidebar: () => void;
   isSidebarCollapsed: () => boolean;
+  reopenClosedTab: () => void;
 }
 
 export interface CommandPaletteController {
@@ -231,6 +232,17 @@ export function createCommandPalette(
         shortcut: ["Ctrl", "W"],
         keywords: ["fechar", "close", "remover", "sair", "tab"],
         run: () => actions.closeCurrentTab(),
+      },
+      {
+        id: "action-reopen-closed-tab",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Reabrir Aba Fechada",
+        subtitle: "Restaurar a última aba encerrada",
+        iconName: "reload",
+        shortcut: ["Ctrl", "Shift", "T"],
+        keywords: ["reabrir", "restaurar", "aba", "fechada", "recuperar", "undo", "closed"],
+        run: () => actions.reopenClosedTab(),
       },
       {
         id: "action-split-view",

@@ -37,7 +37,10 @@ import {
   getTab,
   getTabs,
   loadPinnedUrls,
+  loadSession,
   moveTabToWorkspace,
+  reopenLastClosedTab,
+  getClosedTabsCount,
   selectTab,
   subscribe,
   togglePinTab,
@@ -596,6 +599,12 @@ window.addEventListener("DOMContentLoaded", () => {
       isPinned(tabId) {
         return getTab(tabId)?.isPinned ?? false;
       },
+      onReopenClosedTab() {
+        reopenClosedTab();
+      },
+      canReopenClosedTab() {
+        return getClosedTabsCount() > 0;
+      },
       onToggleSplit(tabId) {
         handleToggleSplitForTab(tabId);
       },
@@ -792,6 +801,9 @@ window.addEventListener("DOMContentLoaded", () => {
       },
       isSidebarCollapsed() {
         return isSidebarCollapsed();
+      },
+      reopenClosedTab() {
+        reopenClosedTab();
       },
     },
     syncWebviewVisibility,
@@ -1048,6 +1060,15 @@ window.addEventListener("DOMContentLoaded", () => {
       (t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId,
     );
     if (remainingWsTabs.length === 0) openTab();
+  }
+
+  function reopenClosedTab() {
+    const reopened = reopenLastClosedTab();
+    if (reopened) {
+      if (reopened.url) navigate(reopened.id, reopened.url);
+      syncViewport();
+      syncWebviewVisibility();
+    }
   }
 
   function cycleTabs(step: number) {
@@ -1556,12 +1577,17 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (readerView.isOpen() && (event.ctrlKey || event.metaKey) && event.shiftKey) {
-      if (event.key.toLowerCase() === "t") {
-        event.preventDefault();
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "t") {
+      event.preventDefault();
+      if (readerView.isOpen()) {
         readerView.cycleTheme();
-        return;
+      } else {
+        reopenClosedTab();
       }
+      return;
+    }
+
+    if (readerView.isOpen() && (event.ctrlKey || event.metaKey) && event.shiftKey) {
       if (event.key.toLowerCase() === "f") {
         event.preventDefault();
         readerView.cycleFont();
@@ -1817,24 +1843,60 @@ window.addEventListener("DOMContentLoaded", () => {
     syncWebviewVisibility();
   });
 
-  // Restore persisted pinned tabs, then open initial tab if needed
-  const pinnedUrls = loadPinnedUrls();
-  for (const url of pinnedUrls) {
-    const tab = createTab(url, true);
-    if (url) navigate(tab.id, url);
-  }
+  // Restore persisted session tabs if enabled, otherwise fallback to pinned tabs
+  const sessionTabs = loadSession();
+  const shouldRestoreSession = getSettings().restoreSession && sessionTabs.length > 0;
 
-  const curWsId = getActiveWorkspaceId();
-  const existingTabs = getTabs();
-  const wsTabs = existingTabs.filter(
-    (t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId,
-  );
-  if (wsTabs.length === 0) {
-    openTab();
+  if (shouldRestoreSession) {
+    for (const s of sessionTabs) {
+      const tab = createTab(s.url, s.isPinned, s.workspaceId);
+      if (s.title && s.title !== NEW_TAB_TITLE) {
+        updateTab(tab.id, { title: s.title });
+      }
+      if (s.url) {
+        navigate(tab.id, s.url);
+      }
+    }
+    const curWsId = getActiveWorkspaceId();
+    const curWsTabs = getTabs().filter(
+      (t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId,
+    );
+    if (curWsTabs.length === 0) {
+      openTab();
+    } else {
+      const activeRestored = sessionTabs.find(
+        (s) => s.active && (!s.workspaceId || s.workspaceId === curWsId),
+      );
+      if (activeRestored) {
+        const target = getTabs().find(
+          (t) => t.url === activeRestored.url && (t.workspaceId ?? "default") === curWsId,
+        );
+        if (target) selectTab(target.id);
+        else selectTab(curWsTabs[0].id);
+      } else if (curWsTabs[0]) {
+        selectTab(curWsTabs[0].id);
+      }
+    }
   } else {
-    const active = wsTabs.find((t) => t.active);
-    if (!active && wsTabs[0]) {
-      selectTab(wsTabs[0].id);
+    // Restore persisted pinned tabs, then open initial tab if needed
+    const pinnedUrls = loadPinnedUrls();
+    for (const url of pinnedUrls) {
+      const tab = createTab(url, true);
+      if (url) navigate(tab.id, url);
+    }
+
+    const curWsId = getActiveWorkspaceId();
+    const existingTabs = getTabs();
+    const wsTabs = existingTabs.filter(
+      (t) => !t.isPinned && (t.workspaceId ?? "default") === curWsId,
+    );
+    if (wsTabs.length === 0) {
+      openTab();
+    } else {
+      const active = wsTabs.find((t) => t.active);
+      if (!active && wsTabs[0]) {
+        selectTab(wsTabs[0].id);
+      }
     }
   }
 });

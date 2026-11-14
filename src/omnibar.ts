@@ -1,5 +1,3 @@
-const SEARCH_URL = "https://duckduckgo.com/?q=";
-
 function toUrl(candidate: string): string | null {
   try {
     return new URL(candidate).href;
@@ -8,12 +6,13 @@ function toUrl(candidate: string): string | null {
   }
 }
 
-export function resolveOmnibarInput(raw: string): string | null {
+export function resolveOmnibarInput(raw: string, searchUrl: string): string | null {
   const input = raw.trim();
   if (!input) return null;
+  const search = searchUrl + encodeURIComponent(input);
 
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(input) || /^about:/i.test(input)) {
-    return toUrl(input) ?? SEARCH_URL + encodeURIComponent(input);
+    return toUrl(input) ?? search;
   }
 
   const hasWhitespace = /\s/.test(input);
@@ -22,10 +21,10 @@ export function resolveOmnibarInput(raw: string): string | null {
   const looksLikeDomain = /^[^\s/@]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(input);
 
   if (!hasWhitespace && (isLocalhost || isIpv4)) {
-    return toUrl(`http://${input}`) ?? SEARCH_URL + encodeURIComponent(input);
+    return toUrl(`http://${input}`) ?? search;
   }
   if (!hasWhitespace && looksLikeDomain) {
-    return toUrl(`https://${input}`) ?? SEARCH_URL + encodeURIComponent(input);
+    return toUrl(`https://${input}`) ?? search;
   }
-  return SEARCH_URL + encodeURIComponent(input);
+  return search;
 }

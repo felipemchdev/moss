@@ -1,7 +1,14 @@
 import { listen } from "@tauri-apps/api/event";
-import { NavHistory, type NavIntent } from "./history";
+import { addBookmark, isBookmarked, removeBookmark, subscribeBookmarks, type Bookmark } from "./bookmarks";
+import { el, hostnameOf } from "./dom";
+import { NavHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
+import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
 import { resolveOmnibarInput } from "./omnibar";
+import { PANEL_TOGGLE_ATTR, type Panel } from "./panel";
+import { getSettings, searchUrl } from "./settings";
+import { createSettingsPanel } from "./settings-panel";
+import { isWebUrl } from "./storage";
 import {
   NEW_TAB_TITLE,
   closeTab,
@@ -35,9 +42,13 @@ const SHORTCUTS = [
   ["Ctrl+W", "fechar aba"],
   ["Ctrl+Tab", "próxima aba"],
   ["Ctrl+L", "omnibar"],
+  ["Ctrl+H", "histórico"],
+  ["Ctrl+,", "configurações"],
 ];
 
 const histories = new Map<string, NavHistory>();
+// Title reported since the tab's last load started, so history never gets the previous page's title.
+const pageTitles = new Map<string, string>();
 
 function historyOf(tabId: string): NavHistory {
   let history = histories.get(tabId);
@@ -46,25 +57,6 @@ function historyOf(tabId: string): NavHistory {
     histories.set(tabId, history);
   }
   return history;
-}
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  attrs: Record<string, string> = {},
-  children: (Node | string)[] = [],
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-  node.append(...children);
-  return node;
-}
-
-function hostnameOf(url: string): string {
-  try {
-    return new URL(url).hostname || url;
-  } catch {
-    return url;
-  }
 }
 
 function buildChrome(root: HTMLElement) {
@@ -93,18 +85,40 @@ function buildChrome(root: HTMLElement) {
     spellcheck: "false",
     "aria-label": "Barra de endereço",
   });
+  const bookmarkToggle = el(
+    "button",
+    { class: "omnibar-star-btn", type: "button", "aria-pressed": "false" },
+    [icon("star")],
+  );
   const omnibar = el("form", { class: "omnibar", role: "search" }, [
     el("span", { class: "omnibar-icon" }, [icon("search")]),
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
+    el("div", { class: "omnibar-actions" }, [bookmarkToggle]),
   ]);
+
+  const toggleAttrs = { class: "nav-btn", type: "button", [PANEL_TOGGLE_ATTR]: "" };
+  const historyButton = el(
+    "button",
+    { ...toggleAttrs, "aria-label": "Histórico", title: "Histórico (Ctrl+H)" },
+    [icon("history")],
+  );
+  const settingsButton = el(
+    "button",
+    { ...toggleAttrs, "aria-label": "Configurações", title: "Configurações (Ctrl+,)" },
+    [icon("settings")],
+  );
 
   // Native tab webviews render above the HTML, so the loading bar must live in the chrome.
   const loadingBar = el("div", { class: "webview-loading" });
   const toolbar = el("header", { class: "toolbar" }, [
     el("nav", { class: "toolbar-group nav-group" }, Object.values(navButtons)),
     el("div", { class: "toolbar-group omnibar-group" }, [omnibar]),
+    el("div", { class: "toolbar-group action-group" }, [historyButton, settingsButton]),
     loadingBar,
   ]);
+
+  const bookmarksList = el("ul", { class: "bookmarks-list" });
+  const bookmarksBar = el("nav", { class: "bookmarks-bar", "aria-label": "Favoritos" }, [bookmarksList]);
 
   const emptyState = el("div", { class: "empty-state" }, [
     el("h1", { class: "empty-state-title" }, ["moss"]),
@@ -120,17 +134,46 @@ function buildChrome(root: HTMLElement) {
   const webviewContainer = el("div", { class: "webview-container" }, [emptyState]);
   const mainView = el("main", { class: "main-view" }, [webviewContainer]);
 
-  root.append(tabBar, toolbar, mainView);
+  root.append(tabBar, toolbar, bookmarksBar, mainView);
   return {
     tabList,
     newTabButton,
     navButtons,
     omnibar,
     omnibarInput,
+    bookmarkToggle,
+    historyButton,
+    settingsButton,
+    bookmarksBar,
+    bookmarksList,
     emptyState,
     loadingBar,
     webviewContainer,
   };
+}
+
+function renderBookmarksBar(bar: HTMLElement, list: HTMLElement, bookmarks: readonly Bookmark[]) {
+  // The bar sets display:flex, which would override [hidden].
+  bar.style.display = bookmarks.length === 0 ? "none" : "";
+  list.replaceChildren(
+    ...bookmarks.map((bookmark) =>
+      el("li", {}, [
+        el(
+          "button",
+          {
+            class: "bookmark-item",
+            type: "button",
+            "data-url": bookmark.url,
+            title: `${bookmark.title}\n${bookmark.url}`,
+          },
+          [
+            el("span", { class: "bookmark-favicon" }, [icon("globe")]),
+            el("span", { class: "bookmark-title" }, [bookmark.title]),
+          ],
+        ),
+      ]),
+    ),
+  );
 }
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -141,6 +184,35 @@ window.addEventListener("DOMContentLoaded", () => {
   const tabElements = new Map<string, HTMLElement>();
   let shownTabId: string | null = null;
   let shownUrl = "";
+  let visibleWebviewId: string | null | undefined;
+
+  const historyPanel = createHistoryPanel((url, inNewTab) => {
+    const tab = getActiveTab();
+    if (tab && !inNewTab) navigate(tab.id, url);
+    else openUrl(url);
+  }, syncWebviewVisibility);
+  const settings = createSettingsPanel(syncWebviewVisibility);
+  const settingsPanel = settings.panel;
+  const panels: Panel[] = [historyPanel, settingsPanel];
+  root.append(historyPanel.element, settings.overlay, settingsPanel.element);
+
+  // Native webviews would cover the panels, so the active one is hidden while a panel is open.
+  function syncWebviewVisibility() {
+    const target = panels.some((panel) => panel.isOpen()) ? null : (getActiveTab()?.id ?? null);
+    if (target === visibleWebviewId) return;
+    visibleWebviewId = target;
+    webview.show(target);
+  }
+
+  function closePanels() {
+    for (const panel of panels) panel.close();
+  }
+
+  function togglePanel(panel: Panel) {
+    if (panel.isOpen()) return panel.close();
+    closePanels();
+    panel.open();
+  }
 
   function focusOmnibar() {
     ui.omnibarInput.focus();
@@ -148,19 +220,32 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function navigate(tabId: string, url: string) {
+    if (getActiveTab()?.id === tabId) {
+      ui.omnibarInput.value = url;
+      ui.omnibarInput.blur();
+    }
     updateTab(tabId, { url, isLoading: true });
     webview.navigate(tabId, url).catch(() => updateTab(tabId, { isLoading: false }));
   }
 
   function openTab(url?: string) {
-    const tab = createTab(url);
-    if (url) navigate(tab.id, url);
-    else focusOmnibar();
+    const target = url ?? getSettings().homepage;
+    const tab = createTab(target);
+    if (target) navigate(tab.id, target);
+    if (!url) focusOmnibar();
+  }
+
+  // Reuses the active tab when it is still blank instead of piling up empty tabs.
+  function openUrl(url: string) {
+    const tab = getActiveTab();
+    if (tab && !tab.url) navigate(tab.id, url);
+    else openTab(url);
   }
 
   function closeTabAndWebview(tabId: string) {
     closeTab(tabId);
     histories.delete(tabId);
+    pageTitles.delete(tabId);
     webview.close(tabId);
     if (getTabs().length === 0) openTab();
   }
@@ -224,6 +309,18 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function renderBookmarkToggle() {
+    const url = getActiveTab()?.url ?? "";
+    const bookmarkable = isWebUrl(url);
+    const active = bookmarkable && isBookmarked(url);
+    const label = active ? "Remover dos favoritos" : "Adicionar aos favoritos";
+    ui.bookmarkToggle.style.display = bookmarkable ? "" : "none";
+    ui.bookmarkToggle.classList.toggle("omnibar-star-btn--active", active);
+    ui.bookmarkToggle.setAttribute("aria-pressed", String(active));
+    ui.bookmarkToggle.setAttribute("aria-label", label);
+    ui.bookmarkToggle.title = label;
+  }
+
   function render(tabs: readonly Tab[]) {
     renderTabBar(tabs);
 
@@ -234,12 +331,13 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.emptyState.style.display = active?.url ? "none" : "";
     ui.loadingBar.style.display = active?.isLoading ? "" : "none";
     document.title = active?.url ? `${active.title} — Moss` : "Moss";
+    renderBookmarkToggle();
+    syncWebviewVisibility();
 
     const activeId = active?.id ?? null;
     const activeUrl = active?.url ?? "";
     if (activeId !== shownTabId) {
       shownTabId = activeId;
-      webview.show(activeId);
       ui.omnibarInput.value = activeUrl;
       if (!activeUrl) focusOmnibar();
     } else if (activeUrl !== shownUrl && document.activeElement !== ui.omnibarInput) {
@@ -275,14 +373,31 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.navButtons[action].addEventListener("click", () => runNavAction(action));
   }
 
+  ui.historyButton.addEventListener("click", () => togglePanel(historyPanel));
+  ui.settingsButton.addEventListener("click", () => togglePanel(settingsPanel));
+
+  ui.bookmarkToggle.addEventListener("click", () => {
+    const tab = getActiveTab();
+    if (!tab || !isWebUrl(tab.url)) return;
+    if (isBookmarked(tab.url)) removeBookmark(tab.url);
+    else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
+  });
+
+  ui.bookmarksBar.addEventListener("click", (event) => {
+    const url = (event.target as Element).closest<HTMLElement>(".bookmark-item")?.dataset.url;
+    if (url) openUrl(url);
+  });
+  ui.bookmarksBar.addEventListener("auxclick", (event) => {
+    const url = (event.target as Element).closest<HTMLElement>(".bookmark-item")?.dataset.url;
+    if (url && event.button === 1) openTab(url);
+  });
+
   ui.omnibar.addEventListener("submit", (event) => {
     event.preventDefault();
-    const url = resolveOmnibarInput(ui.omnibarInput.value);
+    const url = resolveOmnibarInput(ui.omnibarInput.value, searchUrl());
     if (!url) return;
     const tab = getActiveTab();
     if (!tab) return openTab(url);
-    ui.omnibarInput.value = url;
-    ui.omnibarInput.blur();
     navigate(tab.id, url);
   });
 
@@ -295,13 +410,16 @@ window.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("keydown", (event) => {
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
-    const active = getActiveTab();
-
-    if (key === "t") openTab();
-    else if (key === "w" && active) closeTabAndWebview(active.id);
-    else if (key === "tab") cycleTabs(event.shiftKey ? -1 : 1);
-    else if (key === "l") focusOmnibar();
-    else return;
+    if (key === "h") togglePanel(historyPanel);
+    else if (key === ",") togglePanel(settingsPanel);
+    else if (key === "t" || key === "w" || key === "tab" || key === "l") {
+      closePanels();
+      const active = getActiveTab();
+      if (key === "t") openTab();
+      else if (key === "w" && active) closeTabAndWebview(active.id);
+      else if (key === "tab") cycleTabs(event.shiftKey ? -1 : 1);
+      else if (key === "l") focusOmnibar();
+    } else return;
     event.preventDefault();
   });
 
@@ -310,11 +428,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!tab) return;
     const title = tab.title === NEW_TAB_TITLE ? hostnameOf(payload.url) : tab.title;
     if (payload.state === "started") {
+      pageTitles.delete(tab.id);
       updateTab(tab.id, { url: payload.url, isLoading: true, title });
       return;
     }
     const history = historyOf(tab.id);
     history.commit(payload.url);
+    recordVisit(payload.url, pageTitles.get(tab.id) ?? "");
     updateTab(tab.id, {
       url: payload.url,
       title,
@@ -326,7 +446,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   listen<{ tabId: string; title: string }>("tab://title", ({ payload }) => {
     const tab = getTab(payload.tabId);
-    if (tab) updateTab(tab.id, { title: payload.title.trim() || hostnameOf(tab.url) });
+    if (!tab) return;
+    const pageTitle = payload.title.trim();
+    pageTitles.set(tab.id, pageTitle);
+    updateVisitTitle(tab.url, pageTitle);
+    updateTab(tab.id, { title: pageTitle || hostnameOf(tab.url) });
   });
 
   listen<{ url: string }>("tab://open", ({ payload }) => openTab(payload.url));
@@ -339,5 +463,9 @@ window.addEventListener("DOMContentLoaded", () => {
   syncViewport();
 
   subscribe(render);
+  subscribeBookmarks((bookmarks) => {
+    renderBookmarksBar(ui.bookmarksBar, ui.bookmarksList, bookmarks);
+    renderBookmarkToggle();
+  });
   openTab();
 });

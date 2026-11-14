@@ -1,86 +1,103 @@
 :root {
   /* ==========================================================================
-     MOSS BROWSER — DESIGN TOKENS (VIBRANT & MOTION)
-     Paleta: Verde pastel principal (#afd36c, #99bc58, #3b5215)
-     Temas claros: #f5fdf7, #FFFBF6
-     Temas escuros: #bcd48f, #717171, fundos glass escuros
-     Estilo: Mac Glass / Transparência + Motion Design (Apple/Zen Browser)
+     MOSS BROWSER — DESIGN TOKENS (ZEN BROWSER AESTHETIC)
+     Paleta refinada: Misty Sage, Soft Matcha, Moss Pastel
+     Temas claros: #f5fdf7, #FFFBF6 (warm cream undertones)
+     Temas escuros: undertones musgo serenos, glassmorphism Apple Mac
+     Estilo: Zen Browser — abas pill flutuantes, seleções suaves, glassmorphism
      ========================================================================== */
 
-  /* --- Color Primitives: Moss Pastel Green Scale --- */
-  --color-moss-950:  #1a2b0d;
-  --color-moss-900:  #2a3d14;
-  --color-moss-800:  #3b5215;
-  --color-moss-700:  #4a6b1a;
-  --color-moss-600:  #668c2a;
-  --color-moss-500:  #82aa3a;
-  --color-moss-400:  #99bc58;
-  --color-moss-300:  #afd36c;
-  --color-moss-200:  #c7e09e;
-  --color-moss-100:  #e0edc7;
-  --color-moss-50:   #f5fdf7;
+  /* --- Color Primitives: Refined Moss Pastel Green Scale --- */
+  /* Deep moss undertones (dark theme bases) */
+  --color-moss-950:  #0f160c;
+  --color-moss-900:  #182310;
+  --color-moss-850:  #1f2d15;
+  --color-moss-800:  #263819;
+  --color-moss-750:  #2e451e;
+  --color-moss-700:  #365123;
 
-  /* Light theme surface tones */
+  /* Mid-range: soft matcha transition */
+  --color-moss-650:  #42642d;
+  --color-moss-600:  #4e7837;
+  --color-moss-550:  #5d8e42;
+
+  /* Pastel greens: misty sage, moss pastel */
+  --color-moss-500:  #6eb54f;  /* soft matcha */
+  --color-moss-450:  #82c760;
+  --color-moss-400:  #95d772;
+  --color-moss-350:  #a7e286;
+  --color-moss-300:  #b8eb9a;  /* misty sage */
+  --color-moss-250:  #cbf3af;
+  --color-moss-200:  #dcf8c5;
+  --color-moss-150:  #edfcdc;
+  --color-moss-100:  #f6fef3;
+  --color-moss-50:   #fafef7;
+
+  /* Light theme surface tones (warm cream) */
   --color-surface-50:  #FFFBF6;
   --color-surface-100: #f5fdf7;
-  --color-surface-200: #e8f5e9;
+  --color-surface-200: #eef7f0;
+  --color-surface-300: #e1f0e5;
 
-  /* Dark theme surface tones (glass bases) */
-  --color-surface-950: #0d1408;
-  --color-surface-900: #141f0b;
-  --color-surface-800: #1a2a0f;
-  --color-surface-700: #233814;
+  /* Dark theme surface tones (serene moss undertones) */
+  --color-surface-950: #0c1208;
+  --color-surface-900: #111c0b;
+  --color-surface-850: #15240e;
+  --color-surface-800: #1a2d12;
+  --color-surface-750: #1f3616;
+  --color-surface-700: #243f1a;
 
-  /* Accent greens for dark theme */
-  --color-moss-glow-400: #bcd48f;
-  --color-moss-glow-500: #afd36c;
-  --color-moss-glow-600: #99bc58;
+  /* Accent glows for dark theme (zen glow) */
+  --color-moss-glow-500: #a7e286;
+  --color-moss-glow-400: #b8eb9a;
+  --color-moss-glow-300: #cbf3af;
 
-  /* Neutral grays */
-  --color-neutral-900: #1a1a1a;
-  --color-neutral-800: #2d2d2d;
-  --color-neutral-700: #404040;
-  --color-neutral-600: #525252;
-  --color-neutral-500: #717171;
-  --color-neutral-400: #a3a3a3;
-  --color-neutral-300: #d4d4d4;
-  --color-neutral-200: #e5e5e5;
-  --color-neutral-100: #f5f5f5;
-  --color-neutral-50:  #fafafa;
+  /* Neutral grays (cooler, zen-like) */
+  --color-neutral-900:  #171717;
+  --color-neutral-800:  #262626;
+  --color-neutral-700:  #3d3d3d;
+  --color-neutral-600:  #525252;
+  --color-neutral-500:  #717171;
+  --color-neutral-400:  #a3a3a3;
+  --color-neutral-300:  #d4d4d4;
+  --color-neutral-200:  #e5e5e5;
+  --color-neutral-100:  #f5f5f5;
+  --color-neutral-50:   #fafafa;
 
   /* --- Semantic Color Aliases (Dark-First with Glass) --- */
-  /* Dark theme (default) */
+  /* Dark theme (default) - serene moss undertones */
   --color-bg-primary:       var(--color-surface-950);
   --color-bg-secondary:     var(--color-surface-900);
-  --color-bg-tertiary:      var(--color-surface-800);
-  --color-bg-hover:         var(--color-surface-700);
+  --color-bg-tertiary:      var(--color-surface-850);
+  --color-bg-hover:         var(--color-surface-800);
   --color-bg-active:        var(--color-moss-800);
-  --color-bg-input:         rgba(20, 31, 11, 0.7);
-  --color-bg-overlay:       rgba(13, 20, 8, 0.6);
-  --color-bg-modal:         rgba(26, 42, 13, 0.85);
-  --color-bg-glass:         rgba(20, 31, 11, 0.45);
-  --color-bg-glass-strong:  rgba(26, 42, 13, 0.65);
-  --color-bg-glass-hover:   rgba(35, 56, 20, 0.55);
+  --color-bg-input:         rgba(12, 18, 8, 0.72);
+  --color-bg-overlay:       rgba(11, 17, 7, 0.55);
+  --color-bg-modal:         rgba(18, 28, 11, 0.88);
+  --color-bg-glass:         rgba(18, 28, 11, 0.4);
+  --color-bg-glass-strong:  rgba(22, 35, 14, 0.55);
+  --color-bg-glass-hover:   rgba(26, 41, 16, 0.5);
 
   --color-fg-primary:       #fafafa;
-  --color-fg-secondary:     #e5e5e5;
+  --color-fg-secondary:     #e8e8e8;
   --color-fg-tertiary:      #a3a3a3;
   --color-fg-muted:         #717171;
-  --color-fg-inverse:       #1a1a1a;
-  --color-fg-placeholder:   #717171;
+  --color-fg-inverse:       #0c1208;
+  --color-fg-placeholder:   #6b6b6b;
 
-  --color-border-subtle:    rgba(163, 163, 163, 0.08);
-  --color-border-default:   rgba(163, 163, 163, 0.15);
-  --color-border-strong:    rgba(163, 163, 163, 0.25);
+  --color-border-subtle:    rgba(163, 163, 163, 0.06);
+  --color-border-default:   rgba(163, 163, 163, 0.12);
+  --color-border-strong:    rgba(163, 163, 163, 0.2);
   --color-border-focus:     var(--color-moss-400);
-  --color-border-glass:     rgba(255, 255, 255, 0.1);
-  --color-border-glass-strong: rgba(255, 255, 255, 0.18);
+  --color-border-glass:     rgba(255, 255, 255, 0.08);
+  --color-border-glass-strong: rgba(255, 255, 255, 0.15);
 
-  --color-accent-primary:   var(--color-moss-400);
-  --color-accent-secondary: var(--color-moss-300);
-  --color-accent-hover:     var(--color-moss-300);
-  --color-accent-active:    var(--color-moss-200);
-  --color-accent-glow:      rgba(153, 188, 88, 0.4);
+  --color-accent-primary:   var(--color-moss-450);
+  --color-accent-secondary: var(--color-moss-350);
+  --color-accent-hover:     var(--color-moss-350);
+  --color-accent-active:    var(--color-moss-250);
+  --color-accent-glow:      rgba(130, 199, 96, 0.35);
+  --color-accent-glow-strong: rgba(98, 160, 60, 0.5);
 
   --color-danger:       #ef4444;
   --color-danger-hover: #f87171;
@@ -249,6 +266,7 @@
 
   --transition-fast:    150ms var(--ease-spring);
   --transition-base:    260ms var(--ease-apple);
+  --transition-slow:    400ms var(--ease-smooth);
 
   /* Specific component motions */
   --motion-tab-hover:     var(--duration-fast) var(--ease-out);
@@ -295,63 +313,62 @@
 }
 
 /* ==========================================================================
-   LIGHT THEME OVERRIDES
+   LIGHT THEME OVERRIDES (data-theme is resolved from settings, incl. "system")
+   Zen light: warm cream surfaces, soft matcha accents, subtle moss borders
    ========================================================================== */
-@media (prefers-color-scheme: light) {
-  :root {
+:root[data-theme="light"] {
     --color-bg-primary:       var(--color-surface-50);
     --color-bg-secondary:     var(--color-surface-100);
     --color-bg-tertiary:      var(--color-surface-200);
-    --color-bg-hover:         var(--color-moss-100);
+    --color-bg-hover:         var(--color-moss-150);
     --color-bg-active:        var(--color-moss-200);
-    --color-bg-input:         rgba(255, 251, 246, 0.8);
-    --color-bg-overlay:       rgba(255, 251, 246, 0.7);
-    --color-bg-modal:         rgba(255, 251, 246, 0.9);
-    --color-bg-glass:         rgba(255, 251, 246, 0.55);
-    --color-bg-glass-strong:  rgba(255, 251, 246, 0.75);
-    --color-bg-glass-hover:   rgba(224, 237, 199, 0.65);
+    --color-bg-input:         rgba(250, 254, 247, 0.85);
+    --color-bg-overlay:       rgba(250, 254, 247, 0.75);
+    --color-bg-modal:         rgba(250, 254, 247, 0.92);
+    --color-bg-glass:         rgba(250, 254, 247, 0.6);
+    --color-bg-glass-strong:  rgba(250, 254, 247, 0.8);
+    --color-bg-glass-hover:   rgba(236, 248, 220, 0.7);
 
-    --color-fg-primary:       #1a1a1a;
-    --color-fg-secondary:     #2d2d2d;
-    --color-fg-tertiary:      #525252;
+    --color-fg-primary:       #141414;
+    --color-fg-secondary:     #262626;
+    --color-fg-tertiary:      #4d4d4d;
     --color-fg-muted:         #717171;
     --color-fg-inverse:       #fafafa;
-    --color-fg-placeholder:   #a3a3a3;
+    --color-fg-placeholder:   #9e9e9e;
 
-    --color-border-subtle:    rgba(26, 26, 26, 0.06);
-    --color-border-default:   rgba(26, 26, 26, 0.12);
-    --color-border-strong:    rgba(26, 26, 26, 0.2);
-    --color-border-focus:     var(--color-moss-600);
-    --color-border-glass:     rgba(26, 26, 26, 0.08);
-    --color-border-glass-strong: rgba(26, 26, 26, 0.15);
+    --color-border-subtle:    rgba(20, 20, 20, 0.05);
+    --color-border-default:   rgba(20, 20, 20, 0.1);
+    --color-border-strong:    rgba(20, 20, 20, 0.18);
+    --color-border-focus:     var(--color-moss-550);
+    --color-border-glass:     rgba(20, 20, 20, 0.06);
+    --color-border-glass-strong: rgba(20, 20, 20, 0.12);
 
     --color-accent-primary:   var(--color-moss-600);
     --color-accent-secondary: var(--color-moss-500);
     --color-accent-hover:     var(--color-moss-500);
-    --color-accent-active:    var(--color-moss-400);
-    --color-accent-glow:      rgba(102, 140, 42, 0.35);
-    --color-accent-glow-strong: rgba(60, 90, 20, 0.55);
+    --color-accent-active:    var(--color-moss-450);
+    --color-accent-glow:      rgba(93, 142, 66, 0.3);
+    --color-accent-glow-strong: rgba(78, 120, 55, 0.45);
 
     --glass-bg:             var(--color-bg-glass);
     --glass-bg-strong:      var(--color-bg-glass-strong);
     --glass-bg-hover:       var(--color-bg-glass-hover);
     --glass-border:         var(--color-border-glass);
     --glass-border-strong:  var(--color-border-glass-strong);
-    --glass-shadow:         0 4px 24px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--glass-border);
-    --glass-shadow-strong:  0 8px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--glass-border-strong);
-    --glass-shadow-hover:   0 12px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--color-border-focus);
+    --glass-shadow:         0 4px 24px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--glass-border);
+    --glass-shadow-strong:  0 8px 32px rgba(0, 0, 0, 0.07), 0 0 0 1px var(--glass-border-strong);
+    --glass-shadow-hover:   0 12px 40px rgba(0, 0, 0, 0.09), 0 0 0 1px var(--color-border-focus);
 
-    --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow-lg:  0 12px 28px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.06);
-    --shadow-xl:  0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.07);
-    --shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.12);
+    --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-lg:  0 12px 28px rgba(0, 0, 0, 0.07), 0 4px 8px rgba(0, 0, 0, 0.05);
+    --shadow-xl:  0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.06);
+    --shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.1);
 
     --shadow-focus:  0 0 0 3px var(--color-accent-glow);
 
     color-scheme: light;
-  }
 }
 
 /* ==========================================================================

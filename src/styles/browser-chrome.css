@@ -5460,5 +5460,209 @@
   height: calc(100% - 42px - var(--find-bar-height, 42px));
 }
 
+/* ==========================================================================
+   DOWNLOADS PANEL (FASE 17)
+   ========================================================================== */
+.downloads-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100vw;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border-left: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-overlay);
+  transform: translateX(100%);
+  transition: transform var(--motion-sidebar), box-shadow var(--motion-sidebar);
+  box-shadow: var(--glass-shadow-strong);
+}
+
+.downloads-panel--open {
+  transform: translateX(0);
+}
+
+.downloads-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+}
+
+.downloads-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.downloads-empty-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+  color: var(--color-fg-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.downloads-empty-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.downloads-empty-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fg-primary);
+  margin: 0;
+}
+
+.downloads-empty-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-muted);
+}
+
+.downloads-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.download-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  transition: background var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast);
+  user-select: none;
+}
+
+.download-item:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-strong);
+}
+
+.download-item-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-primary);
+}
+
+.download-item--failed .download-item-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.download-item-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.download-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.download-item-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-item-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.download-item-meta--failed {
+  color: #ef4444;
+}
+
+.download-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.download-progress-fill {
+  height: 100%;
+  background: var(--color-accent-primary);
+  border-radius: 2px;
+  transition: width var(--motion-fast);
+}
+
+.download-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.download-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-fg-secondary);
+  border: none;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.download-action-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.download-action-btn--delete:hover {
+  color: #ef4444;
+}
+
+.download-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+
 
 

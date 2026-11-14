@@ -49,6 +49,7 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { keys: ["F3"], description: "Próxima ocorrência" },
       { keys: ["Shift", "F3"], description: "Ocorrência anterior" },
       { keys: ["Ctrl", "H"], description: "Abrir histórico" },
+      { keys: ["Ctrl", "J"], description: "Abrir downloads" },
       { keys: ["Ctrl", ","], description: "Abrir configurações" },
       { keys: ["Ctrl", "/"], description: "Atalhos de teclado" },
       { keys: ["?"], description: "Atalhos (fora da omnibar)" },

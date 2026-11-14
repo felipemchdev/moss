@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-11-14
+
+### Added
+- Dedicated Downloads Panel (`Ctrl+J`) inspired by Zen Browser and Arc (`src/downloads-panel.ts`, `src/downloads.ts`, `src/styles/browser-chrome.css`).
+- Slide-over glassmorphic panel listing downloads with real-time progress bars, timestamps, and status (active, completed, failed).
+- Direct file interactions: "Abrir arquivo" (`openPath`), "Mostrar na pasta" (`revealItemInDir`), and "Abrir pasta de downloads" (`downloadDir`).
+- Clear downloads history action and item removal.
+- Global shortcut `Ctrl+J` and Command Palette action (`Ctrl+K`).
+- Seamless sidebar integration: clicking `ui.downloadsButton` toggles the downloads panel.
+- Native child webview occlusion prevention via `syncWebviewVisibility()`.
+- Documentation in keyboard shortcuts modal (`src/shortcuts-modal.ts`).
+
 ## [0.10.0] - 2026-11-14
 
 ### Added

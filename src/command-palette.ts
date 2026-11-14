@@ -35,6 +35,7 @@ export interface CommandPaletteActions {
   toggleReaderMode: () => void;
   openFindInPage: () => void;
   openHistory: () => void;
+  openDownloads: () => void;
   clearHistory: () => void;
   openSettings: () => void;
   openShortcuts: () => void;
@@ -477,6 +478,17 @@ export function createCommandPalette(
         shortcut: ["Ctrl", "H"],
         keywords: ["historico", "history", "visitas", "paginas"],
         run: () => actions.openHistory(),
+      },
+      {
+        id: "action-downloads",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Abrir Downloads",
+        subtitle: "Ver arquivos baixados e em andamento",
+        iconName: "download",
+        shortcut: ["Ctrl", "J"],
+        keywords: ["downloads", "baixar", "arquivos", "gestor", "pasta"],
+        run: () => actions.openDownloads(),
       },
       {
         id: "action-clear-history",

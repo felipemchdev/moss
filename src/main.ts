@@ -3,6 +3,7 @@ import { addBookmark, isBookmarked, removeBookmark, subscribeBookmarks, type Boo
 import { createTabContextMenu } from "./context-menu";
 import { el, hostnameOf } from "./dom";
 import { initDownloads } from "./downloads";
+import { createDownloadsPanel } from "./downloads-panel";
 import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
@@ -568,7 +569,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const settingsPanel = settings.panel;
   const shortcuts = createShortcutsModal(syncWebviewVisibility);
   const shortcutsPanel = shortcuts.panel;
-  const panels: Panel[] = [historyPanel, settingsPanel, shortcutsPanel];
+  const downloadsPanel = createDownloadsPanel(syncWebviewVisibility);
+  const panels: Panel[] = [historyPanel, settingsPanel, shortcutsPanel, downloadsPanel];
 
   const tabContextMenu = createTabContextMenu(
     {
@@ -721,6 +723,10 @@ window.addEventListener("DOMContentLoaded", () => {
         closePanels();
         historyPanel.open();
       },
+      openDownloads() {
+        closePanels();
+        downloadsPanel.open();
+      },
       clearHistory() {
         clearHistory();
       },
@@ -824,6 +830,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   root.append(
     historyPanel.element,
+    downloadsPanel.element,
     settings.overlay,
     settingsPanel.element,
     shortcuts.overlay,
@@ -879,7 +886,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   ui.downloadsButton.addEventListener("click", () => {
-    downloadController.show("moss-download", 100, true);
+    togglePanel(downloadsPanel);
   });
 
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
@@ -1675,6 +1682,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (key === "h") togglePanel(historyPanel);
+    else if (key === "j") togglePanel(downloadsPanel);
     else if (key === ",") togglePanel(settingsPanel);
     else if (key === "/" || event.code === "Slash") togglePanel(shortcutsPanel);
     else if (key === "\\" || (key === "s" && event.shiftKey)) {

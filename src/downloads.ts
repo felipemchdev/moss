@@ -15,12 +15,138 @@ export interface DownloadPayload {
   state?: "started" | "progress" | "finished" | "completed" | "failed";
 }
 
+export interface DownloadItem {
+  id: string;
+  filename: string;
+  url?: string;
+  path?: string;
+  progress: number;
+  state: "started" | "progress" | "completed" | "failed";
+  startedAt: number;
+  completedAt?: number;
+}
+
 export interface DownloadIndicator {
   element: HTMLElement;
-  show: (filename: string, progress: number, isFinished?: boolean) => void;
+  show: (filename: string, progress: number, isFinished?: boolean, failed?: boolean) => void;
   hide: () => void;
   isOpen: () => boolean;
   destroy: () => void;
+}
+
+const DOWNLOADS_STORAGE_KEY = "moss:downloads";
+const MAX_SAVED_DOWNLOADS = 50;
+
+function loadSavedDownloads(): DownloadItem[] {
+  try {
+    const raw = localStorage.getItem(DOWNLOADS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is DownloadItem =>
+        typeof item === "object" && item !== null && typeof item.filename === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+let downloads: DownloadItem[] = loadSavedDownloads();
+const downloadListeners = new Set<(items: readonly DownloadItem[]) => void>();
+
+function saveDownloads() {
+  try {
+    localStorage.setItem(DOWNLOADS_STORAGE_KEY, JSON.stringify(downloads.slice(0, MAX_SAVED_DOWNLOADS)));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function notifyDownloads() {
+  saveDownloads();
+  for (const listener of downloadListeners) {
+    try {
+      listener(downloads);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}
+
+export function getDownloads(): readonly DownloadItem[] {
+  return downloads;
+}
+
+export function subscribeDownloads(listener: (items: readonly DownloadItem[]) => void): () => void {
+  downloadListeners.add(listener);
+  listener(downloads);
+  return () => downloadListeners.delete(listener);
+}
+
+export function clearDownloads(): void {
+  downloads = [];
+  notifyDownloads();
+}
+
+export function removeDownload(id: string): void {
+  downloads = downloads.filter((d) => d.id !== id);
+  notifyDownloads();
+}
+
+export function recordDownloadEvent(payload: DownloadPayload, forceFinished = false): DownloadItem {
+  const filename = extractFilename(payload);
+  const failed = payload.state === "failed";
+  const progress = failed ? 0 : forceFinished ? 100 : extractProgress(payload);
+  const isFinished =
+    !failed &&
+    (forceFinished ||
+      progress >= 100 ||
+      payload.state === "finished" ||
+      payload.state === "completed");
+
+  const state: DownloadItem["state"] = failed
+    ? "failed"
+    : isFinished
+      ? "completed"
+      : "progress";
+
+  const existingIndex = downloads.findIndex(
+    (d) =>
+      (payload.path && d.path === payload.path) ||
+      (d.filename === filename && d.state === "progress"),
+  );
+
+  let item: DownloadItem;
+  if (existingIndex !== -1) {
+    item = {
+      ...downloads[existingIndex],
+      filename,
+      path: payload.path || downloads[existingIndex].path,
+      progress,
+      state,
+      completedAt: isFinished ? Date.now() : downloads[existingIndex].completedAt,
+    };
+    downloads = [
+      item,
+      ...downloads.filter((_, i) => i !== existingIndex),
+    ];
+  } else {
+    item = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      filename,
+      url: payload.url,
+      path: payload.path,
+      progress,
+      state,
+      startedAt: Date.now(),
+      completedAt: isFinished ? Date.now() : undefined,
+    };
+    downloads = [item, ...downloads];
+  }
+
+  notifyDownloads();
+  return item;
 }
 
 function extractFilename(payload: DownloadPayload): string {
@@ -116,16 +242,8 @@ export function initDownloads(root: HTMLElement = document.body): DownloadIndica
   const unlistenFns: UnlistenFn[] = [];
 
   function handleDownloadEvent(payload: DownloadPayload, forceFinished = false) {
-    const filename = extractFilename(payload);
-    const failed = payload.state === "failed";
-    const progress = failed ? 0 : forceFinished ? 100 : extractProgress(payload);
-    const isFinished =
-      !failed &&
-      (forceFinished ||
-        progress >= 100 ||
-        payload.state === "finished" ||
-        payload.state === "completed");
-    show(filename, progress, isFinished, failed);
+    const item = recordDownloadEvent(payload, forceFinished);
+    show(item.filename, item.progress, item.state === "completed", item.state === "failed");
   }
 
   function registerListener(event: string, forceFinished = false) {
@@ -152,7 +270,14 @@ export function initDownloads(root: HTMLElement = document.body): DownloadIndica
     (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV &&
     typeof window !== "undefined"
   ) {
-    (window as unknown as { mossDownload?: (filename: string, progress: number, finished?: boolean) => void }).mossDownload = show;
+    (window as unknown as { mossDownload?: (filename: string, progress: number, finished?: boolean) => void }).mossDownload = (
+      name: string,
+      prog: number,
+      fin?: boolean,
+    ) => {
+      recordDownloadEvent({ filename: name, progress: prog, state: fin ? "completed" : "progress" }, fin);
+      show(name, prog, fin);
+    };
   }
 
   return {

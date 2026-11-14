@@ -94,6 +94,7 @@ struct TabOpenPayload {
 struct DownloadPayload {
     url: String,
     filename: String,
+    path: Option<String>,
     progress: Option<f64>,
     state: &'static str,
 }
@@ -315,6 +316,7 @@ fn create_tab_webview<R: Runtime>(
                         DownloadPayload {
                             url: url.to_string(),
                             filename,
+                            path: Some(destination.to_string_lossy().to_string()),
                             progress: Some(0.0),
                             state: "started",
                         },
@@ -323,16 +325,19 @@ fn create_tab_webview<R: Runtime>(
                 }
                 DownloadEvent::Finished { url, path, success } => {
                     let filename = path
+                        .as_ref()
                         .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
                         .unwrap_or_else(|| "arquivo.ext".to_string());
                     let state = if success { "completed" } else { "failed" };
+                    let downloaded_path = path.as_ref().map(|p| p.to_string_lossy().to_string());
                     emit_to_chrome(
                         &download_app,
                         "download-finished",
                         DownloadPayload {
                             url: url.to_string(),
                             filename,
-                            progress: Some(100.0),
+                            path: downloaded_path,
+                            progress: Some(if success { 100.0 } else { 0.0 }),
                             state,
                         },
                     );

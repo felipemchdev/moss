@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-11-14
+
+### Added
+- Zen Boosts & Element Zapper (Estilização & Limpeza por Domínio) inspired by Arc and Zen Browser (`src/boosts.ts`, `src/boosts-popover.ts`, `src-tauri/src/lib.rs`).
+- Interactive Element Zapper (`Ctrl+Shift+Z`): crosshair target mode in active webviews that highlights elements, shows CSS selectors in real time, and dissolves clicked elements with animation.
+- Persistence of domain Zap rules in `localStorage` (`moss:domain_zap_rules`) with automatic re-application on page load (`display: none !important;`).
+- Zen Boosts popover anchored on Omnibar (`sparkles` icon) with:
+  - Smart Dark Mode: intelligent color inversion preserving images, media, and canvas.
+  - Real-time brightness & contrast adjustment sliders (-50% to +50%).
+  - Relaxing Sepia tone filter.
+  - Per-domain Custom CSS injection editor.
+  - Zapped element counter with one-click restore and full domain reset.
+- Native Tauri backend commands: `apply_tab_boost` and `start_element_zapper`.
+
 ## [0.14.0] - 2026-11-14
 
 ### Added

@@ -5,6 +5,8 @@ import { el, hostnameOf } from "./dom";
 import { initDownloads } from "./downloads";
 import { createDownloadsPanel } from "./downloads-panel";
 import { createGlance } from "./glance";
+import { createBoostsPopover } from "./boosts-popover";
+import { applyBoostToTab, addDomainZapRule } from "./boosts";
 import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
@@ -255,10 +257,20 @@ function buildChrome(root: HTMLElement) {
     },
     [icon("globe")],
   );
+  const boostsButton = el(
+    "button",
+    {
+      class: "omnibar-boosts-btn",
+      type: "button",
+      "aria-label": "Zen Boosts & Element Zapper (Ctrl+Shift+Z)",
+      title: "Zen Boosts & Element Zapper (Ctrl+Shift+Z)",
+    },
+    [icon("sparkles")],
+  );
   const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
     securityButton,
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
-    el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarSplitBtn, bookmarkToggle]),
+    el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarSplitBtn, bookmarkToggle, boostsButton]),
   ]);
 
   // 5. Pinned tabs section
@@ -488,6 +500,7 @@ function buildChrome(root: HTMLElement) {
     securityButton,
     bookmarkToggle,
     readerButton,
+    boostsButton,
     omnibarSplitBtn,
     zoomBadge,
     splitButton,
@@ -744,6 +757,8 @@ window.addEventListener("DOMContentLoaded", () => {
     },
   });
 
+  const boostsPopover = createBoostsPopover(syncWebviewVisibility);
+
   const commandPalette = createCommandPalette(
     {
       openTab(url) {
@@ -935,6 +950,7 @@ window.addEventListener("DOMContentLoaded", () => {
     commandPalette.overlay,
     commandPalette.element,
     glance.overlay,
+    boostsPopover.element,
   );
 
   const downloadController = initDownloads(root);
@@ -949,6 +965,17 @@ window.addEventListener("DOMContentLoaded", () => {
     siteInfoPopover.destroy();
     commandPalette.destroy();
     glance.destroy();
+    boostsPopover.destroy();
+  });
+
+  ui.boostsButton.addEventListener("click", () => {
+    const target = getTargetTab();
+    if (!target?.url) return;
+    const wasOpen = boostsPopover.isOpen();
+    closePanels();
+    if (!wasOpen) {
+      boostsPopover.open(target.id, target.url);
+    }
   });
 
   ui.securityButton.addEventListener("click", () => {
@@ -996,7 +1023,8 @@ window.addEventListener("DOMContentLoaded", () => {
       workspaceSwitcher.isOpen() ||
       readerView.isOpen() ||
       siteInfoPopover.isOpen() ||
-      commandPalette.isOpen();
+      commandPalette.isOpen() ||
+      boostsPopover.isOpen();
 
     if (isBlocked) {
       if (visibleWebviewId !== null) {
@@ -1110,6 +1138,7 @@ window.addEventListener("DOMContentLoaded", () => {
     readerView.close();
     siteInfoPopover.close();
     commandPalette.close();
+    if (boostsPopover.isOpen()) boostsPopover.close();
     if (glance.isOpen()) glance.close();
   }
 
@@ -2039,6 +2068,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (key === "h") togglePanel(historyPanel);
     else if (key === "j") togglePanel(downloadsPanel);
+    else if (key === "z" && event.shiftKey) {
+      const target = getTargetTab();
+      if (target?.url) {
+        webview.startElementZapper(target.id);
+      }
+    }
     else if (key === ",") togglePanel(settingsPanel);
     else if (key === "/" || event.code === "Slash") togglePanel(shortcutsPanel);
     else if (key === "\\" || (key === "s" && event.shiftKey)) {
@@ -2091,6 +2126,7 @@ window.addEventListener("DOMContentLoaded", () => {
       pageTitles.delete(tab.id);
       updateTab(tab.id, { url: payload.url, isLoading: true, title });
       applyZoomForTab(tab.id, payload.url);
+      applyBoostToTab(tab.id, payload.url);
       return;
     }
     const history = historyOf(tab.id);
@@ -2104,10 +2140,20 @@ window.addEventListener("DOMContentLoaded", () => {
       canGoForward: history.canGoForward,
     });
     applyZoomForTab(tab.id, payload.url);
+    applyBoostToTab(tab.id, payload.url);
     if (findInPage.isOpen() && payload.tabId === getTargetTab()?.id) {
       findInPage.reapply();
     }
   });
+
+  listen<{ tab_id: string; selector: string; domain: string }>(
+    "zapper-element-selected",
+    ({ payload }) => {
+      addDomainZapRule(payload.domain, payload.selector);
+      applyBoostToTab(payload.tab_id, payload.domain);
+      showToast(`Elemento eliminado (${payload.selector})! Regra salva para ${payload.domain}.`);
+    },
+  );
 
   listen<{ tabId: string; title: string }>("tab://title", ({ payload }) => {
     const tab = getTab(payload.tabId);

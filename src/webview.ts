@@ -52,6 +52,10 @@ export const webview = {
     call("sync_site_permissions", { permissions }),
   resetSitePermissions: (domain: string) =>
     call("reset_site_permissions", { domain }),
+  applyTabBoost: (tabId: string, css: string) =>
+    call("apply_tab_boost", { tabId, css }),
+  startElementZapper: (tabId: string) =>
+    call("start_element_zapper", { tabId }),
 };
 
 export const windowControls = {

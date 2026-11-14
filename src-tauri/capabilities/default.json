@@ -29,6 +29,8 @@
     "allow-clear-tab-data",
     "allow-set-site-permission",
     "allow-sync-site-permissions",
-    "allow-reset-site-permissions"
+    "allow-reset-site-permissions",
+    "allow-apply-tab-boost",
+    "allow-start-element-zapper"
   ]
 }

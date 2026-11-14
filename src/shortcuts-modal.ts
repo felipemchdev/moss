@@ -50,6 +50,7 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { keys: ["Shift", "F3"], description: "Ocorrência anterior" },
       { keys: ["Ctrl", "Shift", "G"], description: "Espiar URL (Zen Glance)" },
       { keys: ["Shift", "Click"], description: "Espiar link no Glance" },
+      { keys: ["Ctrl", "Shift", "Z"], description: "Element Zapper (Eliminar elemento)" },
       { keys: ["Ctrl", "H"], description: "Abrir histórico" },
       { keys: ["Ctrl", "J"], description: "Abrir downloads" },
       { keys: ["Ctrl", ","], description: "Abrir configurações" },

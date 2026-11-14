@@ -7,6 +7,7 @@ export interface TabContextMenuActions {
   onCloseOthers: (tabId: string) => void;
   onTogglePin: (tabId: string) => void;
   isPinned: (tabId: string) => boolean;
+  onGlanceTab?: (tabId: string) => void;
   onReopenClosedTab?: () => void;
   canReopenClosedTab?: () => boolean;
   onToggleSplit?: (tabId: string) => void;
@@ -42,6 +43,7 @@ export function createTabContextMenu(
   let pinButton: HTMLButtonElement | null = null;
   let splitButton: HTMLButtonElement | null = null;
   let reopenButton: HTMLButtonElement | null = null;
+  let glanceButton: HTMLButtonElement | null = null;
 
   const staticOptions: { label: string; action: (tabId: string) => void }[] = [
     { label: "Recarregar", action: actions.onReload },
@@ -124,6 +126,23 @@ export function createTabContextMenu(
     element.append(reopenButton);
   }
 
+  // Glance / Peek button
+  function buildGlanceButton(tabId: string) {
+    if (glanceButton) glanceButton.remove();
+    if (!actions.onGlanceTab) return;
+    glanceButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      ["Espiar no Glance (Zen Glance)"],
+    ) as HTMLButtonElement;
+    glanceButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onGlanceTab?.(tabId);
+    });
+    element.append(glanceButton);
+  }
+
   let workspaceButtons: HTMLButtonElement[] = [];
 
   function buildWorkspaceButtons() {
@@ -187,6 +206,7 @@ export function createTabContextMenu(
       buildSplitButton(tabId);
       buildWorkspaceButtons();
       buildReopenButton();
+      buildGlanceButton(tabId);
 
       element.style.visibility = "hidden";
       element.style.display = "flex";

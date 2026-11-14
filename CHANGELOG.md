@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-11-14
+
+### Added
+- Zen Glance / Link Peeking (`Shift+Click` or `Ctrl+Shift+G`) inspired by Zen Browser and Arc (`src/glance.ts`, `src/styles/browser-chrome.css`).
+- Centered squircle floating modal card overlaying the browser without creating permanent tabs or polluting tab hierarchy.
+- Isolated Glance webview (`__glance__`) rendered at 88vw/84vh with synchronized responsive geometry (`ResizeObserver`).
+- Glance header controls: eye badge, page title and URL display, "Abrir na aba" action (`Ctrl+O`) to promote preview to active tab, "Copiar link" action, and "Fechar" (`Esc`).
+- Tab context menu action: "Espiar no Glance (Zen Glance)".
+- Command Palette action: "Espiar URL (Zen Glance)".
+- Bookmarks Bar integration: `Shift+Click` or `Alt+Click` on any bookmark directly opens Glance.
+- Documentation in keyboard shortcuts modal (`src/shortcuts-modal.ts`).
+
 ## [0.11.0] - 2026-11-14
 
 ### Added

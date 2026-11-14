@@ -4,6 +4,7 @@ import { createTabContextMenu } from "./context-menu";
 import { el, hostnameOf } from "./dom";
 import { initDownloads } from "./downloads";
 import { createDownloadsPanel } from "./downloads-panel";
+import { createGlance } from "./glance";
 import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
@@ -601,6 +602,10 @@ window.addEventListener("DOMContentLoaded", () => {
       isPinned(tabId) {
         return getTab(tabId)?.isPinned ?? false;
       },
+      onGlanceTab(tabId) {
+        const tab = getTab(tabId);
+        if (tab?.url) glance.open(tab.url, tab.title);
+      },
       onReopenClosedTab() {
         reopenClosedTab();
       },
@@ -687,6 +692,15 @@ window.addEventListener("DOMContentLoaded", () => {
   ui.viewportCard.append(readerView.element);
 
   const siteInfoPopover = createSiteInfoPopover(syncWebviewVisibility);
+
+  const glance = createGlance({
+    onPromote(url) {
+      openTab(url);
+    },
+    onClose() {
+      syncWebviewVisibility();
+    },
+  });
 
   const commandPalette = createCommandPalette(
     {
@@ -811,6 +825,14 @@ window.addEventListener("DOMContentLoaded", () => {
       reopenClosedTab() {
         reopenClosedTab();
       },
+      openGlance(url) {
+        closePanels();
+        const target = getTargetTab();
+        const targetUrl = url || target?.url;
+        if (targetUrl) {
+          glance.open(targetUrl, target?.title);
+        }
+      },
     },
     syncWebviewVisibility,
   );
@@ -842,6 +864,7 @@ window.addEventListener("DOMContentLoaded", () => {
     siteInfoPopover.element,
     commandPalette.overlay,
     commandPalette.element,
+    glance.overlay,
   );
 
   const downloadController = initDownloads(root);
@@ -855,6 +878,7 @@ window.addEventListener("DOMContentLoaded", () => {
     readerView.destroy();
     siteInfoPopover.destroy();
     commandPalette.destroy();
+    glance.destroy();
   });
 
   ui.securityButton.addEventListener("click", () => {
@@ -891,6 +915,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {
+    if (glance.isOpen()) {
+      return;
+    }
+
     const isBlocked =
       panels.some((panel) => panel.isOpen()) ||
       tabContextMenu.isOpen() ||
@@ -1012,6 +1040,7 @@ window.addEventListener("DOMContentLoaded", () => {
     readerView.close();
     siteInfoPopover.close();
     commandPalette.close();
+    if (glance.isOpen()) glance.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -1456,7 +1485,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   ui.bookmarksBar.addEventListener("click", (event) => {
     const url = (event.target as Element).closest<HTMLElement>(".bookmark-item")?.dataset.url;
-    if (url) openUrl(url);
+    if (url) {
+      if (event.shiftKey || event.altKey) {
+        event.preventDefault();
+        glance.open(url);
+      } else {
+        openUrl(url);
+      }
+    }
   });
   ui.bookmarksBar.addEventListener("auxclick", (event) => {
     const url = (event.target as Element).closest<HTMLElement>(".bookmark-item")?.dataset.url;
@@ -1591,6 +1627,13 @@ window.addEventListener("DOMContentLoaded", () => {
       } else {
         reopenClosedTab();
       }
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "g") {
+      event.preventDefault();
+      const target = getTargetTab();
+      if (target?.url) glance.open(target.url, target.title);
       return;
     }
 
@@ -1778,6 +1821,10 @@ window.addEventListener("DOMContentLoaded", () => {
   ui.webviewContainer.append(splitDivider);
 
   const syncViewport = () => {
+    if (glance.isOpen()) {
+      glance.syncViewport();
+      return;
+    }
     const rect = ui.webviewContainer.getBoundingClientRect();
     const splitState = getSplitState();
     if (splitState.active && splitState.primaryTabId && splitState.secondaryTabId) {

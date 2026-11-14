@@ -56,6 +56,7 @@ export interface CommandPaletteActions {
   toggleSidebar: () => void;
   isSidebarCollapsed: () => boolean;
   reopenClosedTab: () => void;
+  openGlance: (url?: string) => void;
 }
 
 export interface CommandPaletteController {
@@ -311,6 +312,17 @@ export function createCommandPalette(
         shortcut: ["Ctrl", "Alt", "R"],
         keywords: ["reader", "leitura", "modo", "ler", "artigo", "limpo"],
         run: () => actions.toggleReaderMode(),
+      },
+      {
+        id: "action-glance",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Espiar URL (Zen Glance)",
+        subtitle: "Visualizar link em janela sobreposta sem criar aba permanente",
+        iconName: "eye",
+        shortcut: ["Ctrl", "Shift", "G"],
+        keywords: ["glance", "peek", "espiar", "previa", "preview", "link"],
+        run: () => actions.openGlance(),
       },
       {
         id: "action-find-in-page",

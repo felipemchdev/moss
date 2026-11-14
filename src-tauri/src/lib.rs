@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
-use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, WebviewBuilder};
+use tauri::webview::{
+    DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionKind, PermissionResponse,
+    WebviewBuilder,
+};
 use tauri::{
     AppHandle, Emitter, EventTarget, LogicalPosition, LogicalSize, Manager, Runtime, State, Url,
     Webview, WebviewUrl,
@@ -37,11 +40,20 @@ impl Viewport {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct DomainPermissions {
+    camera: Option<String>,
+    microphone: Option<String>,
+    geolocation: Option<String>,
+    notifications: Option<String>,
+}
+
 struct BrowserState {
     viewport: Mutex<Viewport>,
     shown_tabs: Mutex<Vec<String>>,
     tab_viewports: Mutex<HashMap<String, Viewport>>,
     shield_enabled: Mutex<bool>,
+    site_permissions: Mutex<HashMap<String, DomainPermissions>>,
 }
 
 impl Default for BrowserState {
@@ -51,6 +63,7 @@ impl Default for BrowserState {
             shown_tabs: Mutex::new(Vec::new()),
             tab_viewports: Mutex::new(HashMap::new()),
             shield_enabled: Mutex::new(true),
+            site_permissions: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -367,6 +380,33 @@ fn create_tab_webview<R: Runtime>(
                 emit_to_chrome(&open_app, "tab://open", TabOpenPayload { url: url.to_string() });
             }
             NewWindowResponse::Deny
+        })
+        .on_permission_request(move |webview, kind| {
+            let state = webview.state::<BrowserState>();
+            let domain = match webview.url() {
+                Ok(u) => u.host_str().map(|h| h.to_lowercase()).unwrap_or_default(),
+                Err(_) => String::new(),
+            };
+            if domain.is_empty() {
+                return PermissionResponse::Default;
+            }
+            let perms = state.site_permissions.lock().unwrap();
+            if let Some(dp) = perms.get(&domain) {
+                let status = match kind {
+                    PermissionKind::Camera => dp.camera.as_deref(),
+                    PermissionKind::Microphone => dp.microphone.as_deref(),
+                    PermissionKind::Geolocation => dp.geolocation.as_deref(),
+                    PermissionKind::Notifications => dp.notifications.as_deref(),
+                    _ => None,
+                };
+                match status {
+                    Some("allow") => PermissionResponse::Allow,
+                    Some("block") => PermissionResponse::Deny,
+                    _ => PermissionResponse::Default,
+                }
+            } else {
+                PermissionResponse::Default
+            }
         });
 
     window
@@ -945,6 +985,140 @@ fn set_tab_zoom(app: AppHandle, tab_id: String, scale_factor: f64) -> Result<(),
     tab.set_zoom(clamped).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn clear_tab_data(app: AppHandle, tab_id: String) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+
+    let tab_url = tab.url().ok();
+    let target_domain = tab_url
+        .as_ref()
+        .and_then(|u| u.host_str())
+        .map(|h| h.to_lowercase())
+        .unwrap_or_default();
+
+    if !target_domain.is_empty() {
+        let tab_clone = tab.clone();
+        let domain_clone = target_domain.clone();
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            if let Ok(cookies) = tab_clone.cookies() {
+                for c in cookies {
+                    let mut matches = false;
+                    if let Some(cdomain) = c.domain() {
+                        let cdomain_clean = cdomain.trim_start_matches('.');
+                        if domain_clone == cdomain_clean
+                            || domain_clone.ends_with(&format!(".{}", cdomain_clean))
+                        {
+                            matches = true;
+                        }
+                    } else {
+                        matches = false;
+                    }
+                    if matches {
+                        let _ = tab_clone.delete_cookie(c);
+                    }
+                }
+            }
+        })
+        .await;
+    }
+
+    let script = r#"(async () => {
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      const eqPos = cookie.indexOf('=');
+      const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+      if (!name) continue;
+      document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+      document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + location.hostname;
+      const parts = location.hostname.split('.');
+      while (parts.length > 1) {
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.' + parts.join('.');
+        parts.shift();
+      }
+    }
+    if (window.caches && caches.keys) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      } catch (_) {}
+    }
+    if (window.indexedDB && indexedDB.databases) {
+      try {
+        const dbs = await indexedDB.databases();
+        const deletePromises = dbs.map(db => {
+          if (!db.name) return Promise.resolve();
+          return new Promise(resolve => {
+            try {
+              const req = indexedDB.deleteDatabase(db.name);
+              req.onsuccess = () => resolve();
+              req.onerror = () => resolve();
+              req.onblocked = () => resolve();
+              setTimeout(resolve, 500);
+            } catch (_) {
+              resolve();
+            }
+          });
+        });
+        await Promise.all(deletePromises);
+      } catch (_) {}
+    }
+  } catch (_) {}
+  location.reload();
+})()"#;
+
+    let _ = tab.eval(script);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_site_permission(
+    state: State<'_, BrowserState>,
+    domain: String,
+    key: String,
+    status: String,
+) -> Result<(), String> {
+    let mut perms = state.site_permissions.lock().unwrap();
+    let entry = perms.entry(domain.to_lowercase()).or_default();
+    match key.as_str() {
+        "camera" => entry.camera = if status == "ask" { None } else { Some(status) },
+        "microphone" => entry.microphone = if status == "ask" { None } else { Some(status) },
+        "geolocation" => entry.geolocation = if status == "ask" { None } else { Some(status) },
+        "notifications" => entry.notifications = if status == "ask" { None } else { Some(status) },
+        _ => return Err(format!("Unknown permission key: {}", key)),
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn sync_site_permissions(
+    state: State<'_, BrowserState>,
+    permissions: HashMap<String, DomainPermissions>,
+) -> Result<(), String> {
+    let mut perms = state.site_permissions.lock().unwrap();
+    *perms = permissions
+        .into_iter()
+        .map(|(k, v)| (k.to_lowercase(), v))
+        .collect();
+    Ok(())
+}
+
+#[tauri::command]
+fn reset_site_permissions(
+    state: State<'_, BrowserState>,
+    domain: String,
+) -> Result<(), String> {
+    let mut perms = state.site_permissions.lock().unwrap();
+    perms.remove(&domain.to_lowercase());
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -971,6 +1145,10 @@ pub fn run() {
             clear_find_in_page,
             extract_reader_content,
             set_tab_zoom,
+            clear_tab_data,
+            set_site_permission,
+            sync_site_permissions,
+            reset_site_permissions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

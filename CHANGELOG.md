@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-11-14
+
+### Added
+- Site info & security button in omnibar (`.omnibar-security-btn`) dynamically displaying security status: HTTPS lock (`.omnibar-security-btn--secure`), HTTP unlock (`.omnibar-security-btn--insecure`), or local globe (`src/main.ts`, `src/icons.ts`).
+- Central de Informações e Permissões do Site popover (`src/site-info-popover.ts`, `src/site-permissions.ts`) with glassmorphic overlay, connection security details, tab-scoped trackers blocked count, focus trap, and per-domain permission toggles (`camera`, `microphone`, `geolocation`, `notifications` with `ask`, `allow`, `block`).
+- Real-time permission enforcement backend via Tauri 2 `WebviewBuilder::on_permission_request` resolving `PermissionResponse::Allow`, `PermissionResponse::Deny`, or `PermissionResponse::Default` directly based on stored domain permissions in `BrowserState`.
+- Native commands `set_site_permission`, `sync_site_permissions`, and `reset_site_permissions` syncing frontend permission choices to the Rust state.
+- Per-domain browsing data clearance (`clear_tab_data` in `src-tauri/src/lib.rs`, `src/webview.ts`) with 2-step inline confirmation, deleting all origin and wildcard cookies (including HttpOnly cookies via WebView2 `CookieManager`), origin `localStorage`, `sessionStorage`, `caches`, and `indexedDB` databases with open-connection timeout handling before page reload.
+- Persistent site permissions store (`moss:site_permissions` in `localStorage`) with automatic cleanup when values revert to defaults.
+
+### Security
+- Strict IPC capability isolation: `clear_tab_data`, `set_site_permission`, `sync_site_permissions`, and `reset_site_permissions` are declared exclusively in `capabilities/default.json` for `"webviews": ["main"]`, maintaining 100% isolation and zero IPC permissions for remote tab webviews (`tab-*`).
+- Tolerant webview lookup in `clear_tab_data` gracefully handling tabs without native webviews.
+
 ## [0.6.0] - 2026-11-14
 
 ### Added

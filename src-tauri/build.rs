@@ -19,6 +19,10 @@ const COMMANDS: &[&str] = &[
     "clear_find_in_page",
     "extract_reader_content",
     "set_tab_zoom",
+    "clear_tab_data",
+    "set_site_permission",
+    "sync_site_permissions",
+    "reset_site_permissions",
 ];
 
 fn main() {

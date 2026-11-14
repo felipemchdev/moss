@@ -19,18 +19,8 @@ const tabZooms = new Map<string, number>();
 type ZoomListener = (tabId: string, zoomFactor: number) => void;
 const listeners = new Set<ZoomListener>();
 
-export function getDomainFromUrl(rawUrl?: string | null): string | null {
-  if (!rawUrl) return null;
-  try {
-    const parsed = new URL(rawUrl);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return parsed.hostname.toLowerCase();
-    }
-  } catch {
-    // Malformed URL or non-standard protocol
-  }
-  return null;
-}
+import { getDomainFromUrl } from "./dom";
+export { getDomainFromUrl };
 
 export function isDefaultZoom(factor: number): boolean {
   return Math.abs(factor - DEFAULT_ZOOM) < EPSILON;

@@ -45,6 +45,13 @@ export const webview = {
   extractReaderContent: (tabId: string) => call("extract_reader_content", { tabId }),
   setTabZoom: (tabId: string, scaleFactor: number) =>
     call("set_tab_zoom", { tabId, scaleFactor }),
+  clearTabData: (tabId: string) => call("clear_tab_data", { tabId }),
+  setSitePermission: (domain: string, key: string, status: string) =>
+    call("set_site_permission", { domain, key, status }),
+  syncSitePermissions: (permissions: Record<string, unknown>) =>
+    call("sync_site_permissions", { permissions }),
+  resetSitePermissions: (domain: string) =>
+    call("reset_site_permissions", { domain }),
 };
 
 export const windowControls = {

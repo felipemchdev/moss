@@ -16,3 +16,16 @@ export function hostnameOf(url: string): string {
     return url;
   }
 }
+
+export function getDomainFromUrl(rawUrl?: string | null): string | null {
+  if (!rawUrl) return null;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.hostname.toLowerCase();
+    }
+  } catch {
+    // Malformed URL or non-standard protocol
+  }
+  return null;
+}

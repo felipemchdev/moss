@@ -14,6 +14,8 @@ export interface PrivacyShieldController {
   toggle: (anchor?: HTMLElement) => void;
   isEnabled: () => boolean;
   getBlockedCount: () => number;
+  getTabBlockedCount: (tabId: string) => number;
+  clearTabCount: (tabId: string) => void;
   resetCount: () => void;
   destroy: () => void;
 }
@@ -225,6 +227,15 @@ export function createPrivacyShield(
     },
     isEnabled: () => enabled,
     getBlockedCount: () => blockedCount,
+    getTabBlockedCount: (tabId: string) => tabBlockedMap.get(tabId) ?? 0,
+    clearTabCount(tabId: string) {
+      tabBlockedMap.delete(tabId);
+      let sum = 0;
+      for (const val of tabBlockedMap.values()) sum += val;
+      blockedCount = sum;
+      updateUI();
+      onChange?.();
+    },
     resetCount: performReset,
     destroy() {
       destroyed = true;

@@ -55,6 +55,8 @@ import {
 import { createWorkspaceSwitcher } from "./workspace-switcher";
 import { createFindInPage } from "./find-in-page";
 import { createReaderView } from "./reader-view";
+import { createSiteInfoPopover } from "./site-info-popover";
+import { syncAllPermissionsToBackend } from "./site-permissions";
 import { webview, windowControls } from "./webview";
 import {
   applyZoomForTab,
@@ -199,8 +201,18 @@ function buildChrome(root: HTMLElement) {
     },
     ["100%"],
   );
+  const securityButton = el(
+    "button",
+    {
+      class: "omnibar-security-btn",
+      type: "button",
+      "aria-label": "Informações e permissões do site",
+      title: "Ver informações e permissões do site",
+    },
+    [icon("globe")],
+  );
   const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
-    el("span", { class: "omnibar-icon" }, [icon("search")]),
+    securityButton,
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
     el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarSplitBtn, bookmarkToggle]),
   ]);
@@ -340,6 +352,7 @@ function buildChrome(root: HTMLElement) {
     navButtons,
     omnibar,
     omnibarInput,
+    securityButton,
     bookmarkToggle,
     readerButton,
     omnibarSplitBtn,
@@ -555,6 +568,8 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   ui.viewportCard.append(readerView.element);
 
+  const siteInfoPopover = createSiteInfoPopover(syncWebviewVisibility);
+
   function toggleReaderMode() {
     const target = getTargetTab();
     if (!target) return;
@@ -577,15 +592,36 @@ window.addEventListener("DOMContentLoaded", () => {
     tabContextMenu.element,
     privacyShield.popover,
     workspaceSwitcher.popover,
+    siteInfoPopover.overlay,
+    siteInfoPopover.element,
   );
 
   const downloadController = initDownloads(root);
+  syncAllPermissionsToBackend();
+
   window.addEventListener("beforeunload", () => {
     downloadController.destroy();
     privacyShield.destroy();
     workspaceSwitcher.destroy();
     findInPage.destroy();
     readerView.destroy();
+    siteInfoPopover.destroy();
+  });
+
+  ui.securityButton.addEventListener("click", () => {
+    const wasOpen = siteInfoPopover.isOpen();
+    closePanels();
+    if (!wasOpen) {
+      const target = getTargetTab();
+      if (target) {
+        const trackers = privacyShield.getTabBlockedCount(target.id);
+        siteInfoPopover.open({
+          tabId: target.id,
+          url: target.url,
+          trackersBlocked: trackers,
+        });
+      }
+    }
   });
 
   ui.privacyButton.addEventListener("click", () => {
@@ -611,7 +647,8 @@ window.addEventListener("DOMContentLoaded", () => {
       tabContextMenu.isOpen() ||
       privacyShield.isOpen() ||
       workspaceSwitcher.isOpen() ||
-      readerView.isOpen();
+      readerView.isOpen() ||
+      siteInfoPopover.isOpen();
 
     if (isBlocked) {
       if (visibleWebviewId !== null) {
@@ -723,6 +760,7 @@ window.addEventListener("DOMContentLoaded", () => {
     workspaceSwitcher.close();
     findInPage.close();
     readerView.close();
+    siteInfoPopover.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -763,6 +801,7 @@ window.addEventListener("DOMContentLoaded", () => {
     handleTabClosedInSplit(tabId);
     closeTab(tabId);
     clearTabZoom(tabId);
+    privacyShield.clearTabCount(tabId);
     histories.delete(tabId);
     pageTitles.delete(tabId);
     webview.close(tabId);
@@ -903,6 +942,33 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.bookmarkToggle.title = label;
   }
 
+  function renderSecurityButton(url: string | undefined) {
+    ui.securityButton.classList.remove("omnibar-security-btn--secure", "omnibar-security-btn--insecure");
+    if (!url) {
+      ui.securityButton.replaceChildren(icon("globe"));
+      ui.securityButton.title = "Informações da página";
+      return;
+    }
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === "https:") {
+        ui.securityButton.classList.add("omnibar-security-btn--secure");
+        ui.securityButton.replaceChildren(icon("lock"));
+        ui.securityButton.title = `Conexão Segura — ${parsed.hostname}`;
+      } else if (parsed.protocol === "http:") {
+        ui.securityButton.classList.add("omnibar-security-btn--insecure");
+        ui.securityButton.replaceChildren(icon("unlock"));
+        ui.securityButton.title = `Conexão Não Segura — ${parsed.hostname}`;
+      } else {
+        ui.securityButton.replaceChildren(icon("globe"));
+        ui.securityButton.title = `Página local — ${url}`;
+      }
+    } catch {
+      ui.securityButton.replaceChildren(icon("globe"));
+      ui.securityButton.title = "Informações da página";
+    }
+  }
+
   function render(tabs: readonly Tab[]) {
     renderTabBar(tabs);
 
@@ -915,6 +981,7 @@ window.addEventListener("DOMContentLoaded", () => {
     document.title = target?.url ? `${target.title} — Moss` : "Moss";
     renderBookmarkToggle();
     renderZoomBadge(target?.id, target?.url);
+    renderSecurityButton(target?.url);
     syncWebviewVisibility();
 
     const targetId = target?.id ?? null;
@@ -925,6 +992,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!targetUrl) focusOmnibar();
       if (targetId && isWebUrl(targetUrl)) {
         webview.syncTrackersBlocked(targetId);
+      }
+      if (siteInfoPopover.isOpen()) {
+        siteInfoPopover.close();
       }
     } else if (targetUrl !== shownUrl && document.activeElement !== ui.omnibarInput) {
       ui.omnibarInput.value = targetUrl;
@@ -1388,6 +1458,7 @@ window.addEventListener("DOMContentLoaded", () => {
       ui.omnibarInput.value = target.url;
       renderBookmarkToggle();
       renderZoomBadge(target.id, target.url);
+      renderSecurityButton(target.url);
     }
     if (findInPage.isOpen()) {
       findInPage.reapply();

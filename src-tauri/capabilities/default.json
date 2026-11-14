@@ -25,6 +25,10 @@
     "allow-find-in-page",
     "allow-clear-find-in-page",
     "allow-extract-reader-content",
-    "allow-set-tab-zoom"
+    "allow-set-tab-zoom",
+    "allow-clear-tab-data",
+    "allow-set-site-permission",
+    "allow-sync-site-permissions",
+    "allow-reset-site-permissions"
   ]
 }

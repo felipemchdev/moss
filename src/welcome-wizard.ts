@@ -2,6 +2,7 @@ import { el } from "./dom";
 import { icon } from "./icons";
 import { getSettings, updateSettings, SEARCH_ENGINES, type SearchEngine, type Theme } from "./settings";
 import { createTab } from "./tabs";
+import { webview } from "./webview";
 
 const ONBOARDING_KEY = "moss:onboarding_completed";
 
@@ -47,10 +48,16 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
   let open = false;
   let currentStep = 0;
 
+  let selectedThemeChoice: "dark" | "light" | "auto" =
+    getSettings().theme === "system" ? "auto" : (getSettings().theme as "dark" | "light");
   let selectedTheme: Theme = getSettings().theme;
   let selectedEngine: SearchEngine = getSettings().searchEngine;
   let shieldEnabled = true;
   const selectedApps = new Set<string>(["github", "youtube"]);
+
+  function navigate(tabId: string, url: string) {
+    webview.navigate(tabId, url).catch(() => {});
+  }
 
   const backdrop = el("div", {
     class: "welcome-wizard-backdrop",
@@ -106,7 +113,7 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
           const btn = el(
             "button",
             {
-              class: `welcome-theme-card ${selectedTheme === opt.id ? "welcome-theme-card--selected" : ""}`,
+              class: `welcome-theme-card ${selectedThemeChoice === opt.id ? "welcome-theme-card--selected" : ""}`,
               type: "button",
             },
             [
@@ -115,7 +122,8 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
             ],
           );
           btn.addEventListener("click", () => {
-            selectedTheme = opt.id as Theme;
+            selectedThemeChoice = opt.id as "dark" | "light" | "auto";
+            selectedTheme = opt.id === "auto" ? "system" : (opt.id as Theme);
             updateSettings({ theme: selectedTheme });
             renderStep();
           });
@@ -289,12 +297,18 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
     updateSettings({
       theme: selectedTheme,
       searchEngine: selectedEngine,
+      privacyShield: shieldEnabled,
     });
+
+    try {
+      localStorage.setItem("moss:shield_enabled", String(shieldEnabled));
+    } catch {}
 
     // Create tabs for selected essential apps if any
     for (const app of ESSENTIAL_APPS) {
       if (selectedApps.has(app.id)) {
-        createTab(app.url, false);
+        const newTab = createTab(app.url, false);
+        navigate(newTab.id, app.url);
       }
     }
 

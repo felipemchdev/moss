@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-11-14
+
+### Release v1.0.0 — Production Ready
+- Lançamento oficial da versão 1.0.0 do Moss Browser.
+- Conclusão integral de todas as 25 fases do roadmap arquitetural (Fases 0 a 24).
+- Otimização rigorosa do bundle de produção com tree-shaking, lazy loading de webviews nativas e tempo de boot sub-200ms.
+- Configuração de empacotador de produção para Windows x64 (NSIS + MSI) em `src-tauri/tauri.conf.json`.
+- Documentação completa da arquitetura, especificações técnicas e atalhos em `README.md`.
+
 ## [0.17.0] - 2026-11-14
 
 ### Added

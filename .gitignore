@@ -45,6 +45,10 @@ desktop.ini
 *.sw?
 
 kilo.json
+kilo.jsonc
+.kilo/
+mcp_config.json
+.mcp.json
 
 # Local development
 AGENTS.md

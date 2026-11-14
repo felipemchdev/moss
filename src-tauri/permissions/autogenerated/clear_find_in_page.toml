@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-clear-find-in-page"
+description = "Enables the clear_find_in_page command without any pre-configured scope."
+commands.allow = ["clear_find_in_page"]
+
+[[permission]]
+identifier = "deny-clear-find-in-page"
+description = "Denies the clear_find_in_page command without any pre-configured scope."
+commands.deny = ["clear_find_in_page"]

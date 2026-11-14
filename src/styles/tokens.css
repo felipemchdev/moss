@@ -131,6 +131,7 @@
 
   --glass-bg:             var(--color-bg-glass);
   --glass-bg-strong:      var(--color-bg-glass-strong);
+  --glass-bg-subtle:      rgba(20, 26, 22, 0.4);
   --glass-bg-hover:       var(--color-bg-glass-hover);
   --glass-border:         var(--color-border-glass);
   --glass-border-strong:  var(--color-border-glass-strong);
@@ -260,6 +261,15 @@
   --workspace-popover-width:   280px;
   --workspace-popover-bg:      var(--glass-bg-strong);
   --workspace-item-radius:     var(--radius-md);
+
+  /* --- Find in Page Tokens --- */
+  --find-bar-height:           42px;
+  --find-pill-height:          34px;
+  --find-pill-bg:              var(--glass-bg-strong);
+  --find-pill-border:          var(--glass-border-strong);
+  --find-pill-shadow:          var(--shadow-elevation-medium);
+  --find-match-color:          #ffd43b;
+  --find-match-active-color:   #ff922b;
 
   /* --- Z-Index Scale --- */
   --z-base:              0;
@@ -409,6 +419,7 @@
 
     --glass-bg:             var(--color-bg-glass);
     --glass-bg-strong:      var(--color-bg-glass-strong);
+    --glass-bg-subtle:      rgba(255, 255, 255, 0.5);
     --glass-bg-hover:       var(--color-bg-glass-hover);
     --glass-border:         var(--color-border-glass);
     --glass-border-strong:  var(--color-border-glass-strong);

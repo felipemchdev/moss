@@ -34,6 +34,9 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     title: "Recursos e Atalhos",
     items: [
       { keys: ["Ctrl", "L"], description: "Focar na omnibar" },
+      { keys: ["Ctrl", "F"], description: "Localizar na página" },
+      { keys: ["F3"], description: "Próxima ocorrência" },
+      { keys: ["Shift", "F3"], description: "Ocorrência anterior" },
       { keys: ["Ctrl", "H"], description: "Abrir histórico" },
       { keys: ["Ctrl", ","], description: "Abrir configurações" },
       { keys: ["Ctrl", "/"], description: "Atalhos de teclado" },

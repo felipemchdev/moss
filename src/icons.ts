@@ -18,6 +18,7 @@ const PATHS = {
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
   split: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/>',
   swap: '<path d="M7 16l-4-4 4-4M3 12h18M17 8l4 4-4 4"/>',
+  chevronUp: '<polyline points="18 15 12 9 6 15"/>',
   chevronDown: '<polyline points="6 9 12 15 18 9"/>',
   chevronLeft: '<polyline points="15 18 9 12 15 6"/>',
   chevronRight: '<polyline points="9 18 15 12 9 6"/>',

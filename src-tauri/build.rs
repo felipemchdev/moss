@@ -15,6 +15,8 @@ const COMMANDS: &[&str] = &[
     "sync_tab_trackers_blocked",
     "reset_trackers_count",
     "export_data_file",
+    "find_in_page",
+    "clear_find_in_page",
 ];
 
 fn main() {

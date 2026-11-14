@@ -92,6 +92,14 @@ struct TrackerCountPayload {
     count: u32,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FindResultPayload {
+    tab_id: String,
+    active_match: u32,
+    total_matches: u32,
+}
+
 const TRACKER_BLOCKER_SCRIPT: &str = r#"
 (function() {
   if (window.__moss_shield_injected) return;
@@ -572,6 +580,193 @@ fn export_data_file(app: AppHandle, filename: String, content: String) -> Result
     Ok(target_path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn find_in_page(
+    app: AppHandle,
+    tab_id: String,
+    query: String,
+    forward: bool,
+    case_sensitive: bool,
+    find_next: bool,
+) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let app_clone = app.clone();
+    let tab_id_clone = tab_id;
+
+    let query_escaped = serde_json::to_string(&query).unwrap_or_else(|_| "\"\"".to_string());
+    let script = format!(
+        r#"(() => {{
+  if (!document.getElementById('__moss_find_style')) {{
+    const style = document.createElement('style');
+    style.id = '__moss_find_style';
+    style.textContent = `
+      ::highlight(__moss-find-match) {{
+        background-color: #ffd43b !important;
+        color: #000000 !important;
+      }}
+      ::highlight(__moss-find-active) {{
+        background-color: #ff922b !important;
+        color: #ffffff !important;
+      }}
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }}
+
+  const query = {query_escaped};
+  if (!query) {{
+    if (typeof CSS !== 'undefined' && CSS.highlights) {{
+      CSS.highlights.delete('__moss-find-match');
+      CSS.highlights.delete('__moss-find-active');
+    }}
+    window.__moss_find_state = null;
+    return JSON.stringify({{ activeIndex: 0, totalMatches: 0 }});
+  }}
+
+  const caseSensitive = {case_sensitive};
+  const forward = {forward};
+  const findNext = {find_next};
+
+  let state = window.__moss_find_state;
+  const isSameQuery = state && state.query === query && state.caseSensitive === caseSensitive;
+
+  if (!isSameQuery || !findNext) {{
+    const ranges = [];
+    const treeWalker = document.createTreeWalker(
+      document.body || document.documentElement,
+      NodeFilter.SHOW_TEXT,
+      {{
+        acceptNode(node) {{
+          if (!node.textContent || !node.textContent.trim()) return NodeFilter.FILTER_REJECT;
+          const parent = node.parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          const tag = parent.tagName;
+          if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'TEXTAREA' || tag === 'INPUT') {{
+            return NodeFilter.FILTER_REJECT;
+          }}
+          const style = window.getComputedStyle(parent);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {{
+            return NodeFilter.FILTER_REJECT;
+          }}
+          return NodeFilter.FILTER_ACCEPT;
+        }}
+      }}
+    );
+
+    const needle = caseSensitive ? query : query.toLowerCase();
+    let node;
+    while ((node = treeWalker.nextNode())) {{
+      const text = caseSensitive ? node.textContent : node.textContent.toLowerCase();
+      let pos = 0;
+      while ((pos = text.indexOf(needle, pos)) !== -1) {{
+        try {{
+          const range = document.createRange();
+          range.setStart(node, pos);
+          range.setEnd(node, pos + needle.length);
+          ranges.push(range);
+        }} catch (_) {{}}
+        pos += needle.length;
+      }}
+    }}
+
+    state = {{
+      query,
+      caseSensitive,
+      ranges,
+      currentIndex: ranges.length > 0 ? 0 : -1,
+    }};
+    window.__moss_find_state = state;
+  }} else {{
+    if (state.ranges.length > 0) {{
+      if (forward) {{
+        state.currentIndex = (state.currentIndex + 1) % state.ranges.length;
+      }} else {{
+        state.currentIndex = (state.currentIndex - 1 + state.ranges.length) % state.ranges.length;
+      }}
+    }}
+  }}
+
+  const totalMatches = state.ranges.length;
+  const activeIndex = totalMatches > 0 ? state.currentIndex + 1 : 0;
+
+  if (totalMatches > 0 && typeof CSS !== 'undefined' && CSS.highlights) {{
+    try {{
+      const matchHighlight = new Highlight(...state.ranges);
+      CSS.highlights.set('__moss-find-match', matchHighlight);
+
+      const activeRange = state.ranges[state.currentIndex];
+      if (activeRange) {{
+        const activeHighlight = new Highlight(activeRange);
+        CSS.highlights.set('__moss-find-active', activeHighlight);
+        const el = activeRange.startContainer.parentElement;
+        if (el) {{
+          el.scrollIntoView({{ behavior: 'smooth', block: 'center', inline: 'nearest' }});
+        }}
+      }}
+    }} catch (_) {{}}
+  }} else if (totalMatches > 0) {{
+    const activeRange = state.ranges[state.currentIndex];
+    if (activeRange) {{
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(activeRange);
+      const el = activeRange.startContainer.parentElement;
+      if (el) el.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+    }}
+  }} else {{
+    if (typeof CSS !== 'undefined' && CSS.highlights) {{
+      CSS.highlights.delete('__moss-find-match');
+      CSS.highlights.delete('__moss-find-active');
+    }}
+  }}
+
+  return JSON.stringify({{ activeIndex, totalMatches }});
+}})()"#
+    );
+
+    let _ = tab.eval_with_callback(&script, move |res| {
+        let unquoted = if res.starts_with('"') && res.ends_with('"') && res.len() >= 2 {
+            serde_json::from_str::<String>(&res).unwrap_or_else(|_| res.to_string())
+        } else {
+            res.to_string()
+        };
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&unquoted) {
+            let active = val.get("activeIndex").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            let total = val.get("totalMatches").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            emit_to_chrome(
+                &app_clone,
+                "find-in-page-result",
+                FindResultPayload {
+                    tab_id: tab_id_clone.clone(),
+                    active_match: active,
+                    total_matches: total,
+                },
+            );
+        }
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+fn clear_find_in_page(app: AppHandle, tab_id: String) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let script = r#"(() => {
+  if (typeof CSS !== 'undefined' && CSS.highlights) {
+    CSS.highlights.delete('__moss-find-match');
+    CSS.highlights.delete('__moss-find-active');
+  }
+  window.__moss_find_state = null;
+})()"#;
+    let _ = tab.eval(script);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -594,6 +789,8 @@ pub fn run() {
             sync_tab_trackers_blocked,
             reset_trackers_count,
             export_data_file,
+            find_in_page,
+            clear_find_in_page,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

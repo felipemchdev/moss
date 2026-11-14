@@ -53,6 +53,7 @@ import {
   subscribeWorkspaces,
 } from "./workspaces";
 import { createWorkspaceSwitcher } from "./workspace-switcher";
+import { createFindInPage } from "./find-in-page";
 import { webview, windowControls } from "./webview";
 
 type NavAction = NavIntent;
@@ -317,6 +318,7 @@ function buildChrome(root: HTMLElement) {
     emptyState,
     loadingBar,
     webviewContainer,
+    viewportCard,
     pinnedTabsSection,
     pinnedTabsGrid,
     workspaceSection,
@@ -457,6 +459,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const privacyShield = createPrivacyShield(ui.privacyButton, syncWebviewVisibility);
 
+  const findInPage = createFindInPage({
+    getTargetTabId: () => getTargetTab()?.id ?? null,
+    onHeightChange(height) {
+      ui.viewportCard.classList.toggle("viewport-card--find-active", height > 0);
+      syncViewport();
+    },
+    onClose() {
+      ui.viewportCard.classList.remove("viewport-card--find-active");
+      syncViewport();
+    },
+  });
+  ui.viewportCard.prepend(findInPage.element);
+
   root.append(
     historyPanel.element,
     settings.overlay,
@@ -473,6 +488,7 @@ window.addEventListener("DOMContentLoaded", () => {
     downloadController.destroy();
     privacyShield.destroy();
     workspaceSwitcher.destroy();
+    findInPage.destroy();
   });
 
   ui.privacyButton.addEventListener("click", () => {
@@ -607,6 +623,7 @@ window.addEventListener("DOMContentLoaded", () => {
     tabContextMenu.close();
     privacyShield.close();
     workspaceSwitcher.close();
+    findInPage.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -959,6 +976,24 @@ window.addEventListener("DOMContentLoaded", () => {
       document.activeElement instanceof HTMLInputElement ||
       document.activeElement instanceof HTMLTextAreaElement;
 
+    if (event.key === "Escape") {
+      if (findInPage.isOpen()) {
+        event.preventDefault();
+        findInPage.close();
+        return;
+      }
+    }
+
+    if (event.key === "F3" && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      event.preventDefault();
+      if (event.shiftKey) {
+        findInPage.findPrevious();
+      } else {
+        findInPage.findNext();
+      }
+      return;
+    }
+
     if (
       event.key === "?" &&
       !event.ctrlKey &&
@@ -1054,6 +1089,15 @@ window.addEventListener("DOMContentLoaded", () => {
     else if (key === "\\" || (key === "s" && event.shiftKey)) {
       toggleSplitView();
     }
+    else if (key === "f") {
+      if (findInPage.isOpen()) {
+        findInPage.input.focus();
+        findInPage.input.select();
+      } else {
+        closePanels();
+        findInPage.open();
+      }
+    }
     else if (key === "t" || key === "w" || key === "tab" || key === "l") {
       closePanels();
       const target = getTargetTab();
@@ -1084,6 +1128,9 @@ window.addEventListener("DOMContentLoaded", () => {
       canGoBack: history.canGoBack,
       canGoForward: history.canGoForward,
     });
+    if (findInPage.isOpen() && payload.tabId === getTargetTab()?.id) {
+      findInPage.reapply();
+    }
   });
 
   listen<{ tabId: string; title: string }>("tab://title", ({ payload }) => {
@@ -1153,9 +1200,17 @@ window.addEventListener("DOMContentLoaded", () => {
       ui.omnibarInput.value = target.url;
       renderBookmarkToggle();
     }
+    if (findInPage.isOpen()) {
+      findInPage.reapply();
+    }
   });
 
-  subscribe(render);
+  subscribe((tabs) => {
+    render(tabs);
+    if (findInPage.isOpen()) {
+      findInPage.reapply();
+    }
+  });
   subscribeBookmarks((bookmarks) => {
     renderBookmarksBar(ui.bookmarksBar, ui.bookmarksList, bookmarks);
     renderBookmarkToggle();

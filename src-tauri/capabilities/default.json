@@ -21,6 +21,8 @@
     "allow-set-privacy-shield",
     "allow-sync-tab-trackers-blocked",
     "allow-reset-trackers-count",
-    "allow-export-data-file"
+    "allow-export-data-file",
+    "allow-find-in-page",
+    "allow-clear-find-in-page"
   ]
 }

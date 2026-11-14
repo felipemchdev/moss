@@ -33,6 +33,15 @@ export const webview = {
   resetTrackersCount: () => call("reset_trackers_count"),
   exportDataFile: (filename: string, content: string) =>
     call("export_data_file", { filename, content }),
+  findInPage: (
+    tabId: string,
+    query: string,
+    forward = true,
+    caseSensitive = false,
+    findNext = false,
+  ) =>
+    call("find_in_page", { tabId, query, forward, caseSensitive, findNext }),
+  clearFindInPage: (tabId: string) => call("clear_find_in_page", { tabId }),
 };
 
 export const windowControls = {

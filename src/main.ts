@@ -56,6 +56,17 @@ import { createWorkspaceSwitcher } from "./workspace-switcher";
 import { createFindInPage } from "./find-in-page";
 import { createReaderView } from "./reader-view";
 import { webview, windowControls } from "./webview";
+import {
+  applyZoomForTab,
+  clearTabZoom,
+  formatZoomPercent,
+  getZoomForTab,
+  isDefaultZoom,
+  resetZoom,
+  subscribeZoom,
+  zoomIn,
+  zoomOut,
+} from "./zoom";
 
 type NavAction = NavIntent;
 
@@ -177,10 +188,21 @@ function buildChrome(root: HTMLElement) {
     },
     [icon("split")],
   );
+  const zoomBadge = el(
+    "button",
+    {
+      class: "omnibar-zoom-badge",
+      type: "button",
+      "aria-label": "Zoom: 100%. Clique para redefinir para 100% (Ctrl+0)",
+      title: "Zoom: 100%. Clique para redefinir para 100% (Ctrl+0)",
+      style: "display: none;",
+    },
+    ["100%"],
+  );
   const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
     el("span", { class: "omnibar-icon" }, [icon("search")]),
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
-    el("div", { class: "omnibar-actions" }, [readerButton, omnibarSplitBtn, bookmarkToggle]),
+    el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarSplitBtn, bookmarkToggle]),
   ]);
 
   // 5. Pinned tabs section
@@ -321,6 +343,7 @@ function buildChrome(root: HTMLElement) {
     bookmarkToggle,
     readerButton,
     omnibarSplitBtn,
+    zoomBadge,
     splitButton,
     privacyButton,
     historyButton,
@@ -371,6 +394,36 @@ window.addEventListener("DOMContentLoaded", () => {
   let shownTabId: string | null = null;
   let shownUrl = "";
   let visibleWebviewId: string | null | undefined;
+
+  function renderZoomBadge(tabId?: string | null, url?: string | null) {
+    if (!tabId) {
+      ui.zoomBadge.style.display = "none";
+      return;
+    }
+    const factor = getZoomForTab(tabId, url);
+    if (isDefaultZoom(factor)) {
+      ui.zoomBadge.style.display = "none";
+    } else {
+      const pct = formatZoomPercent(factor);
+      ui.zoomBadge.textContent = pct;
+      ui.zoomBadge.title = `Zoom: ${pct}. Clique para redefinir para 100% (Ctrl+0)`;
+      ui.zoomBadge.setAttribute("aria-label", ui.zoomBadge.title);
+      ui.zoomBadge.style.display = "inline-flex";
+    }
+  }
+
+  ui.zoomBadge.addEventListener("click", () => {
+    const target = getTargetTab();
+    if (!target) return;
+    resetZoom(target.id, target.url).catch(console.error);
+  });
+
+  subscribeZoom((tabId) => {
+    const target = getTargetTab();
+    if (target && target.id === tabId) {
+      renderZoomBadge(tabId, target.url);
+    }
+  });
 
   function getTargetTab(): Tab | undefined {
     if (isSplitActive()) {
@@ -709,6 +762,7 @@ window.addEventListener("DOMContentLoaded", () => {
   function closeTabAndWebview(tabId: string) {
     handleTabClosedInSplit(tabId);
     closeTab(tabId);
+    clearTabZoom(tabId);
     histories.delete(tabId);
     pageTitles.delete(tabId);
     webview.close(tabId);
@@ -860,6 +914,7 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.loadingBar.style.display = target?.isLoading ? "" : "none";
     document.title = target?.url ? `${target.title} — Moss` : "Moss";
     renderBookmarkToggle();
+    renderZoomBadge(target?.id, target?.url);
     syncWebviewVisibility();
 
     const targetId = target?.id ?? null;
@@ -1160,6 +1215,40 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !isTextInputFocused) {
+      const isPlus =
+        event.key === "+" ||
+        event.key === "=" ||
+        event.code === "Equal" ||
+        event.code === "NumpadAdd";
+      const isMinus =
+        (event.key === "-" ||
+          event.key === "_" ||
+          event.code === "Minus" ||
+          event.code === "NumpadSubtract") &&
+        !event.shiftKey;
+      const isZero =
+        (event.key === "0" ||
+          event.code === "Digit0" ||
+          event.code === "Numpad0") &&
+        !event.shiftKey;
+
+      if (isPlus || isMinus || isZero) {
+        event.preventDefault();
+        const target = getTargetTab();
+        if (target) {
+          if (isPlus) {
+            zoomIn(target.id, target.url).catch(console.error);
+          } else if (isMinus) {
+            zoomOut(target.id, target.url).catch(console.error);
+          } else if (isZero) {
+            resetZoom(target.id, target.url).catch(console.error);
+          }
+        }
+        return;
+      }
+    }
+
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
     if (key === "h") togglePanel(historyPanel);
@@ -1188,6 +1277,24 @@ window.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
   });
 
+  window.addEventListener(
+    "wheel",
+    (event) => {
+      if (panels.some((p) => p.isOpen())) return;
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        const target = getTargetTab();
+        if (!target) return;
+        if (event.deltaY < 0) {
+          zoomIn(target.id, target.url).catch(console.error);
+        } else if (event.deltaY > 0) {
+          zoomOut(target.id, target.url).catch(console.error);
+        }
+      }
+    },
+    { passive: false },
+  );
+
   listen<TabLoadEvent>("tab://load", ({ payload }) => {
     const tab = getTab(payload.tabId);
     if (!tab) return;
@@ -1195,6 +1302,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (payload.state === "started") {
       pageTitles.delete(tab.id);
       updateTab(tab.id, { url: payload.url, isLoading: true, title });
+      applyZoomForTab(tab.id, payload.url);
       return;
     }
     const history = historyOf(tab.id);
@@ -1207,6 +1315,7 @@ window.addEventListener("DOMContentLoaded", () => {
       canGoBack: history.canGoBack,
       canGoForward: history.canGoForward,
     });
+    applyZoomForTab(tab.id, payload.url);
     if (findInPage.isOpen() && payload.tabId === getTargetTab()?.id) {
       findInPage.reapply();
     }
@@ -1278,6 +1387,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (target) {
       ui.omnibarInput.value = target.url;
       renderBookmarkToggle();
+      renderZoomBadge(target.id, target.url);
     }
     if (findInPage.isOpen()) {
       findInPage.reapply();

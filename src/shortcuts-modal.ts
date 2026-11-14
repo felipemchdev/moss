@@ -35,6 +35,9 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     items: [
       { keys: ["Ctrl", "L"], description: "Focar na omnibar" },
       { keys: ["Ctrl", "Alt", "R"], description: "Modo leitura (Reader Mode)" },
+      { keys: ["Ctrl", "+"], description: "Aumentar zoom da página" },
+      { keys: ["Ctrl", "-"], description: "Diminuir zoom da página" },
+      { keys: ["Ctrl", "0"], description: "Redefinir zoom (100%)" },
       { keys: ["Ctrl", "Shift", "T"], description: "Alternar tema de leitura" },
       { keys: ["Ctrl", "Shift", "F"], description: "Alternar fonte de leitura" },
       { keys: ["Ctrl", "Shift", "./,"], description: "Aumentar/diminuir fonte" },

@@ -96,6 +96,8 @@
   --color-accent-secondary: var(--color-moss-350);
   --color-accent-hover:     var(--color-moss-350);
   --color-accent-active:    var(--color-moss-250);
+  --color-accent-subtle:    rgba(184, 235, 154, 0.12);
+  --color-accent-border:    rgba(130, 199, 96, 0.35);
   --color-accent-glow:      rgba(130, 199, 96, 0.35);
   --color-accent-glow-strong: rgba(98, 160, 60, 0.5);
 
@@ -419,6 +421,8 @@
     --color-accent-secondary: var(--color-moss-500);
     --color-accent-hover:     var(--color-moss-500);
     --color-accent-active:    var(--color-moss-450);
+    --color-accent-subtle:    rgba(93, 142, 66, 0.12);
+    --color-accent-border:    rgba(93, 142, 66, 0.3);
     --color-accent-glow:      rgba(93, 142, 66, 0.3);
     --color-accent-glow-strong: rgba(78, 120, 55, 0.45);
 

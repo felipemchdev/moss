@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-14
+
+### Added
+- Native page zoom and scaling controls (`Ctrl++`, `Ctrl+-`, `Ctrl+0`) with WebView2 native scale factor (`0.25` to `5.0`) (`src/zoom.ts`, `src-tauri/src/lib.rs`).
+- Persistent domain-specific zoom memory in `localStorage` (`moss:domain_zoom`) automatically restored on page navigation and tab activation.
+- Omnibar zoom badge pill showing current scale percentage (e.g. `125%`) when not 100%, resetting to 100% on click with accessible tooltip and aria-label.
+- Keyboard shortcuts for zoom in (`Ctrl++`, `Ctrl+=`, `NumpadAdd`), zoom out (`Ctrl+-`, `NumpadSubtract`), and zoom reset (`Ctrl+0`, `Numpad0`), along with `Ctrl + Wheel` zooming.
+- Integrated zoom controls with Split View focused pane resolution (`getTargetTab()`) and registered shortcuts in keyboard shortcuts modal (`src/shortcuts-modal.ts`).
+
+### Security
+- Strict IPC capability isolation: `set_tab_zoom` is scoped exclusively to the `main` chrome webview with zero IPC granted to remote tab webviews.
+- Tolerant webview lookup preventing console crashes or errors on blank/uninitialized tabs.
+
 ## [0.5.0] - 2026-11-14
 
 ### Added

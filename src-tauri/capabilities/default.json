@@ -24,6 +24,7 @@
     "allow-export-data-file",
     "allow-find-in-page",
     "allow-clear-find-in-page",
-    "allow-extract-reader-content"
+    "allow-extract-reader-content",
+    "allow-set-tab-zoom"
   ]
 }

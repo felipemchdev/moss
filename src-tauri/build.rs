@@ -18,6 +18,7 @@ const COMMANDS: &[&str] = &[
     "find_in_page",
     "clear_find_in_page",
     "extract_reader_content",
+    "set_tab_zoom",
 ];
 
 fn main() {

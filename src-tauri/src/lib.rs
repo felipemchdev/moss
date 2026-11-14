@@ -929,6 +929,22 @@ fn extract_reader_content(app: AppHandle, tab_id: String) -> Result<(), String> 
     Ok(())
 }
 
+#[tauri::command]
+fn set_tab_zoom(app: AppHandle, tab_id: String, scale_factor: f64) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+
+    let clamped = if scale_factor.is_nan() || scale_factor <= 0.0 {
+        1.0
+    } else {
+        scale_factor.clamp(0.25, 5.0)
+    };
+
+    tab.set_zoom(clamped).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -954,6 +970,7 @@ pub fn run() {
             find_in_page,
             clear_find_in_page,
             extract_reader_content,
+            set_tab_zoom,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

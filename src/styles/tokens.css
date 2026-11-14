@@ -297,7 +297,12 @@
   --z-tooltip:           600;
   --z-toast:             700;
   --z-command-palette:   800;
+  --z-wizard:            900;
   --z-glass-overlay:     1000;
+
+  /* --- Wizard / Onboarding Tokens --- */
+  --wizard-backdrop-bg: radial-gradient(circle at 50% 35%, rgba(68, 207, 110, 0.15) 0%, rgba(10, 15, 13, 0.88) 100%);
+  --wizard-backdrop-filter: blur(28px);
 
   /* --- Motion Design Tokens (Apple Motion + Zen Browser inspired) --- */
   /* Durations */

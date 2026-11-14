@@ -19,6 +19,9 @@
   --viewport-gap: 12px;
   --viewport-gap-collapsed: 12px;
 
+  /* Browser-chrome specific tokens */
+  --opacity-sleeping: 0.6;
+
   /* Sizing for sidebar elements */
   --window-btn-size: 12px;
   --window-btn-gap: 8px;
@@ -5674,8 +5677,8 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
   padding: var(--space-6);
   animation: glanceFadeIn var(--motion-fast) ease-out;
 }
@@ -5696,7 +5699,7 @@
   backdrop-filter: var(--glass-backdrop-strong);
   -webkit-backdrop-filter: var(--glass-backdrop-strong);
   border: 1px solid var(--glass-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-modal, 24px);
   box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
@@ -5810,6 +5813,11 @@
   border-color: var(--glass-border-strong);
 }
 
+.glance-action-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
 .glance-action-btn--success {
   color: var(--color-accent-primary);
   border-color: var(--color-accent-primary);
@@ -5843,6 +5851,11 @@
   color: var(--color-fg-primary);
 }
 
+.glance-close-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
 .glance-close-btn svg {
   width: 14px;
   height: 14px;
@@ -5861,7 +5874,7 @@
    ========================================================================== */
 
 .tab--sleeping {
-  opacity: 0.62;
+  opacity: var(--opacity-sleeping, 0.6);
 }
 
 .tab--sleeping .tab-title {
@@ -6513,7 +6526,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--glass-shadow);
   animation: popover-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
 }
@@ -6660,10 +6673,10 @@
 .welcome-wizard-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100000;
-  background: radial-gradient(circle at 50% 30%, rgba(130, 199, 96, 0.15), rgba(10, 14, 8, 0.92));
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  z-index: var(--z-wizard, 900);
+  background: var(--wizard-backdrop-bg);
+  backdrop-filter: var(--wizard-backdrop-filter);
+  -webkit-backdrop-filter: var(--wizard-backdrop-filter);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6679,7 +6692,7 @@
   width: 580px;
   max-width: 92vw;
   min-height: 460px;
-  border-radius: 24px;
+  border-radius: var(--radius-modal, 24px);
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-backdrop-strong);
   -webkit-backdrop-filter: var(--glass-backdrop-strong);
@@ -7045,6 +7058,29 @@
 .welcome-nav-btn--finish {
   background: linear-gradient(135deg, var(--color-accent-primary), #82c760);
   padding: 10px 24px;
+}
+
+/* Responsive Welcome Wizard (D3) */
+@media (max-width: 800px) {
+  .welcome-theme-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .welcome-apps-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .welcome-engine-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .welcome-wizard-card {
+    padding: 24px 24px;
+    min-height: auto;
+  }
 }
 
 

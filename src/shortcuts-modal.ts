@@ -33,6 +33,8 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
     title: "Recursos e Atalhos",
     items: [
+      { keys: ["Ctrl", "K"], description: "Paleta de comandos (Quick Launcher)" },
+      { keys: ["Ctrl", "P"], description: "Paleta de comandos / Buscar abas" },
       { keys: ["Ctrl", "L"], description: "Focar na omnibar" },
       { keys: ["Ctrl", "Alt", "R"], description: "Modo leitura (Reader Mode)" },
       { keys: ["Ctrl", "+"], description: "Aumentar zoom da página" },

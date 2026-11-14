@@ -3,7 +3,7 @@ import { addBookmark, isBookmarked, removeBookmark, subscribeBookmarks, type Boo
 import { createTabContextMenu } from "./context-menu";
 import { el, hostnameOf } from "./dom";
 import { initDownloads } from "./downloads";
-import { NavHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
+import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
 import { resolveOmnibarInput } from "./omnibar";
@@ -45,6 +45,7 @@ import {
   type Tab,
 } from "./tabs";
 import {
+  createWorkspace,
   cycleWorkspace,
   deleteWorkspace,
   getActiveWorkspaceId,
@@ -56,6 +57,7 @@ import { createWorkspaceSwitcher } from "./workspace-switcher";
 import { createFindInPage } from "./find-in-page";
 import { createReaderView } from "./reader-view";
 import { createSiteInfoPopover } from "./site-info-popover";
+import { createCommandPalette } from "./command-palette";
 import { syncAllPermissionsToBackend } from "./site-permissions";
 import { webview, windowControls } from "./webview";
 import {
@@ -87,6 +89,7 @@ const NAV_BUTTONS: { action: NavAction; label: string; icon: IconName }[] = [
 const SHORTCUTS = [
   ["Ctrl+T", "nova aba"],
   ["Ctrl+W", "fechar aba"],
+  ["Ctrl+K", "paleta de comandos"],
   ["Ctrl+\\", "tela dividida"],
   ["Ctrl+Shift+S", "tela dividida"],
   ["Ctrl+Tab", "próxima aba"],
@@ -570,6 +573,120 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const siteInfoPopover = createSiteInfoPopover(syncWebviewVisibility);
 
+  const commandPalette = createCommandPalette(
+    {
+      openTab(url) {
+        openTab(url);
+      },
+      closeCurrentTab() {
+        const target = getTargetTab();
+        if (target) closeTabAndWebview(target.id);
+      },
+      selectTab(tabId, workspaceId) {
+        if (workspaceId && workspaceId !== getActiveWorkspaceId()) {
+          handleSwitchWorkspace(workspaceId);
+        }
+        handleTabClick(tabId);
+      },
+      toggleSplitView() {
+        toggleSplitView();
+      },
+      swapPanes() {
+        swapPanes();
+      },
+      closeSplit() {
+        closeSplit();
+      },
+      toggleReaderMode() {
+        toggleReaderMode();
+      },
+      openFindInPage() {
+        closePanels();
+        findInPage.open();
+      },
+      openHistory() {
+        closePanels();
+        historyPanel.open();
+      },
+      clearHistory() {
+        clearHistory();
+      },
+      openSettings() {
+        closePanels();
+        settingsPanel.open();
+      },
+      openShortcuts() {
+        closePanels();
+        shortcutsPanel.open();
+      },
+      openSiteInfo() {
+        closePanels();
+        const target = getTargetTab();
+        if (target) {
+          const trackers = privacyShield.getTabBlockedCount(target.id);
+          siteInfoPopover.open({
+            tabId: target.id,
+            url: target.url,
+            trackersBlocked: trackers,
+          });
+        }
+      },
+      toggleBookmark() {
+        const tab = getTargetTab();
+        if (!tab || !isWebUrl(tab.url)) return;
+        if (isBookmarked(tab.url)) removeBookmark(tab.url);
+        else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
+      },
+      zoomIn() {
+        const target = getTargetTab();
+        if (target) zoomIn(target.id, target.url).catch(console.error);
+      },
+      zoomOut() {
+        const target = getTargetTab();
+        if (target) zoomOut(target.id, target.url).catch(console.error);
+      },
+      resetZoom() {
+        const target = getTargetTab();
+        if (target) resetZoom(target.id, target.url).catch(console.error);
+      },
+      reload() {
+        runNavAction("reload");
+      },
+      navBack() {
+        runNavAction("back");
+      },
+      navForward() {
+        runNavAction("forward");
+      },
+      newWorkspace() {
+        const ws = createWorkspace("Novo Espaço");
+        handleSwitchWorkspace(ws.id);
+      },
+      switchWorkspace(workspaceId) {
+        handleSwitchWorkspace(workspaceId);
+      },
+      cycleWorkspace(delta) {
+        const next = cycleWorkspace(delta);
+        handleSwitchWorkspace(next.id);
+      },
+      navigateActiveTab(url) {
+        const target = getTargetTab();
+        if (target) {
+          navigate(target.id, url);
+        } else {
+          openTab(url);
+        }
+      },
+      getTargetTab() {
+        return getTargetTab();
+      },
+      isSplitActive() {
+        return isSplitActive();
+      },
+    },
+    syncWebviewVisibility,
+  );
+
   function toggleReaderMode() {
     const target = getTargetTab();
     if (!target) return;
@@ -594,6 +711,8 @@ window.addEventListener("DOMContentLoaded", () => {
     workspaceSwitcher.popover,
     siteInfoPopover.overlay,
     siteInfoPopover.element,
+    commandPalette.overlay,
+    commandPalette.element,
   );
 
   const downloadController = initDownloads(root);
@@ -606,6 +725,7 @@ window.addEventListener("DOMContentLoaded", () => {
     findInPage.destroy();
     readerView.destroy();
     siteInfoPopover.destroy();
+    commandPalette.destroy();
   });
 
   ui.securityButton.addEventListener("click", () => {
@@ -648,7 +768,8 @@ window.addEventListener("DOMContentLoaded", () => {
       privacyShield.isOpen() ||
       workspaceSwitcher.isOpen() ||
       readerView.isOpen() ||
-      siteInfoPopover.isOpen();
+      siteInfoPopover.isOpen() ||
+      commandPalette.isOpen();
 
     if (isBlocked) {
       if (visibleWebviewId !== null) {
@@ -761,6 +882,7 @@ window.addEventListener("DOMContentLoaded", () => {
     findInPage.close();
     readerView.close();
     siteInfoPopover.close();
+    commandPalette.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -1148,6 +1270,11 @@ window.addEventListener("DOMContentLoaded", () => {
       document.activeElement instanceof HTMLTextAreaElement;
 
     if (event.key === "Escape") {
+      if (commandPalette.isOpen()) {
+        event.preventDefault();
+        commandPalette.close();
+        return;
+      }
       if (findInPage.isOpen()) {
         event.preventDefault();
         findInPage.close();
@@ -1321,6 +1448,15 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
+    if (key === "k" || key === "p") {
+      event.preventDefault();
+      const wasOpen = commandPalette.isOpen();
+      closePanels();
+      if (!wasOpen) {
+        commandPalette.open();
+      }
+      return;
+    }
     if (key === "h") togglePanel(historyPanel);
     else if (key === ",") togglePanel(settingsPanel);
     else if (key === "/" || event.code === "Slash") togglePanel(shortcutsPanel);

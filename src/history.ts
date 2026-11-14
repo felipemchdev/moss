@@ -77,12 +77,19 @@ export function getRecentHistory(limit = 50): readonly HistoryEntry[] {
   return entries.slice(0, limit);
 }
 
+function normalizeText(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export function searchHistory(query: string, limit = 200): readonly HistoryEntry[] {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const terms = normalizeText(query).split(/\s+/).filter(Boolean);
   if (terms.length === 0) return getRecentHistory(limit);
   const matches: HistoryEntry[] = [];
   for (const entry of entries) {
-    const haystack = `${entry.title}\n${entry.url}`.toLowerCase();
+    const haystack = normalizeText(`${entry.title}\n${entry.url}`);
     if (terms.every((term) => haystack.includes(term))) matches.push(entry);
     if (matches.length >= limit) break;
   }

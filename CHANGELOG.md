@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-11-14
+
+### Added
+- Unified Command Palette & Quick Launcher (`Ctrl+K` / `Ctrl+P`) inspired by Spotlight, Raycast, and Zen Browser (`src/command-palette.ts`, `src/styles/browser-chrome.css`).
+- Real-time multi-source search across:
+  - Open tabs across all workspaces with workspace badges, pinned tab indicators, and active tab highlights.
+  - Comprehensive browser actions: New Tab (`Ctrl+T`), Close Tab (`Ctrl+W`), Toggle Split View (`Ctrl+\`), Swap Split Panes, Close Split, Reader Mode (`Ctrl+Alt+R`), Find in Page (`Ctrl+F`), Site Security & Permissions, Clear Active Site Data, Toggle Bookmark, Zoom In/Out/Reset (`Ctrl++`/`-`/`0`), Navigation (Back, Forward, Reload `F5`), Workspace switching & creation, History, Settings, and Keyboard Shortcuts.
+  - Bookmarks with title and URL search.
+  - Browsing history with real-time and debounced persistent store lookup.
+  - Web navigation and search fallback using the default configured search engine.
+- Keyboard ergonomics with `ArrowDown`/`ArrowUp` navigation, `Enter` execution, `Escape` closing, and focus restoration to the previously active element.
+- Accessible ARIA combobox pattern (`role="combobox"`, `role="listbox"`, `role="option"`, `aria-activedescendant`, `aria-selected`).
+- Glassmorphic modal UI centered in the upper viewport with backdrop blur overlay, smooth spring transitions, category headers, shortcut key badges, item count indicator, and keyboard navigation hints footer.
+- Registered `Ctrl+K` and `Ctrl+P` shortcuts in keyboard shortcuts modal (`src/shortcuts-modal.ts`) and empty state shortcut overview (`src/main.ts`).
+
+### Security
+- Complete native webview occlusion protection: `syncWebviewVisibility()` automatically hides native child webviews (`webview.showTabs([])`) while the Command Palette is open, preventing native HWND punch-through or visual overlap.
+- Zero IPC permissions required: Command Palette operates within the existing secure frontend state and IPC architecture, maintaining strict isolation with zero IPC permissions for remote tab webviews (`tab-*`).
+
 ## [0.7.0] - 2026-11-14
 
 ### Added

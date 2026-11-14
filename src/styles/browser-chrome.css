@@ -2840,3 +2840,220 @@
   background: var(--color-accent-glow-strong);
   color: var(--color-fg-inverse);
 }
+
+/* ==========================================================================
+   TAB CONTEXT MENU (Zen Browser / Glass)
+   ========================================================================== */
+.tab-context-menu {
+  position: fixed;
+  z-index: var(--z-popover);
+  min-width: 180px;
+  padding: var(--space-2);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-accent-glow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  user-select: none;
+  animation: context-menu-in var(--motion-context-menu);
+}
+
+.tab-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast), transform var(--motion-fast);
+}
+
+.tab-context-menu__item:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.tab-context-menu__item:active {
+  transform: scale(0.98);
+  background: var(--color-bg-active);
+}
+
+.tab-context-menu__item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ==========================================================================
+   SHORTCUTS MODAL
+   ========================================================================== */
+.shortcuts-modal-body {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.shortcuts-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.shortcuts-column-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-primary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+}
+
+.shortcuts-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 var(--space-1);
+}
+
+.shortcuts-table th {
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-muted);
+  font-weight: var(--font-weight-medium);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.shortcuts-table td {
+  padding: var(--space-2);
+  vertical-align: middle;
+}
+
+.shortcuts-row {
+  border-radius: var(--radius-md);
+  transition: background var(--motion-fast);
+}
+
+.shortcuts-row:hover {
+  background: var(--glass-bg-hover);
+}
+
+.shortcuts-td-keys {
+  width: 45%;
+  white-space: nowrap;
+}
+
+.shortcuts-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.shortcuts-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-primary);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.shortcuts-td-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-fg-secondary);
+}
+
+/* ==========================================================================
+   DOWNLOAD INDICATOR (Pastel Green Glass Pill)
+   ========================================================================== */
+.download-pill {
+  position: fixed;
+  top: calc(var(--tab-bar-height) + var(--space-2));
+  right: 120px;
+  height: 32px;
+  max-width: min(360px, 40vw);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: rgba(31, 45, 21, 0.85);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border: 1px solid var(--color-moss-400);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-md), 0 0 12px var(--color-accent-glow);
+  color: var(--color-moss-150);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  pointer-events: auto;
+  user-select: none;
+  animation: download-pill-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.download-pill__text {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-pill--hiding {
+  animation: download-pill-out 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes download-pill-in {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.9);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes download-pill-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+  }
+}
+
+:root[data-theme="light"] .download-pill {
+  background: rgba(235, 252, 225, 0.85);
+  border-color: var(--color-moss-500);
+  color: var(--color-moss-900);
+  box-shadow: var(--shadow-lg), 0 0 16px rgba(110, 181, 79, 0.3);
+}

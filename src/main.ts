@@ -1,6 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
 import { addBookmark, isBookmarked, removeBookmark, subscribeBookmarks, type Bookmark } from "./bookmarks";
+import { createTabContextMenu } from "./context-menu";
 import { el, hostnameOf } from "./dom";
+import { initDownloads } from "./downloads";
 import { NavHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
@@ -8,6 +10,7 @@ import { resolveOmnibarInput } from "./omnibar";
 import { PANEL_TOGGLE_ATTR, type Panel } from "./panel";
 import { getSettings, searchUrl } from "./settings";
 import { createSettingsPanel } from "./settings-panel";
+import { createShortcutsModal } from "./shortcuts-modal";
 import { isWebUrl } from "./storage";
 import {
   NEW_TAB_TITLE,
@@ -44,6 +47,7 @@ const SHORTCUTS = [
   ["Ctrl+L", "omnibar"],
   ["Ctrl+H", "histórico"],
   ["Ctrl+,", "configurações"],
+  ["Ctrl+/", "atalhos"],
 ];
 
 const histories = new Map<string, NavHistory>();
@@ -193,12 +197,54 @@ window.addEventListener("DOMContentLoaded", () => {
   }, syncWebviewVisibility);
   const settings = createSettingsPanel(syncWebviewVisibility);
   const settingsPanel = settings.panel;
-  const panels: Panel[] = [historyPanel, settingsPanel];
-  root.append(historyPanel.element, settings.overlay, settingsPanel.element);
+  const shortcuts = createShortcutsModal(syncWebviewVisibility);
+  const shortcutsPanel = shortcuts.panel;
+  const panels: Panel[] = [historyPanel, settingsPanel, shortcutsPanel];
+
+  const tabContextMenu = createTabContextMenu(
+    {
+      onReload(tabId) {
+        const tab = getTab(tabId);
+        if (!tab?.url) return;
+        historyOf(tab.id).expect("reload");
+        updateTab(tab.id, { isLoading: true });
+        webview.reload(tab.id).catch(() => updateTab(tab.id, { isLoading: false }));
+      },
+      onDuplicate(tabId) {
+        const tab = getTab(tabId);
+        if (tab) openTab(tab.url || undefined);
+      },
+      onClose(tabId) {
+        closeTabAndWebview(tabId);
+      },
+      onCloseOthers(tabId) {
+        const otherTabs = getTabs().filter((t) => t.id !== tabId);
+        for (const t of otherTabs) {
+          closeTabAndWebview(t.id);
+        }
+        selectTab(tabId);
+      },
+    },
+    syncWebviewVisibility,
+  );
+
+  root.append(
+    historyPanel.element,
+    settings.overlay,
+    settingsPanel.element,
+    shortcuts.overlay,
+    shortcutsPanel.element,
+    tabContextMenu.element,
+  );
+
+  initDownloads(root);
 
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {
-    const target = panels.some((panel) => panel.isOpen()) ? null : (getActiveTab()?.id ?? null);
+    const target =
+      panels.some((panel) => panel.isOpen()) || tabContextMenu.isOpen()
+        ? null
+        : (getActiveTab()?.id ?? null);
     if (target === visibleWebviewId) return;
     visibleWebviewId = target;
     webview.show(target);
@@ -206,6 +252,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   function closePanels() {
     for (const panel of panels) panel.close();
+    tabContextMenu.close();
   }
 
   function togglePanel(panel: Panel) {
@@ -361,6 +408,17 @@ window.addEventListener("DOMContentLoaded", () => {
     if (tabId) closeTabAndWebview(tabId);
   });
 
+  ui.tabList.addEventListener("contextmenu", (event) => {
+    const target = event.target as Element;
+    const tabNode = target.closest<HTMLElement>(".tab");
+    if (!tabNode) return;
+    const tabId = tabNode.dataset.tabId;
+    if (!tabId) return;
+    event.preventDefault();
+    closePanels();
+    tabContextMenu.open(tabId, event.clientX, event.clientY);
+  });
+
   ui.tabList.addEventListener("keydown", (event) => {
     const tabId = (event.target as Element).closest<HTMLElement>(".tab")?.dataset.tabId;
     if (tabId && (event.key === "Enter" || event.key === " ")) {
@@ -408,10 +466,49 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   window.addEventListener("keydown", (event) => {
+    const isTextInputFocused =
+      document.activeElement instanceof HTMLInputElement ||
+      document.activeElement instanceof HTMLTextAreaElement;
+
+    if (
+      event.key === "?" &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !isTextInputFocused
+    ) {
+      event.preventDefault();
+      togglePanel(shortcutsPanel);
+      return;
+    }
+
+    if (event.key === "F5") {
+      event.preventDefault();
+      if (!panels.some((p) => p.isOpen())) {
+        runNavAction("reload");
+      }
+      return;
+    }
+
+    if (event.altKey && !event.ctrlKey && !event.metaKey) {
+      if (panels.some((p) => p.isOpen())) return;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        runNavAction("back");
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        runNavAction("forward");
+        return;
+      }
+    }
+
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
     if (key === "h") togglePanel(historyPanel);
     else if (key === ",") togglePanel(settingsPanel);
+    else if (key === "/" || event.code === "Slash") togglePanel(shortcutsPanel);
     else if (key === "t" || key === "w" || key === "tab" || key === "l") {
       closePanels();
       const active = getActiveTab();

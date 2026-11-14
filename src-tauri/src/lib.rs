@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
-use tauri::webview::{NewWindowResponse, PageLoadEvent, WebviewBuilder};
+use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, WebviewBuilder};
 use tauri::{
     AppHandle, Emitter, EventTarget, LogicalPosition, LogicalSize, Manager, Runtime, State, Url,
     Webview, WebviewUrl,
@@ -56,6 +56,15 @@ struct TabOpenPayload {
     url: String,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DownloadPayload {
+    url: String,
+    filename: String,
+    progress: Option<f64>,
+    state: &'static str,
+}
+
 fn tab_label(tab_id: &str) -> String {
     format!("{TAB_LABEL_PREFIX}{tab_id}")
 }
@@ -105,8 +114,48 @@ fn create_tab_webview<R: Runtime>(
     let load_app = app.clone();
     let title_app = app.clone();
     let open_app = app.clone();
+    let download_app = app.clone();
 
     let builder = WebviewBuilder::new(tab_label(tab_id), WebviewUrl::External(url))
+        .on_download(move |_webview, event| {
+            match event {
+                DownloadEvent::Requested { url, destination } => {
+                    let filename = destination
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "arquivo.ext".to_string());
+                    emit_to_chrome(
+                        &download_app,
+                        "download-started",
+                        DownloadPayload {
+                            url: url.to_string(),
+                            filename,
+                            progress: Some(0.0),
+                            state: "started",
+                        },
+                    );
+                    true
+                }
+                DownloadEvent::Finished { url, path, success } => {
+                    let filename = path
+                        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                        .unwrap_or_else(|| "arquivo.ext".to_string());
+                    let state = if success { "completed" } else { "failed" };
+                    emit_to_chrome(
+                        &download_app,
+                        "download-finished",
+                        DownloadPayload {
+                            url: url.to_string(),
+                            filename,
+                            progress: Some(100.0),
+                            state,
+                        },
+                    );
+                    true
+                }
+                _ => true,
+            }
+        })
         .on_page_load(move |webview, payload| {
             let Some(tab_id) = tab_id_of(&webview) else { return };
             let state = match payload.event() {

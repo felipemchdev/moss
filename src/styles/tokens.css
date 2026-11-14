@@ -228,6 +228,29 @@
   --command-palette-width: 680px;
   --command-palette-height: 440px;
 
+  /* --- Split View Tokens --- */
+  --split-divider-width:       8px;
+  --split-divider-width-hover: 8px;
+  --split-divider-width-drag:  8px;
+  --split-divider-color:       var(--glass-border);
+  --split-divider-color-hover: var(--color-accent-primary);
+  --split-divider-color-drag:  var(--color-accent-primary);
+  --split-handle-width:        28px;
+  --split-handle-height:       56px;
+  --split-handle-size:         36px;
+  --split-handle-radius:       var(--radius-pill);
+  --split-handle-bg:           var(--glass-bg);
+  --split-handle-bg-hover:     var(--glass-bg-hover);
+  --split-handle-border:       var(--glass-border);
+  --split-handle-icon-size:    16px;
+  --split-min-pane-size:       280px;
+  --split-animation-duration:  var(--duration-smooth);
+  --split-animation-easing:    var(--ease-spring);
+  --split-pane-gap:            0;
+  --split-pane-radius:         0;
+  --split-pane-active-ring:    0 0 0 2px var(--color-accent-glow), 0 0 0 4px var(--color-bg-primary);
+  --split-pane-active-shadow:  inset 0 0 0 1px var(--color-accent-primary), var(--glass-shadow-strong);
+
   /* --- Z-Index Scale --- */
   --z-base:              0;
   --z-dropdown:          100;
@@ -287,6 +310,14 @@
   --motion-palette:       var(--duration-smooth) var(--ease-spring-gentle);
   --motion-toast:         var(--duration-normal) var(--ease-spring);
   --motion-context-menu:  var(--duration-fast) var(--ease-spring-gentle);
+
+  /* Split View motions */
+  --motion-split-divider-hover:  var(--duration-fast) var(--ease-out);
+  --motion-split-divider-drag:   var(--duration-instant) var(--ease-linear);
+  --motion-split-handle:         var(--duration-fast) var(--ease-spring);
+  --motion-split-pane-activate:  var(--duration-normal) var(--ease-apple);
+  --motion-split-toggle:         var(--duration-smooth) var(--ease-spring-gentle);
+  --motion-split-resize:         var(--duration-smooth) var(--ease-smooth-out);
 
   /* --- Breakpoints --- */
   --bp-sm:  640px;

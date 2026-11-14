@@ -12,6 +12,22 @@ import { getSettings, searchUrl } from "./settings";
 import { createSettingsPanel } from "./settings-panel";
 import { createShortcutsModal } from "./shortcuts-modal";
 import { createPrivacyShield } from "./privacy-shield";
+import {
+  closeSplit,
+  computeSplitViewports,
+  createSplitDivider,
+  getActiveSplitTabId,
+  getSecondaryTabId,
+  getSplitState,
+  handleTabClosedInSplit,
+  isSplitActive,
+  openSplit,
+  setFocusedPane,
+  setSplitRatio,
+  subscribeSplit,
+  swapPanes,
+  SPLIT_GAP,
+} from "./split-view";
 import { isWebUrl } from "./storage";
 import {
   NEW_TAB_TITLE,
@@ -46,6 +62,8 @@ const NAV_BUTTONS: { action: NavAction; label: string; icon: IconName }[] = [
 const SHORTCUTS = [
   ["Ctrl+T", "nova aba"],
   ["Ctrl+W", "fechar aba"],
+  ["Ctrl+\\", "tela dividida"],
+  ["Ctrl+Shift+S", "tela dividida"],
   ["Ctrl+Tab", "próxima aba"],
   ["Ctrl+L", "omnibar"],
   ["Ctrl+H", "histórico"],
@@ -125,10 +143,21 @@ function buildChrome(root: HTMLElement) {
     { class: "omnibar-star-btn", type: "button", "aria-pressed": "false" },
     [icon("star")],
   );
+  const omnibarSplitBtn = el(
+    "button",
+    {
+      class: "omnibar-split-btn",
+      type: "button",
+      "aria-label": "Alternar tela dividida (Ctrl+\\)",
+      "aria-pressed": "false",
+      title: "Alternar tela dividida (Ctrl+\\)",
+    },
+    [icon("split")],
+  );
   const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
     el("span", { class: "omnibar-icon" }, [icon("search")]),
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
-    el("div", { class: "omnibar-actions" }, [bookmarkToggle]),
+    el("div", { class: "omnibar-actions" }, [omnibarSplitBtn, bookmarkToggle]),
   ]);
 
   // 5. Pinned tabs section
@@ -168,6 +197,17 @@ function buildChrome(root: HTMLElement) {
 
   // 8. Sidebar footer
   const toggleAttrs = { type: "button", [PANEL_TOGGLE_ATTR]: "" };
+  const splitButton = el(
+    "button",
+    {
+      class: "footer-btn footer-btn--split nav-btn",
+      type: "button",
+      "aria-label": "Alternar tela dividida (Ctrl+\\)",
+      "aria-pressed": "false",
+      title: "Alternar tela dividida (Ctrl+\\)",
+    },
+    [icon("split")],
+  );
   const privacyButton = el(
     "button",
     {
@@ -209,6 +249,7 @@ function buildChrome(root: HTMLElement) {
     [icon("download")],
   );
   const sidebarFooter = el("footer", { class: "sidebar-footer" }, [
+    splitButton,
     privacyButton,
     historyButton,
     settingsButton,
@@ -251,6 +292,8 @@ function buildChrome(root: HTMLElement) {
     omnibar,
     omnibarInput,
     bookmarkToggle,
+    omnibarSplitBtn,
+    splitButton,
     privacyButton,
     historyButton,
     settingsButton,
@@ -299,8 +342,19 @@ window.addEventListener("DOMContentLoaded", () => {
   let shownUrl = "";
   let visibleWebviewId: string | null | undefined;
 
+  function getTargetTab(): Tab | undefined {
+    if (isSplitActive()) {
+      const splitTabId = getActiveSplitTabId();
+      if (splitTabId) {
+        const tab = getTab(splitTabId);
+        if (tab) return tab;
+      }
+    }
+    return getActiveTab();
+  }
+
   const historyPanel = createHistoryPanel((url, inNewTab) => {
-    const tab = getActiveTab();
+    const tab = getTargetTab();
     if (tab && !inNewTab) navigate(tab.id, url);
     else openUrl(url);
   }, syncWebviewVisibility);
@@ -339,6 +393,15 @@ window.addEventListener("DOMContentLoaded", () => {
       isPinned(tabId) {
         return getTab(tabId)?.isPinned ?? false;
       },
+      onToggleSplit(tabId) {
+        handleToggleSplitForTab(tabId);
+      },
+      isSplitActive() {
+        return isSplitActive();
+      },
+      isSplitTab(tabId) {
+        return getSecondaryTabId() === tabId;
+      },
     },
     syncWebviewVisibility,
   );
@@ -365,7 +428,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const wasOpen = privacyShield.isOpen();
     closePanels();
     if (!wasOpen) {
-      const activeTab = getActiveTab();
+      const activeTab = getTargetTab();
       if (activeTab) {
         webview.syncTrackersBlocked(activeTab.id);
       }
@@ -379,13 +442,82 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Native webviews would cover the panels, so the active one is hidden while a panel is open.
   function syncWebviewVisibility() {
-    const target =
-      panels.some((panel) => panel.isOpen()) || tabContextMenu.isOpen() || privacyShield.isOpen()
-        ? null
-        : (getActiveTab()?.id ?? null);
+    const isBlocked =
+      panels.some((panel) => panel.isOpen()) ||
+      tabContextMenu.isOpen() ||
+      privacyShield.isOpen();
+
+    if (isBlocked) {
+      if (visibleWebviewId !== null) {
+        visibleWebviewId = null;
+        webview.showTabs([]);
+      }
+      return;
+    }
+
+    const splitState = getSplitState();
+    if (splitState.active && splitState.primaryTabId && splitState.secondaryTabId) {
+      const primary = splitState.primaryTabId;
+      const secondary = splitState.secondaryTabId;
+      const splitKey = `${primary}+${secondary}`;
+      if (visibleWebviewId !== splitKey) {
+        visibleWebviewId = splitKey;
+        webview.showTabs([primary, secondary]);
+      }
+      return;
+    }
+
+    const target = getActiveTab()?.id ?? null;
     if (target === visibleWebviewId) return;
     visibleWebviewId = target;
     webview.show(target);
+  }
+
+  function handleToggleSplitForTab(tabId: string) {
+    const active = getActiveTab();
+    if (!active) return;
+    if (isSplitActive()) {
+      if (getSecondaryTabId() === tabId || active.id === tabId) {
+        closeSplit();
+      } else {
+        openSplit(active.id, tabId);
+      }
+    } else {
+      if (active.id === tabId) {
+        const other = getTabs().find((t) => t.id !== tabId);
+        if (other) {
+          openSplit(tabId, other.id);
+        } else {
+          const newTab = createTab(getSettings().homepage);
+          if (newTab.url) navigate(newTab.id, newTab.url);
+          openSplit(tabId, newTab.id);
+        }
+      } else {
+        openSplit(active.id, tabId);
+      }
+    }
+    syncViewport();
+    syncWebviewVisibility();
+  }
+
+  function toggleSplitView() {
+    const active = getActiveTab();
+    if (!active) return;
+    if (isSplitActive()) {
+      closeSplit();
+    } else {
+      const tabs = getTabs();
+      const other = tabs.find((t) => t.id !== active.id);
+      if (other) {
+        openSplit(active.id, other.id);
+      } else {
+        const newTab = createTab(getSettings().homepage);
+        if (newTab.url) navigate(newTab.id, newTab.url);
+        openSplit(active.id, newTab.id);
+      }
+    }
+    syncViewport();
+    syncWebviewVisibility();
   }
 
   function closePanels() {
@@ -429,10 +561,13 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function closeTabAndWebview(tabId: string) {
+    handleTabClosedInSplit(tabId);
     closeTab(tabId);
     histories.delete(tabId);
     pageTitles.delete(tabId);
     webview.close(tabId);
+    syncViewport();
+    syncWebviewVisibility();
     if (getTabs().length === 0) openTab();
   }
 
@@ -444,7 +579,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function runNavAction(action: NavAction) {
-    const tab = getActiveTab();
+    const tab = getTargetTab();
     if (!tab?.url) return;
     historyOf(tab.id).expect(action);
     webview[action](tab.id);
@@ -551,7 +686,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderBookmarkToggle() {
-    const url = getActiveTab()?.url ?? "";
+    const url = getTargetTab()?.url ?? "";
     const bookmarkable = isWebUrl(url);
     const active = bookmarkable && isBookmarked(url);
     const label = active ? "Remover dos favoritos" : "Adicionar aos favoritos";
@@ -565,29 +700,53 @@ window.addEventListener("DOMContentLoaded", () => {
   function render(tabs: readonly Tab[]) {
     renderTabBar(tabs);
 
-    const active = tabs.find((tab) => tab.active);
-    ui.navButtons.back.disabled = !active?.canGoBack;
-    ui.navButtons.forward.disabled = !active?.canGoForward;
-    ui.navButtons.reload.disabled = !active?.url;
-    ui.emptyState.style.display = active?.url ? "none" : "";
-    ui.loadingBar.style.display = active?.isLoading ? "" : "none";
-    document.title = active?.url ? `${active.title} — Moss` : "Moss";
+    const target = getTargetTab();
+    ui.navButtons.back.disabled = !target?.canGoBack;
+    ui.navButtons.forward.disabled = !target?.canGoForward;
+    ui.navButtons.reload.disabled = !target?.url;
+    ui.emptyState.style.display = target?.url ? "none" : "";
+    ui.loadingBar.style.display = target?.isLoading ? "" : "none";
+    document.title = target?.url ? `${target.title} — Moss` : "Moss";
     renderBookmarkToggle();
     syncWebviewVisibility();
 
-    const activeId = active?.id ?? null;
-    const activeUrl = active?.url ?? "";
-    if (activeId !== shownTabId) {
-      shownTabId = activeId;
-      ui.omnibarInput.value = activeUrl;
-      if (!activeUrl) focusOmnibar();
-      if (activeId && isWebUrl(activeUrl)) {
-        webview.syncTrackersBlocked(activeId);
+    const targetId = target?.id ?? null;
+    const targetUrl = target?.url ?? "";
+    if (targetId !== shownTabId) {
+      shownTabId = targetId;
+      ui.omnibarInput.value = targetUrl;
+      if (!targetUrl) focusOmnibar();
+      if (targetId && isWebUrl(targetUrl)) {
+        webview.syncTrackersBlocked(targetId);
       }
-    } else if (activeUrl !== shownUrl && document.activeElement !== ui.omnibarInput) {
-      ui.omnibarInput.value = activeUrl;
+    } else if (targetUrl !== shownUrl && document.activeElement !== ui.omnibarInput) {
+      ui.omnibarInput.value = targetUrl;
     }
-    shownUrl = activeUrl;
+    shownUrl = targetUrl;
+  }
+
+  function handleTabClick(tabId: string) {
+    if (isSplitActive()) {
+      const splitState = getSplitState();
+      if (tabId === splitState.primaryTabId) {
+        setFocusedPane("primary");
+        selectTab(tabId);
+      } else if (tabId === splitState.secondaryTabId) {
+        setFocusedPane("secondary");
+        selectTab(tabId);
+      } else {
+        if (splitState.focusedPane === "primary") {
+          openSplit(tabId, splitState.secondaryTabId!, "primary");
+        } else {
+          openSplit(splitState.primaryTabId!, tabId, "secondary");
+        }
+        selectTab(tabId);
+      }
+      syncViewport();
+      syncWebviewVisibility();
+    } else {
+      selectTab(tabId);
+    }
   }
 
   // Tab list (unpinned tabs) event handling
@@ -595,8 +754,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = event.target as Element;
     const tabId = target.closest<HTMLElement>(".tab")?.dataset.tabId;
     if (!tabId) return;
-    if (target.closest(".tab-close")) closeTabAndWebview(tabId);
-    else selectTab(tabId);
+    if (target.closest(".tab-close")) {
+      closeTabAndWebview(tabId);
+    } else {
+      handleTabClick(tabId);
+    }
   });
 
   ui.tabList.addEventListener("auxclick", (event) => {
@@ -620,7 +782,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const tabId = (event.target as Element).closest<HTMLElement>(".tab")?.dataset.tabId;
     if (tabId && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
-      selectTab(tabId);
+      handleTabClick(tabId);
     }
   });
 
@@ -629,8 +791,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = event.target as Element;
     const tabId = target.closest<HTMLElement>(".pinned-tab")?.dataset.tabId;
     if (!tabId) return;
-    if (target.closest(".pinned-tab-close")) closeTabAndWebview(tabId);
-    else selectTab(tabId);
+    if (target.closest(".pinned-tab-close")) {
+      closeTabAndWebview(tabId);
+    } else {
+      handleTabClick(tabId);
+    }
   });
 
   ui.pinnedTabsGrid.addEventListener("auxclick", (event) => {
@@ -654,7 +819,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const tabId = (event.target as Element).closest<HTMLElement>(".pinned-tab")?.dataset.tabId;
     if (tabId && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
-      selectTab(tabId);
+      handleTabClick(tabId);
     }
   });
 
@@ -664,11 +829,13 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.navButtons[action].addEventListener("click", () => runNavAction(action));
   }
 
+  ui.splitButton.addEventListener("click", () => toggleSplitView());
+  ui.omnibarSplitBtn.addEventListener("click", () => toggleSplitView());
   ui.historyButton.addEventListener("click", () => togglePanel(historyPanel));
   ui.settingsButton.addEventListener("click", () => togglePanel(settingsPanel));
 
   ui.bookmarkToggle.addEventListener("click", () => {
-    const tab = getActiveTab();
+    const tab = getTargetTab();
     if (!tab || !isWebUrl(tab.url)) return;
     if (isBookmarked(tab.url)) removeBookmark(tab.url);
     else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
@@ -687,14 +854,14 @@ window.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     const url = resolveOmnibarInput(ui.omnibarInput.value, searchUrl());
     if (!url) return;
-    const tab = getActiveTab();
+    const tab = getTargetTab();
     if (!tab) return openTab(url);
     navigate(tab.id, url);
   });
 
   ui.omnibarInput.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    ui.omnibarInput.value = getActiveTab()?.url ?? "";
+    ui.omnibarInput.value = getTargetTab()?.url ?? "";
     ui.omnibarInput.blur();
   });
 
@@ -737,16 +904,38 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.shiftKey &&
+      (event.key === "ArrowLeft" || event.key === "ArrowRight")
+    ) {
+      if (isSplitActive()) {
+        event.preventDefault();
+        const splitState = getSplitState();
+        if (event.key === "ArrowLeft") {
+          setFocusedPane("primary");
+          if (splitState.primaryTabId) selectTab(splitState.primaryTabId);
+        } else {
+          setFocusedPane("secondary");
+          if (splitState.secondaryTabId) selectTab(splitState.secondaryTabId);
+        }
+        return;
+      }
+    }
+
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
     if (key === "h") togglePanel(historyPanel);
     else if (key === ",") togglePanel(settingsPanel);
     else if (key === "/" || event.code === "Slash") togglePanel(shortcutsPanel);
+    else if (key === "\\" || (key === "s" && event.shiftKey)) {
+      toggleSplitView();
+    }
     else if (key === "t" || key === "w" || key === "tab" || key === "l") {
       closePanels();
-      const active = getActiveTab();
+      const target = getTargetTab();
       if (key === "t") openTab();
-      else if (key === "w" && active) closeTabAndWebview(active.id);
+      else if (key === "w" && target) closeTabAndWebview(target.id);
       else if (key === "tab") cycleTabs(event.shiftKey ? -1 : 1);
       else if (key === "l") focusOmnibar();
     } else return;
@@ -785,12 +974,63 @@ window.addEventListener("DOMContentLoaded", () => {
 
   listen<{ url: string }>("tab://open", ({ payload }) => openTab(payload.url));
 
+  const splitDivider = createSplitDivider({
+    onResize: (ratio) => {
+      setSplitRatio(ratio);
+    },
+    onSwap: () => {
+      swapPanes();
+    },
+    onClose: () => {
+      closeSplit();
+    },
+  });
+  splitDivider.style.display = "none";
+  ui.webviewContainer.append(splitDivider);
+
   const syncViewport = () => {
     const rect = ui.webviewContainer.getBoundingClientRect();
+    const splitState = getSplitState();
+    if (splitState.active && splitState.primaryTabId && splitState.secondaryTabId) {
+      const primary = splitState.primaryTabId;
+      const secondary = splitState.secondaryTabId;
+      const ratio = splitState.ratio;
+      const gap = SPLIT_GAP;
+      const viewports = computeSplitViewports(rect, primary, secondary, ratio, gap);
+      webview.setTabViewports(viewports);
+
+      const availableWidth = Math.max(1, rect.width - gap);
+      const leftWidth = Math.max(1, Math.round(availableWidth * Math.min(0.8, Math.max(0.2, ratio))));
+
+      splitDivider.style.display = "";
+      splitDivider.style.position = "absolute";
+      splitDivider.style.left = `${leftWidth}px`;
+      splitDivider.style.width = `${gap}px`;
+      splitDivider.style.top = "0";
+      splitDivider.style.bottom = "0";
+      return;
+    }
+    splitDivider.style.display = "none";
     webview.setViewport({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
   };
   new ResizeObserver(syncViewport).observe(ui.webviewContainer);
   syncViewport();
+
+  subscribeSplit((splitState) => {
+    const active = splitState.active;
+    ui.splitButton.classList.toggle("footer-btn--split--active", active);
+    ui.splitButton.setAttribute("aria-pressed", String(active));
+    ui.omnibarSplitBtn.classList.toggle("omnibar-split-btn--active", active);
+    ui.omnibarSplitBtn.setAttribute("aria-pressed", String(active));
+    document.getElementById("app")?.classList.toggle("split-view-active", active);
+    syncViewport();
+    syncWebviewVisibility();
+    const target = getTargetTab();
+    if (target) {
+      ui.omnibarInput.value = target.url;
+      renderBookmarkToggle();
+    }
+  });
 
   subscribe(render);
   subscribeBookmarks((bookmarks) => {

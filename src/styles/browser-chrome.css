@@ -15,7 +15,7 @@
   --sidebar-section-gap: 8px;
 
   /* Viewport floating card */
-  --viewport-radius: 0;
+  --viewport-radius: 12px;
   --viewport-gap: 12px;
   --viewport-gap-collapsed: 12px;
 
@@ -390,6 +390,62 @@
 
 .omnibar-star-btn[aria-pressed="true"] svg {
   fill: var(--color-warning);
+}
+
+/* Split toggle in omnibar */
+.omnibar-split-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  border: none;
+  color: var(--color-fg-tertiary);
+  cursor: pointer;
+  transition:
+    color var(--motion-split-toggle),
+    background var(--motion-split-toggle),
+    transform var(--motion-split-toggle);
+}
+
+.omnibar-split-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-accent-primary);
+  transform: scale(1.08);
+}
+
+.omnibar-split-btn:active {
+  transform: scale(0.95);
+}
+
+.omnibar-split-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.omnibar-split-btn[aria-pressed="true"] {
+  color: var(--color-accent-primary);
+  background: var(--color-accent-glow);
+}
+
+.omnibar-split-btn[aria-pressed="true"]:hover {
+  background: var(--color-accent-glow);
+  color: var(--color-accent-secondary);
+}
+
+.omnibar-split-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  transition: transform var(--motion-split-toggle);
+}
+
+.omnibar-split-btn:hover svg {
+  transform: rotate(90deg);
 }
 
 /* ==========================================================================
@@ -1052,6 +1108,26 @@
   color: var(--color-fg-primary);
 }
 
+/* Split toggle in footer */
+.footer-btn--split {
+  color: var(--color-fg-tertiary);
+}
+
+.footer-btn--split:hover {
+  background: var(--color-accent-glow);
+  color: var(--color-accent-primary);
+}
+
+.footer-btn--split--active {
+  color: var(--color-accent-primary);
+  background: var(--color-accent-glow);
+}
+
+.footer-btn--split--active:hover {
+  background: var(--color-accent-glow);
+  color: var(--color-accent-secondary);
+}
+
 #app.sidebar-collapsed .footer-btn {
   width: 100%;
 }
@@ -1247,6 +1323,429 @@
   40% { transform: translateX(0) scaleX(0.6); }
   60% { transform: translateX(0) scaleX(0.6); }
   100% { transform: translateX(100%) scaleX(0); }
+}
+
+/* ==========================================================================
+   SPLIT VIEW — Side-by-side Navigation (Zen Browser Style)
+   ========================================================================== */
+
+/* Viewport split container */
+.viewport-split {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.viewport-split--horizontal {
+  flex-direction: row;
+}
+
+.viewport-split--vertical {
+  flex-direction: column;
+}
+
+/* Individual split pane */
+.split-pane {
+  position: relative;
+  flex: 1;
+  min-width: var(--split-min-pane-size);
+  min-height: var(--split-min-pane-size);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-primary);
+  transition:
+    flex var(--motion-split-resize),
+    min-width var(--motion-split-resize),
+    min-height var(--motion-split-resize),
+    box-shadow var(--motion-split-pane-activate),
+    border var(--motion-split-pane-activate);
+  overflow: hidden;
+}
+
+/* Active pane — focus ring + inset glow */
+.split-pane--active {
+  box-shadow: var(--split-pane-active-shadow);
+  z-index: 5;
+}
+
+.split-pane--active::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: var(--split-pane-active-ring);
+  pointer-events: none;
+  animation: split-pane-focus-pulse 2.5s var(--ease-smooth-out) infinite;
+  z-index: -1;
+}
+
+@keyframes split-pane-focus-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Pane header (optional, for tab-like context) */
+.split-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 var(--space-3);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--motion-fast);
+}
+
+.split-pane:hover .split-pane-header,
+.split-pane--active .split-pane-header {
+  opacity: 1;
+}
+
+.split-pane-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fg-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.split-pane--active .split-pane-title {
+  color: var(--color-accent-primary);
+}
+
+.split-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.split-pane-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-fg-muted);
+  transition: all var(--motion-fast);
+}
+
+.split-pane-action:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.split-pane-action:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.split-pane-action svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Split divider */
+.split-divider {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--split-divider-width);
+  height: 100%;
+  background: var(--split-divider-color);
+  cursor: col-resize;
+  transition:
+    width var(--motion-split-divider-hover),
+    background-color var(--motion-split-divider-hover),
+    cursor var(--motion-fast);
+  z-index: 10;
+}
+
+.viewport-split--vertical .split-divider {
+  width: 100%;
+  height: var(--split-divider-width);
+  cursor: row-resize;
+}
+
+/* Divider hover state */
+.split-divider:hover {
+  width: var(--split-divider-width-hover);
+  background: var(--split-divider-color-hover);
+  cursor: col-resize;
+}
+
+.viewport-split--vertical .split-divider:hover {
+  height: var(--split-divider-width-hover);
+  cursor: row-resize;
+}
+
+/* Divider dragging state */
+.split-divider--dragging {
+  width: var(--split-divider-width-drag);
+  background: var(--split-divider-color-drag);
+  cursor: col-resize;
+  user-select: none;
+}
+
+.viewport-split--vertical .split-divider--dragging {
+  height: var(--split-divider-width-drag);
+  cursor: row-resize;
+}
+
+/* Divider handle (center button with close/swap) */
+.split-divider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: var(--split-handle-width, 28px);
+  height: var(--split-handle-height, 56px);
+  border-radius: var(--split-handle-radius);
+  background: var(--split-handle-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--split-handle-border);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-split-handle),
+    transform var(--motion-split-handle),
+    background var(--motion-split-handle),
+    border-color var(--motion-split-handle),
+    box-shadow var(--motion-split-handle);
+  z-index: 11;
+}
+
+.viewport-split--vertical .split-divider-handle {
+  flex-direction: row;
+  width: var(--split-handle-height, 56px);
+  height: var(--split-handle-width, 28px);
+}
+
+/* Show handle on divider hover, focus or drag */
+.split-divider:hover .split-divider-handle,
+.split-divider:focus-within .split-divider-handle,
+.split-divider--dragging .split-divider-handle {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.split-divider-handle:hover {
+  background: var(--split-handle-bg-hover);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.split-divider-handle:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* Handle buttons (close / swap) */
+.split-handle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-fg-tertiary);
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-spring);
+  flex-shrink: 0;
+}
+
+.split-handle-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+  transform: scale(1.1);
+}
+
+.split-handle-btn:active {
+  transform: scale(0.9);
+}
+
+.split-handle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.split-handle-btn svg {
+  width: var(--split-handle-icon-size);
+  height: var(--split-handle-icon-size);
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.split-handle-btn--close:hover {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.split-handle-btn--swap:hover {
+  background: var(--color-accent-glow);
+  color: var(--color-accent-primary);
+}
+
+/* Divider drag overlay (visual feedback during resize) */
+.split-drag-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: var(--z-glass-overlay);
+  opacity: 0;
+  transition: opacity var(--motion-fast);
+}
+
+.split-drag-overlay--active {
+  opacity: 1;
+}
+
+.split-drag-overlay::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--drag-position, 50%);
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-secondary));
+  box-shadow: 0 0 12px var(--color-accent-glow), 0 0 24px var(--color-accent-glow);
+  animation: split-drag-pulse 1s var(--ease-smooth) infinite;
+  pointer-events: none;
+}
+
+@keyframes split-drag-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Split toggle button (for footer/omnibar) */
+.split-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-fg-tertiary);
+  transition:
+    background var(--motion-split-toggle),
+    color var(--motion-split-toggle),
+    transform var(--motion-split-toggle);
+}
+
+.split-toggle-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-accent-primary);
+  transform: scale(1.08);
+}
+
+.split-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.split-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.split-toggle-btn--active {
+  color: var(--color-accent-primary);
+  background: var(--color-accent-glow);
+}
+
+.split-toggle-btn--active:hover {
+  background: var(--color-accent-glow);
+  color: var(--color-accent-secondary);
+}
+
+.split-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  transition: transform var(--motion-split-toggle);
+}
+
+.split-toggle-btn:hover svg {
+  transform: rotate(90deg);
+}
+
+/* Split mode indicator in omnibar/footer */
+.split-mode-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  color: var(--color-fg-tertiary);
+  transition: all var(--motion-fast);
+}
+
+.split-mode-indicator--active {
+  background: var(--color-accent-glow);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.split-mode-indicator svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Keyboard shortcut hint */
+.split-shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  color: var(--color-fg-muted);
+}
+
+.split-shortcut-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--space-1);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-tertiary);
 }
 
 /* ==========================================================================
@@ -2507,6 +3006,37 @@
   .pinned-tabs-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* Split view: stack panes vertically on smaller screens */
+  .viewport-split {
+    flex-direction: column;
+  }
+
+  .viewport-split--horizontal {
+    flex-direction: column;
+  }
+
+  .split-divider {
+    width: 100%;
+    height: var(--split-divider-width);
+    cursor: row-resize;
+  }
+
+  .split-divider:hover {
+    height: var(--split-divider-width-hover);
+    width: 100%;
+  }
+
+  .split-divider--dragging {
+    height: var(--split-divider-width-drag);
+    width: 100%;
+  }
+
+  .viewport-split--vertical .split-divider {
+    width: var(--split-divider-width);
+    height: 100%;
+    cursor: col-resize;
+  }
 }
 
 @media (max-width: 768px) {
@@ -2514,6 +3044,7 @@
     --sidebar-width: 220px;
     --sidebar-width-collapsed: 56px;
     --viewport-gap: 8px;
+    --viewport-radius: 0;
   }
 
   .pinned-tabs-grid {
@@ -2558,7 +3089,11 @@
   .tooltip,
   .toast-container,
   .progress-bar,
-  .viewport-loading {
+  .viewport-loading,
+  .split-divider,
+  .split-divider-handle,
+  .split-toggle-btn,
+  .split-mode-indicator {
     display: none !important;
   }
 
@@ -2594,23 +3129,41 @@
 /* ==========================================================================
    ACCESSIBILITY NOTES
    ========================================================================== */
-/*
-  Icon-only buttons require aria-label in HTML:
-  - .window-btn (close, minimize, maximize)
-  - .nav-btn (back, forward, reload)
-  - .omnibar-security (lock icon)
-  - .pinned-tab-close
-  - .tab-close
-  - .new-tab-btn
-  - .bookmarks-add-btn
-  - .footer-btn (settings, privacy, downloads)
-  - .sidebar-toggle (if implemented)
+  /*
+    Icon-only buttons require aria-label in HTML:
+    - .window-btn (close, minimize, maximize)
+    - .nav-btn (back, forward, reload)
+    - .omnibar-security (lock icon)
+    - .pinned-tab-close
+    - .tab-close
+    - .new-tab-btn
+    - .bookmarks-add-btn
+    - .footer-btn (settings, privacy, downloads)
+    - .sidebar-toggle (if implemented)
+    - .split-divider-handle (close, swap panes)
+    - .split-handle-btn (close, swap)
+    - .split-toggle-btn (toggle split view)
+    - .omnibar-split-btn (toggle split view)
 
-  Example:
-  <button class="window-btn window-btn--close" aria-label="Fechar janela">...</button>
-  <button class="nav-btn" aria-label="Voltar">...</button>
-  <button class="tab-close" aria-label="Fechar aba">...</button>
-*/
+    Split view specific ARIA:
+    - .split-pane: role="group" aria-label="Painel de navegação {1|2}"
+    - .split-divider: role="separator" aria-orientation="vertical|horizontal" aria-label="Redimensionar painéis"
+    - .split-toggle-btn: aria-pressed="true|false" aria-label="Alternar visualização dividida"
+    - .omnibar-split-btn: aria-pressed="true|false" aria-label="Alternar visualização dividida"
+
+    Keyboard navigation:
+    - Ctrl+Shift+S: Toggle split view
+    - Ctrl+Shift+Arrow: Move focus between panes
+    - Arrow keys on divider: Resize panes
+    - Escape on divider: Cancel resize
+
+    Example:
+    <button class="window-btn window-btn--close" aria-label="Fechar janela">...</button>
+    <button class="nav-btn" aria-label="Voltar">...</button>
+    <button class="tab-close" aria-label="Fechar aba">...</button>
+    <div class="split-divider" role="separator" aria-orientation="vertical" aria-label="Redimensionar painéis" tabindex="0">...</div>
+    <button class="split-toggle-btn" aria-pressed="false" aria-label="Alternar visualização dividida">...</button>
+  */
 
 /* ==========================================================================
    SCROLLBAR STYLING (Glass with fallback)

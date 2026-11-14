@@ -7,6 +7,9 @@ export interface TabContextMenuActions {
   onCloseOthers: (tabId: string) => void;
   onTogglePin: (tabId: string) => void;
   isPinned: (tabId: string) => boolean;
+  onToggleSplit?: (tabId: string) => void;
+  isSplitActive?: () => boolean;
+  isSplitTab?: (tabId: string) => boolean;
 }
 
 export interface TabContextMenu {
@@ -32,6 +35,7 @@ export function createTabContextMenu(
 
   // Pin button is dynamic — rebuilt on each open
   let pinButton: HTMLButtonElement | null = null;
+  let splitButton: HTMLButtonElement | null = null;
 
   const staticOptions: { label: string; action: (tabId: string) => void }[] = [
     { label: "Recarregar", action: actions.onReload },
@@ -74,6 +78,27 @@ export function createTabContextMenu(
     element.prepend(pinButton);
   }
 
+  // Split view toggle button
+  function buildSplitButton(tabId: string) {
+    if (splitButton) splitButton.remove();
+    if (!actions.onToggleSplit) return;
+    const isSplit = actions.isSplitActive?.() ?? false;
+    const isThisTabSplit = actions.isSplitTab?.(tabId) ?? false;
+    const label = isSplit && isThisTabSplit ? "Fechar tela dividida" : "Dividir tela com esta aba";
+    splitButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [label],
+    ) as HTMLButtonElement;
+    splitButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const targetTabId = activeTabId;
+      menu.close();
+      if (targetTabId) actions.onToggleSplit?.(targetTabId);
+    });
+    element.append(splitButton);
+  }
+
   function onPointerDown(event: PointerEvent) {
     const target = event.target;
     if (target instanceof Node && element.contains(target)) return;
@@ -107,6 +132,7 @@ export function createTabContextMenu(
       activeTabId = tabId;
       open = true;
       buildPinButton(tabId);
+      buildSplitButton(tabId);
 
       element.style.visibility = "hidden";
       element.style.display = "flex";

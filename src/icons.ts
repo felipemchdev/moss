@@ -16,6 +16,8 @@ const PATHS = {
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  split: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/>',
+  swap: '<path d="M7 16l-4-4 4-4M3 12h18M17 8l4 4-4 4"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

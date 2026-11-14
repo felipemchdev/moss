@@ -7,6 +7,11 @@ export interface Viewport {
   height: number;
 }
 
+export interface TabViewport {
+  tabId: string;
+  viewport: Viewport;
+}
+
 function call(command: string, args: Record<string, unknown> = {}) {
   const pending = invoke(command, args);
   pending.catch((error) => console.error(`[moss] ${command} failed:`, error));
@@ -20,6 +25,8 @@ export const webview = {
   back: (tabId: string) => call("go_back", { tabId }),
   forward: (tabId: string) => call("go_forward", { tabId }),
   show: (tabId: string | null) => call("show_tab", { tabId }),
+  showTabs: (tabIds: string[]) => call("show_tabs", { tabIds }),
+  setTabViewports: (viewports: TabViewport[]) => call("set_tab_viewports", { viewports }),
   close: (tabId: string) => call("close_tab", { tabId }),
   setPrivacyShield: (enabled: boolean) => call("set_privacy_shield", { enabled }),
   syncTrackersBlocked: (tabId: string) => call("sync_tab_trackers_blocked", { tabId }),

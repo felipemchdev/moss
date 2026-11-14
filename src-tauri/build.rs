@@ -1,10 +1,12 @@
 const COMMANDS: &[&str] = &[
     "set_viewport",
+    "set_tab_viewports",
     "navigate_to",
     "reload_page",
     "go_back",
     "go_forward",
     "show_tab",
+    "show_tabs",
     "close_tab",
     "minimize_window",
     "toggle_maximize_window",

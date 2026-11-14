@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
@@ -10,12 +11,19 @@ use tauri::{
 const CHROME_LABEL: &str = "main";
 const TAB_LABEL_PREFIX: &str = "tab-";
 
-#[derive(Clone, Copy, Default, Deserialize)]
+#[derive(Clone, Copy, Default, Deserialize, Serialize)]
 struct Viewport {
     x: f64,
     y: f64,
     width: f64,
     height: f64,
+}
+
+#[derive(Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TabViewport {
+    tab_id: String,
+    viewport: Viewport,
 }
 
 impl Viewport {
@@ -31,7 +39,8 @@ impl Viewport {
 
 struct BrowserState {
     viewport: Mutex<Viewport>,
-    shown_tab: Mutex<Option<String>>,
+    shown_tabs: Mutex<Vec<String>>,
+    tab_viewports: Mutex<HashMap<String, Viewport>>,
     shield_enabled: Mutex<bool>,
 }
 
@@ -39,7 +48,8 @@ impl Default for BrowserState {
     fn default() -> Self {
         Self {
             viewport: Mutex::new(Viewport::default()),
-            shown_tab: Mutex::new(None),
+            shown_tabs: Mutex::new(Vec::new()),
+            tab_viewports: Mutex::new(HashMap::new()),
             shield_enabled: Mutex::new(true),
         }
     }
@@ -350,11 +360,31 @@ fn set_viewport(
     viewport: Viewport,
 ) -> Result<(), String> {
     *state.viewport.lock().map_err(|err| err.to_string())? = viewport;
+    state.tab_viewports.lock().map_err(|err| err.to_string())?.clear();
     for webview in tab_webviews(&app) {
         webview
             .set_position(viewport.position())
             .and_then(|_| webview.set_size(viewport.size()))
             .map_err(|err| err.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_tab_viewports(
+    app: AppHandle,
+    state: State<'_, BrowserState>,
+    viewports: Vec<TabViewport>,
+) -> Result<(), String> {
+    let mut stored = state.tab_viewports.lock().map_err(|err| err.to_string())?;
+    for item in viewports {
+        stored.insert(item.tab_id.clone(), item.viewport);
+        if let Some(webview) = app.get_webview(&tab_label(&item.tab_id)) {
+            webview
+                .set_position(item.viewport.position())
+                .and_then(|_| webview.set_size(item.viewport.size()))
+                .map_err(|err| err.to_string())?;
+        }
     }
     Ok(())
 }
@@ -372,12 +402,17 @@ async fn navigate_to(
         return webview.navigate(url).map_err(|err| err.to_string());
     }
 
-    let viewport = *state.viewport.lock().map_err(|err| err.to_string())?;
+    let viewport = {
+        let viewports = state.tab_viewports.lock().map_err(|err| err.to_string())?;
+        viewports.get(&tab_id).copied().unwrap_or_else(|| {
+            state.viewport.lock().map(|v| *v).unwrap_or_default()
+        })
+    };
     let webview = create_tab_webview(&app, &tab_id, url, viewport)?;
 
     // The user may have switched tabs while the webview was being built.
-    let shown = state.shown_tab.lock().map_err(|err| err.to_string())?;
-    if shown.as_deref() != Some(tab_id.as_str()) {
+    let shown = state.shown_tabs.lock().map_err(|err| err.to_string())?;
+    if !shown.contains(&tab_id) {
         webview.hide().map_err(|err| err.to_string())?;
     }
     Ok(())
@@ -408,10 +443,21 @@ fn show_tab(
     state: State<'_, BrowserState>,
     tab_id: Option<String>,
 ) -> Result<(), String> {
-    let target = tab_id.as_deref().map(tab_label);
-    *state.shown_tab.lock().map_err(|err| err.to_string())? = tab_id;
+    let tab_ids = tab_id.into_iter().collect::<Vec<_>>();
+    show_tabs(app, state, tab_ids)
+}
+
+#[tauri::command]
+fn show_tabs(
+    app: AppHandle,
+    state: State<'_, BrowserState>,
+    tab_ids: Vec<String>,
+) -> Result<(), String> {
+    *state.shown_tabs.lock().map_err(|err| err.to_string())? = tab_ids.clone();
     for webview in tab_webviews(&app) {
-        let result = if Some(webview.label()) == target.as_deref() {
+        let label = webview.label();
+        let is_visible = tab_ids.iter().any(|id| label == tab_label(id));
+        let result = if is_visible {
             webview.show()
         } else {
             webview.hide()
@@ -422,7 +468,13 @@ fn show_tab(
 }
 
 #[tauri::command]
-fn close_tab(app: AppHandle, tab_id: String) -> Result<(), String> {
+fn close_tab(app: AppHandle, state: State<'_, BrowserState>, tab_id: String) -> Result<(), String> {
+    if let Ok(mut shown) = state.shown_tabs.lock() {
+        shown.retain(|id| id != &tab_id);
+    }
+    if let Ok(mut viewports) = state.tab_viewports.lock() {
+        viewports.remove(&tab_id);
+    }
     match app.get_webview(&tab_label(&tab_id)) {
         Some(webview) => webview.close().map_err(|err| err.to_string()),
         None => Ok(()),
@@ -527,11 +579,13 @@ pub fn run() {
         .manage(BrowserState::default())
         .invoke_handler(tauri::generate_handler![
             set_viewport,
+            set_tab_viewports,
             navigate_to,
             reload_page,
             go_back,
             go_forward,
             show_tab,
+            show_tabs,
             close_tab,
             minimize_window,
             toggle_maximize_window,

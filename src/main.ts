@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { addBookmark, isBookmarked, removeBookmark, subscribeBookmarks, type Bookmark } from "./bookmarks";
 import { createTabContextMenu } from "./context-menu";
 import { el, hostnameOf } from "./dom";
@@ -6,11 +7,12 @@ import { initDownloads } from "./downloads";
 import { createDownloadsPanel } from "./downloads-panel";
 import { createGlance } from "./glance";
 import { createBoostsPopover } from "./boosts-popover";
+import { createTranslatePopover } from "./translate-popover";
 import { applyBoostToTab, addDomainZapRule } from "./boosts";
 import { createMediaWidget } from "./media-widget";
 import { updateTabMediaState, clearTabMediaState, getMediaStateForTab, toggleMute } from "./media";
 import { createWelcomeWizard, isOnboardingCompleted } from "./welcome-wizard";
-import { NavHistory, clearHistory, recordVisit, updateVisitTitle, type NavIntent } from "./history";
+import { NavHistory, clearHistory, updateVisitTitle, addHistoryEntry, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
 import { icon, type IconName } from "./icons";
 import { resolveOmnibarInput } from "./omnibar";
@@ -18,7 +20,7 @@ import { PANEL_TOGGLE_ATTR, type Panel } from "./panel";
 import { getSettings, searchUrl } from "./settings";
 import { createSettingsPanel } from "./settings-panel";
 import { createShortcutsModal } from "./shortcuts-modal";
-import { createPrivacyShield } from "./privacy-shield";
+import { createPrivacyShield, isYouTubeUrl, injectYouTubeShield } from "./privacy-shield";
 import {
   closeSplit,
   computeSplitViewports,
@@ -265,15 +267,25 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-boosts-btn",
       type: "button",
-      "aria-label": "Zen Boosts & Element Zapper (Ctrl+Shift+Z)",
-      title: "Zen Boosts & Element Zapper (Ctrl+Shift+Z)",
+      "aria-label": "Boosts & Element Zapper (Ctrl+Shift+Z)",
+      title: "Boosts & Element Zapper (Ctrl+Shift+Z)",
     },
     [icon("sparkles")],
   );
-  const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search" }, [
+  const omnibarTranslateBtn = el(
+    "button",
+    {
+      class: "omnibar-translate-btn",
+      type: "button",
+      "aria-label": "Traduzir página (Ctrl+Shift+U)",
+      title: "Traduzir página (Ctrl+Shift+U)",
+    },
+    [icon("translate")],
+  );
+  const omnibar = el("form", { class: "sidebar-omnibar omnibar", role: "search", "data-tauri-drag-region": "" }, [
     securityButton,
     el("div", { class: "omnibar-input-wrapper" }, [omnibarInput]),
-    el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarSplitBtn, bookmarkToggle, boostsButton]),
+    el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarTranslateBtn, omnibarSplitBtn, bookmarkToggle, boostsButton]),
   ]);
 
   // 5. Pinned tabs section
@@ -457,11 +469,23 @@ function buildChrome(root: HTMLElement) {
     [icon("sidebarCollapsed")],
   );
 
-  const floatingTopBar = el("header", { class: "floating-top-bar", "aria-label": "Navegação rápida compacta" }, [
+  const floatingTranslateBtn = el(
+    "button",
+    {
+      class: "nav-btn floating-action-btn floating-translate-btn",
+      type: "button",
+      "aria-label": "Traduzir página (Ctrl+Shift+U)",
+      title: "Traduzir página (Ctrl+Shift+U)",
+    },
+    [icon("translate")],
+  );
+
+  const floatingTopBar = el("header", { class: "floating-top-bar", "aria-label": "Navegação rápida compacta", "data-tauri-drag-region": "" }, [
     el("div", { class: "floating-nav-group" }, [floatingBackBtn, floatingForwardBtn, floatingReloadBtn]),
     floatingOmnibarPill,
     el("div", { class: "floating-actions-group" }, [
       floatingReaderBtn,
+      floatingTranslateBtn,
       floatingSplitBtn,
       floatingStarBtn,
       floatingExpandBtn,
@@ -503,6 +527,7 @@ function buildChrome(root: HTMLElement) {
     floatingSecurityIcon,
     floatingUrlText,
     floatingReaderBtn,
+    floatingTranslateBtn,
     floatingSplitBtn,
     floatingStarBtn,
     floatingExpandBtn,
@@ -512,6 +537,7 @@ function buildChrome(root: HTMLElement) {
     bookmarkToggle,
     readerButton,
     boostsButton,
+    omnibarTranslateBtn,
     omnibarSplitBtn,
     zoomBadge,
     splitButton,
@@ -619,6 +645,26 @@ window.addEventListener("DOMContentLoaded", () => {
   const downloadsPanel = createDownloadsPanel(syncWebviewVisibility);
   const panels: Panel[] = [historyPanel, settingsPanel, shortcutsPanel, downloadsPanel];
 
+  let translatePopover: ReturnType<typeof createTranslatePopover>;
+
+  function openPrivateTab(url?: string) {
+    const targetUrl = url ?? getSettings().homepage;
+    const tab = createTab(targetUrl, false, getActiveWorkspaceId(), undefined, true);
+    selectTab(tab.id);
+    if (targetUrl) navigate(tab.id, targetUrl);
+    else focusOmnibar();
+  }
+
+  function toggleTranslatePopover(tabId?: string) {
+    const target = tabId ? getTab(tabId) : getTargetTab();
+    if (!target?.url) return;
+    const wasOpen = translatePopover ? translatePopover.isOpen() : false;
+    closePanels();
+    if (!wasOpen && translatePopover) {
+      translatePopover.open(target.id, target.url);
+    }
+  }
+
   const tabContextMenu = createTabContextMenu(
     {
       onReload(tabId) {
@@ -711,6 +757,12 @@ window.addEventListener("DOMContentLoaded", () => {
       onCreateFolderWithTab(tabId) {
         handleCreateFolder(tabId);
       },
+      onNewPrivateTab() {
+        openPrivateTab();
+      },
+      onTranslateTab(tabId) {
+        toggleTranslatePopover(tabId);
+      },
     },
     syncWebviewVisibility,
   );
@@ -778,6 +830,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const boostsPopover = createBoostsPopover(syncWebviewVisibility);
+  translatePopover = createTranslatePopover(syncWebviewVisibility);
 
   const welcomeWizard = createWelcomeWizard(() => {
     syncViewport();
@@ -948,6 +1001,12 @@ window.addEventListener("DOMContentLoaded", () => {
         welcomeWizard.open();
         syncWebviewVisibility();
       },
+      openPrivateTab() {
+        openPrivateTab();
+      },
+      translatePage() {
+        toggleTranslatePopover();
+      },
     },
     syncWebviewVisibility,
   );
@@ -981,6 +1040,7 @@ window.addEventListener("DOMContentLoaded", () => {
     commandPalette.element,
     glance.overlay,
     boostsPopover.element,
+    translatePopover.element,
     welcomeWizard.element,
   );
 
@@ -997,7 +1057,37 @@ window.addEventListener("DOMContentLoaded", () => {
     commandPalette.destroy();
     glance.destroy();
     boostsPopover.destroy();
+    translatePopover.destroy();
     ui.mediaWidget.destroy();
+  });
+
+  ui.omnibarTranslateBtn.addEventListener("click", () => {
+    toggleTranslatePopover();
+  });
+
+  ui.floatingTranslateBtn.addEventListener("click", () => {
+    toggleTranslatePopover();
+  });
+
+  const appWindow = getCurrentWindow();
+  document.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    if (
+      target.closest(
+        "button, input, textarea, select, a, [role='button'], .window-controls, .interactive, .omnibar-input, .omnibar-actions, .omnibar-security-btn, .tab-audio-indicator, .tab-close, .pinned-tab-close"
+      )
+    ) {
+      return;
+    }
+    if (
+      target.closest(
+        "[data-tauri-drag-region], .sidebar-header, .sidebar-header-top, .floating-top-bar, .sidebar-omnibar"
+      )
+    ) {
+      appWindow.startDragging().catch(() => {});
+    }
   });
 
   ui.boostsButton.addEventListener("click", () => {
@@ -1058,6 +1148,7 @@ window.addEventListener("DOMContentLoaded", () => {
       siteInfoPopover.isOpen() ||
       commandPalette.isOpen() ||
       boostsPopover.isOpen() ||
+      (translatePopover ? translatePopover.isOpen() : false) ||
       welcomeWizard.isOpen();
 
     if (isBlocked) {
@@ -1173,6 +1264,7 @@ window.addEventListener("DOMContentLoaded", () => {
     siteInfoPopover.close();
     commandPalette.close();
     if (boostsPopover.isOpen()) boostsPopover.close();
+    if (translatePopover && translatePopover.isOpen()) translatePopover.close();
     if (welcomeWizard.isOpen()) welcomeWizard.close();
     if (glance.isOpen()) glance.close();
   }
@@ -1356,12 +1448,24 @@ window.addEventListener("DOMContentLoaded", () => {
     node.classList.toggle("tab--active", tab.active);
     node.classList.toggle("tab--loading", tab.isLoading);
     node.classList.toggle("tab--sleeping", Boolean(tab.isSleeping));
+    node.classList.toggle("tab--private", Boolean(tab.isPrivate));
     node.setAttribute("aria-selected", String(tab.active));
-    const statusSuffix = tab.isSleeping ? " (Hibernada — clique para acordar)" : "";
-    node.title = tab.url ? `${tab.title}\n${tab.url}${statusSuffix}` : `${tab.title}${statusSuffix}`;
+    const privateSuffix = tab.isPrivate ? " (Guia Anônima)" : "";
+    const statusSuffix = tab.isSleeping ? " (Hibernada - clique para acordar)" : "";
+    node.title = tab.url ? `${tab.title}\n${tab.url}${statusSuffix}${privateSuffix}` : `${tab.title}${statusSuffix}${privateSuffix}`;
 
     const titleEl = node.querySelector(".tab-title")!;
     titleEl.textContent = tab.title;
+
+    let privateBadge = node.querySelector(".tab-private-badge");
+    if (tab.isPrivate) {
+      if (!privateBadge) {
+        privateBadge = el("span", { class: "tab-private-badge", title: "Guia anônima (sem histórico)" }, [icon("shield")]);
+        titleEl.before(privateBadge);
+      }
+    } else if (privateBadge) {
+      privateBadge.remove();
+    }
 
     let sleepIndicator = node.querySelector(".tab-sleeping-indicator");
     if (tab.isSleeping) {
@@ -1631,18 +1735,18 @@ window.addEventListener("DOMContentLoaded", () => {
       if (parsed.protocol === "https:") {
         ui.securityButton.classList.add("omnibar-security-btn--secure");
         ui.securityButton.replaceChildren(icon("lock"));
-        ui.securityButton.title = `Conexão Segura — ${parsed.hostname}`;
+        ui.securityButton.title = `Conexão Segura - ${parsed.hostname}`;
         ui.floatingSecurityIcon.classList.add("floating-security-icon--secure");
         ui.floatingSecurityIcon.replaceChildren(icon("lock"));
       } else if (parsed.protocol === "http:") {
         ui.securityButton.classList.add("omnibar-security-btn--insecure");
         ui.securityButton.replaceChildren(icon("unlock"));
-        ui.securityButton.title = `Conexão Não Segura — ${parsed.hostname}`;
+        ui.securityButton.title = `Conexão Não Segura - ${parsed.hostname}`;
         ui.floatingSecurityIcon.classList.add("floating-security-icon--insecure");
         ui.floatingSecurityIcon.replaceChildren(icon("unlock"));
       } else {
         ui.securityButton.replaceChildren(icon("globe"));
-        ui.securityButton.title = `Página local — ${url}`;
+        ui.securityButton.title = `Página local - ${url}`;
         ui.floatingSecurityIcon.replaceChildren(icon("globe"));
       }
     } catch {
@@ -1669,7 +1773,7 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.floatingStarBtn.classList.toggle("floating-action-btn--active", isTargetBookmarked);
     ui.emptyState.style.display = target?.url ? "none" : "";
     ui.loadingBar.style.display = target?.isLoading ? "" : "none";
-    document.title = target?.url ? `${target.title} — Moss` : "Moss";
+    document.title = target?.url ? `${target.title} - moss` : "moss";
     renderBookmarkToggle();
     renderZoomBadge(target?.id, target?.url);
     renderSecurityButton(target?.url);
@@ -2031,6 +2135,18 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      openPrivateTab();
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "u") {
+      event.preventDefault();
+      toggleTranslatePopover();
+      return;
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "g") {
       event.preventDefault();
       const target = getTargetTab();
@@ -2186,11 +2302,16 @@ window.addEventListener("DOMContentLoaded", () => {
       updateTab(tab.id, { url: payload.url, isLoading: true, title });
       applyZoomForTab(tab.id, payload.url);
       applyBoostToTab(tab.id, payload.url);
+      if (isYouTubeUrl(payload.url)) {
+        injectYouTubeShield(tab.id);
+      }
       return;
     }
     const history = historyOf(tab.id);
     history.commit(payload.url);
-    recordVisit(payload.url, pageTitles.get(tab.id) ?? "");
+    if (!tab.isPrivate) {
+      addHistoryEntry(payload.url, pageTitles.get(tab.id) ?? "", tab);
+    }
     updateTab(tab.id, {
       url: payload.url,
       title,
@@ -2200,6 +2321,9 @@ window.addEventListener("DOMContentLoaded", () => {
     });
     applyZoomForTab(tab.id, payload.url);
     applyBoostToTab(tab.id, payload.url);
+    if (isYouTubeUrl(payload.url)) {
+      injectYouTubeShield(tab.id);
+    }
     if (findInPage.isOpen() && payload.tabId === getTargetTab()?.id) {
       findInPage.reapply();
     }
@@ -2246,7 +2370,9 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!tab) return;
     const pageTitle = payload.title.trim();
     pageTitles.set(tab.id, pageTitle);
-    updateVisitTitle(tab.url, pageTitle);
+    if (!tab.isPrivate) {
+      updateVisitTitle(tab.url, pageTitle);
+    }
     updateTab(tab.id, { title: pageTitle || hostnameOf(tab.url) });
   });
 

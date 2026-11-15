@@ -18,6 +18,7 @@ export interface Tab {
   folderId?: string;
   isSleeping?: boolean;
   lastAccessedAt?: number;
+  isPrivate?: boolean;
 }
 
 export interface ClosedTab {
@@ -90,7 +91,7 @@ function notify() {
 
 function savePinnedUrls() {
   try {
-    const pinned = tabs.filter((t) => t.isPinned && t.url).map((t) => t.url);
+    const pinned = tabs.filter((t) => !t.isPrivate && t.isPinned && t.url).map((t) => t.url);
     localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinned));
   } catch {
     /* storage unavailable */
@@ -100,7 +101,7 @@ function savePinnedUrls() {
 export function saveSession(): void {
   try {
     const sessionTabs: SessionTab[] = tabs
-      .filter((t) => t.url && isRestorableUrl(t.url))
+      .filter((t) => !t.isPrivate && t.url && isRestorableUrl(t.url))
       .map((t) => ({
         url: t.url,
         title: t.title,
@@ -183,6 +184,7 @@ export function createTab(
   pinned = false,
   workspaceId?: string,
   folderId?: string,
+  isPrivate = false,
 ): Tab {
   const curWsId = getActiveWorkspaceId();
   const wsId = workspaceId ?? (pinned ? undefined : curWsId);
@@ -190,7 +192,7 @@ export function createTab(
 
   const tab: Tab = {
     id: String(nextId++),
-    title: NEW_TAB_TITLE,
+    title: isPrivate && !initialUrl ? "Guia Anônima" : NEW_TAB_TITLE,
     url: initialUrl,
     active: shouldActivate,
     isLoading: false,
@@ -201,6 +203,7 @@ export function createTab(
     folderId,
     isSleeping: false,
     lastAccessedAt: Date.now(),
+    isPrivate,
   };
 
   tabs = shouldActivate
@@ -216,7 +219,7 @@ export function closeTab(id: string) {
   if (index === -1) return;
 
   const closed = tabs[index];
-  if (closed.url && isRestorableUrl(closed.url)) {
+  if (!closed.isPrivate && closed.url && isRestorableUrl(closed.url)) {
     closedTabsStack.push({
       url: closed.url,
       title: closed.title || NEW_TAB_TITLE,

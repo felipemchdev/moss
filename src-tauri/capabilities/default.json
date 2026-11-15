@@ -5,6 +5,7 @@
   "webviews": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-start-dragging",
     "opener:default",
     "allow-set-viewport",
     "allow-set-tab-viewports",
@@ -34,6 +35,7 @@
     "allow-start-element-zapper",
     "allow-set-tab-muted",
     "allow-toggle-tab-media-playback",
-    "allow-sync-tab-media-state"
+    "allow-sync-tab-media-state",
+    "allow-translate-tab"
   ]
 }

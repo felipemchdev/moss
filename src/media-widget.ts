@@ -22,7 +22,7 @@ export type MediaWidget = HTMLElement & MediaWidgetController;
 export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
   const coverIcon = el("span", { class: "media-widget-cover" }, [icon("play")]);
   const titleEl = el("span", { class: "media-widget-title" }, ["Tocando agora"]);
-  const artistEl = el("span", { class: "media-widget-artist" }, ["Moss Player"]);
+  const artistEl = el("span", { class: "media-widget-artist" }, ["moss player"]);
 
   const infoCol = el("div", { class: "media-widget-info" }, [titleEl, artistEl]);
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Moss",
+  "productName": "moss",
   "version": "1.0.0",
   "identifier": "dev.moss.browser",
   "build": {
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Moss Browser",
+        "title": "moss",
         "width": 1280,
         "height": 800,
         "minWidth": 640,
@@ -32,7 +32,11 @@
     "targets": "all",
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "template": "installer/custom_installer.nsi"
       }
     },
     "icon": [

@@ -55,7 +55,8 @@ window.addEventListener("pagehide", flush);
 
 export const subscribeHistory = emitter.subscribe;
 
-export function recordVisit(url: string, title: string) {
+export function recordVisit(url: string, title: string, isPrivate?: boolean) {
+  if (isPrivate) return;
   if (!isWebUrl(url)) return;
   const [latest, ...rest] = entries;
   const visitedAt = Date.now();
@@ -65,6 +66,16 @@ export function recordVisit(url: string, title: string) {
   }
   const entry = { id: crypto.randomUUID(), url, title: title || url, visitedAt };
   commit([entry, ...entries].slice(0, MAX_ENTRIES));
+}
+
+export function addHistoryEntry(
+  url: string,
+  title: string,
+  tab?: { isPrivate?: boolean } | boolean,
+) {
+  const isPrivate = typeof tab === "boolean" ? tab : tab?.isPrivate;
+  if (isPrivate) return;
+  recordVisit(url, title);
 }
 
 export function updateVisitTitle(url: string, title: string) {

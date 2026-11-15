@@ -157,12 +157,12 @@ export function buildCombinedCss(domain: string): string {
 
   if (rules.length > 0) {
     const selectors = rules.map((r) => r.selector).join(",\n");
-    css += `\n/* Moss Element Zapper */\n${selectors} {\n  display: none !important;\n}\n`;
+    css += `\n/* moss Element Zapper */\n${selectors} {\n  display: none !important;\n}\n`;
   }
 
   if (boost.smartDarkMode) {
     css += `
-/* Moss Smart Dark Mode */
+/* moss Smart Dark Mode */
 html {
   filter: invert(1) hue-rotate(180deg) !important;
   background-color: #141414 !important;
@@ -184,11 +184,11 @@ img, video, iframe, canvas, svg, [style*="background-image"] {
     filters.push("sepia(45%)");
   }
   if (filters.length > 0) {
-    css += `\n/* Moss Visual Filters */\nhtml {\n  filter: ${filters.join(" ")} !important;\n}\n`;
+    css += `\n/* moss Visual Filters */\nhtml {\n  filter: ${filters.join(" ")} !important;\n}\n`;
   }
 
   if (boost.customCss.trim()) {
-    css += `\n/* Moss Custom CSS */\n${boost.customCss}\n`;
+    css += `\n/* moss Custom CSS */\n${boost.customCss}\n`;
   }
 
   return css;

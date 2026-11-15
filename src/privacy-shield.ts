@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { el } from "./dom";
 import { icon } from "./icons";
+import { webview } from "./webview";
 
 const STORAGE_KEY = "moss:shield_enabled";
 
@@ -248,4 +249,35 @@ export function createPrivacyShield(
 
   updateUI();
   return controller;
+}
+
+export const YOUTUBE_AD_CSS = `
+  .video-ads,
+  .ytp-ad-module,
+  .ytp-ad-overlay-container,
+  .ytp-ad-player-overlay,
+  .ytp-ad-player-overlay-layout,
+  ytd-ad-slot-renderer,
+  ytd-banner-promo-renderer,
+  ytd-in-feed-ad-layout-renderer,
+  #player-ads,
+  ytd-promoted-sparkles-web-renderer,
+  ytd-player-legacy-desktop-watch-ads-renderer,
+  #masthead-ad {
+    display: none !important;
+  }
+`;
+
+export function isYouTubeUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.includes("youtube.com") || parsed.hostname.includes("youtu.be");
+  } catch {
+    return url.includes("youtube.com") || url.includes("youtu.be");
+  }
+}
+
+export function injectYouTubeShield(tabId: string): void {
+  webview.applyTabBoost(tabId, YOUTUBE_AD_CSS, "__moss_yt_ad_style__");
 }

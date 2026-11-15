@@ -5,21 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-11-14
+## [1.0.0] - 2026-11-15
 
-### Production Release — Version 1.0.0
+### Production Release - Version 1.0.0
+- First public release.
 - Complete delivery of architectural phases 0 through 24.
 - Production bundle optimization with tree-shaking, lazy native webview loading, and sub-200ms cold startup.
 - Production package configuration for Windows x64 (NSIS and MSI targets) in `src-tauri/tauri.conf.json`.
 - Complete system architecture documentation, component index, and keyboard shortcuts in `README.md`.
 
 ### Added
+- **Native Window Dragging Support** (`src/main.ts`, `src-tauri/capabilities/default.json`):
+  - Add native window dragging with `data-tauri-drag-region` on the chrome headers and floating top bar.
+  - Implement direct drag fallback using `startDragging()` with `core:window:allow-start-dragging` permission.
+- **Integrated YouTube Ad-Blocker** (`src-tauri/src/lib.rs`, `src/privacy-shield.ts`, `src/main.ts`):
+  - Block ad network requests, tracking beacons, and mid-roll streams directly in the native child webview engine.
+  - Inject dedicated visual CSS suppression in `#__moss_yt_ad_style__` to hide banners, masthead ads, and player overlays.
+  - Accelerate video ads by 16x, mute audio, and trigger automatic skip button clicks immediately.
+- **Private Browsing Tabs** (`src/tabs.ts`, `src/main.ts`, `src/styles/browser-chrome.css`, `src/icons.ts`):
+  - Add private tab flag `isPrivate` with global keyboard shortcut `Ctrl+Shift+N`.
+  - Private tabs do not record history or session state.
+  - Add visual private badge indicator and dark slate styling for private tabs.
+- **Native Webpage Translator** (`src-tauri/src/lib.rs`, `src/translate-popover.ts`, `src/main.ts`, `src/icons.ts`):
+  - Implement native translation backend command `translate_tab` with `allow-translate-tab` capability.
+  - Add translate popover interface (`Ctrl+Shift+U` or Omnibar translate button) supporting multiple language selections.
+- **Custom NSIS 1-Click Installer** (`src-tauri/installer/*`, `src-tauri/tauri.conf.json`):
+  - Create custom NSIS installer script with moss dark theme branding (#0F1411 background and #7da27e accent).
+  - Include uncompressed 24-bit header and sidebar bitmaps with portable build scripts.
+  - Add standalone installer preview (`public/installer-preview.html`).
 - **Phase 18: Glance Link Peeking** (`src/glance.ts`, `src/main.ts`, `src/styles/browser-chrome.css`):
   - Non-destructive floating modal preview for hyperlinks triggered via `Shift+Click` or `Ctrl+Shift+G`.
   - Native HWND occlusion management that conceals underlying webviews while the preview modal is active.
   - Automatic viewport state restoration when the user closes the Glance preview window.
   - Quick action controls to open URL in a standard tab (`Ctrl+O`), copy URL to clipboard, or dismiss (`Esc`).
-- **Phase 19: Zen Space Routing** (`src/space-routing.ts`, `src/settings-panel.ts`, `src/toast.ts`):
+- **Phase 19: Space Routing** (`src/space-routing.ts`, `src/settings-panel.ts`, `src/toast.ts`):
   - Navigation interception engine mapping web domains directly to designated workspaces.
   - Automatic workspace switching and tab migration for matched domain rules.
   - Configurable routing policy supporting automatic routing mode or confirmation prompt mode.
@@ -31,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Native tab hibernation engine that unloads background child webviews and destroys their OS HWNDs to reduce RAM usage.
   - Metadata, scroll position, and navigation history preservation during tab hibernation.
   - Transparent webview reconstruction upon user selection, marked with a sleeping moon indicator.
-- **Phase 21: Zen Boosts & Element Zapper** (`src/boosts.ts`, `src/boosts-popover.ts`, `src-tauri/src/lib.rs`):
+- **Phase 21: Boosts & Element Zapper** (`src/boosts.ts`, `src/boosts-popover.ts`, `src-tauri/src/lib.rs`):
   - Interactive Element Zapper mode (`Ctrl+Shift+Z`) with real-time target bounding boxes and CSS selector extraction.
   - Non-blocking asynchronous runtime polling implemented via `tauri::async_runtime::spawn` and `tokio::time::sleep`.
   - Persistent domain element removal rules stored in `localStorage` (`moss:domain_zap_rules`).
@@ -43,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Direct navigation jump to the source tab when the user clicks the track title.
   - Interactive tab audio indicator pills with real-time audio animation and one-click sound muting.
   - Explicit widget lifecycle cleanup method (`destroy()`) that detaches reactive store subscriptions.
-- **Phase 23: Zen Welcome Wizard** (`src/welcome-wizard.ts`, `src/settings.ts`, `src/styles/browser-chrome.css`):
+- **Phase 23: Welcome Wizard** (`src/welcome-wizard.ts`, `src/settings.ts`, `src/styles/browser-chrome.css`):
   - Five-step guided initial onboarding flow (`moss:onboarding_completed`) for first launch.
   - System theme preference mapping and synchronization for dark, light, and automatic modes.
   - Persistent privacy shield and ad-blocking toggle configuration (`moss:shield_enabled`).
@@ -55,7 +74,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Modal corner radius standardization (`--radius-modal`) and elevation shadow tokens (`--glass-shadow`).
   - Responsive layout breakpoints for onboarding and modal dialogs on compact displays.
 
+### Changed
+- **Compact Sidebar and Interface Alignment** (`src/styles/browser-chrome.css`, `src/styles/tokens.css`):
+  - Refine compact sidebar dock to 56px width with centered 40x40px tab icons and contained active indicators.
+  - Align floating audio badge and compact window controls for optimal vertical ergonomics.
+  - Update primary brand palette to calm Pastel Sage Green (`#7da27e`) in dark mode.
+- **Strict moss Branding Purge**:
+  - Remove all external product references across documentation and codebase.
+  - Standardize project title and binary metadata strictly to lowercase `moss`.
+
 ### Fixed
+- **Header Downloads Icon Geometry** (`src/styles/browser-chrome.css`):
+  - Fix downloads button icon bounding box to standard 16x16px dimension in the main header.
 - Element Zapper thread block: replaced synchronous polling with background async runtime task spawning.
 - Native webview occlusion: resolved overlay clipping by clearing active webview visibility during modal lifecycle.
 - Background media evaluation: expanded polling routine from active tab to all non-hibernated tabs.
@@ -64,19 +94,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.17.0] - 2026-11-14
 
 ### Added
-- Zen Welcome & Setup Wizard Inicial (Onboarding) inspired by Zen Browser (`src/welcome-wizard.ts`, `src/styles/browser-chrome.css`).
+- Welcome & Setup Wizard Inicial (Onboarding) (`src/welcome-wizard.ts`, `src/styles/browser-chrome.css`).
 - Automatic first-run detection (`moss:onboarding_completed`) with interactive 5-step guided wizard:
   - Step 0: Welcome splash with spring typography and visual theme picker (Dark / Light / Auto).
   - Step 1: Default search engine selector (Google, DuckDuckGo, Bing, Ecosia, Kagi).
   - Step 2: Privacy Shield & anti-tracking activation card.
   - Step 3: Essentials Web Apps grid selector (GitHub, YouTube, Notion, Spotify, Reddit, Wikipédia) with instant tab creation.
   - Step 4: Final ready screen with cinematic fade-out transition.
-- Command Palette action: "Assistente de Boas-Vindas (Zen Welcome)" to re-trigger onboarding wizard on demand.
+- Command Palette action: "Assistente de Boas-Vindas (Welcome Wizard)" to re-trigger onboarding wizard on demand.
 
 ## [0.16.0] - 2026-11-14
 
 ### Added
-- Media Controls Widget na Sidebar (Mini Player Global de Áudio & Vídeo) inspired by Zen Browser (`src/media.ts`, `src/media-widget.ts`, `src-tauri/src/lib.rs`).
+- Media Controls Widget na Sidebar (Mini Player Global de Áudio & Vídeo) (`src/media.ts`, `src/media-widget.ts`, `src-tauri/src/lib.rs`).
 - Global media detection tracking playing audio/video across active and background tabs with title and artist extraction (`navigator.mediaSession`).
 - Sidebar Mini Player card displaying track cover, title, artist, Play/Pause control, and Mute control.
 - Click to jump: clicking track title in the media widget brings user directly to the emitting tab.
@@ -86,10 +116,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.15.0] - 2026-11-14
 
 ### Added
-- Zen Boosts & Element Zapper (Estilização & Limpeza por Domínio) inspired by Arc and Zen Browser (`src/boosts.ts`, `src/boosts-popover.ts`, `src-tauri/src/lib.rs`).
+- Boosts & Element Zapper (Estilização & Limpeza por Domínio) (`src/boosts.ts`, `src/boosts-popover.ts`, `src-tauri/src/lib.rs`).
 - Interactive Element Zapper (`Ctrl+Shift+Z`): crosshair target mode in active webviews that highlights elements, shows CSS selectors in real time, and dissolves clicked elements with animation.
 - Persistence of domain Zap rules in `localStorage` (`moss:domain_zap_rules`) with automatic re-application on page load (`display: none !important;`).
-- Zen Boosts popover anchored on Omnibar (`sparkles` icon) with:
+- Boosts popover anchored on Omnibar (`sparkles` icon) with:
   - Smart Dark Mode: intelligent color inversion preserving images, media, and canvas.
   - Real-time brightness & contrast adjustment sliders (-50% to +50%).
   - Relaxing Sepia tone filter.
@@ -100,7 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.14.0] - 2026-11-14
 
 ### Added
-- Zen Space Routing (Roteamento Automático de Espaços por domínio) inspired by Zen Browser (`src/space-routing.ts`, `src/settings-panel.ts`, `src/toast.ts`).
+- Space Routing (Roteamento Automático de Espaços por domínio) (`src/space-routing.ts`, `src/settings-panel.ts`, `src/toast.ts`).
 - Intelligent navigation interception across Omnibar, links, and external URLs mapping domains directly to designated Workspaces.
 - Default preset mappings: Dev (`github.com`, `gitlab.com`, `stackoverflow.com`), Work (`slack.com`, `linear.app`, `notion.so`), Personal (`youtube.com`, `reddit.com`).
 - Two routing modes: "Automático" (migrates tab and switches workspace seamlessly) and "Perguntar" (presents non-intrusive action toast with confirmation).
@@ -111,7 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.13.0] - 2026-11-14
 
 ### Added
-- Tab Folders (Pastas de Abas) & Hierarchical Tab Grouping inspired by Zen Browser (`src/folders.ts`, `src/tabs.ts`, `src/styles/browser-chrome.css`).
+- Tab Folders (Pastas de Abas) & Hierarchical Tab Grouping (`src/folders.ts`, `src/tabs.ts`, `src/styles/browser-chrome.css`).
 - Collapsible folder sections in vertical sidebar with custom colors, tab counter badge, chevron toggle, and quick add button.
 - Drag & Drop support to group tabs into folders or move them back to root list.
 - Tab Hibernation / Sleeping Tabs (Memory Saver): unload background webview native HWNDs (`webview.close`) while preserving tab snapshot, URL, and metadata.
@@ -124,19 +154,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.12.0] - 2026-11-14
 
 ### Added
-- Zen Glance / Link Peeking (`Shift+Click` or `Ctrl+Shift+G`) inspired by Zen Browser and Arc (`src/glance.ts`, `src/styles/browser-chrome.css`).
+- Glance / Link Peeking (`Shift+Click` or `Ctrl+Shift+G`) (`src/glance.ts`, `src/styles/browser-chrome.css`).
 - Centered squircle floating modal card overlaying the browser without creating permanent tabs or polluting tab hierarchy.
 - Isolated Glance webview (`__glance__`) rendered at 88vw/84vh with synchronized responsive geometry (`ResizeObserver`).
 - Glance header controls: eye badge, page title and URL display, "Abrir na aba" action (`Ctrl+O`) to promote preview to active tab, "Copiar link" action, and "Fechar" (`Esc`).
-- Tab context menu action: "Espiar no Glance (Zen Glance)".
-- Command Palette action: "Espiar URL (Zen Glance)".
+- Tab context menu action: "Espiar no Glance".
+- Command Palette action: "Espiar URL (Glance)".
 - Bookmarks Bar integration: `Shift+Click` or `Alt+Click` on any bookmark directly opens Glance.
 - Documentation in keyboard shortcuts modal (`src/shortcuts-modal.ts`).
 
 ## [0.11.0] - 2026-11-14
 
 ### Added
-- Dedicated Downloads Panel (`Ctrl+J`) inspired by Zen Browser and Arc (`src/downloads-panel.ts`, `src/downloads.ts`, `src/styles/browser-chrome.css`).
+- Dedicated Downloads Panel (`Ctrl+J`) (`src/downloads-panel.ts`, `src/downloads.ts`, `src/styles/browser-chrome.css`).
 - Slide-over glassmorphic panel listing downloads with real-time progress bars, timestamps, and status (active, completed, failed).
 - Direct file interactions: "Abrir arquivo" (`openPath`), "Mostrar na pasta" (`revealItemInDir`), and "Abrir pasta de downloads" (`downloadDir`).
 - Clear downloads history action and item removal.
@@ -159,7 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-11-14
 
 ### Added
-- Collapsible Sidebar & Compact Mode (`Ctrl+B`) inspired by Zen Browser Compact Mode (`src/sidebar.ts`, `src/styles/browser-chrome.css`).
+- Collapsible Sidebar & Compact Mode (`Ctrl+B`) (`src/sidebar.ts`, `src/styles/browser-chrome.css`).
 - 56px ultra-compact dock layout (`#app.sidebar-collapsed`) preserving tab favicons, active status indicators, compact window controls, workspace icon indicator, and centered quick action buttons.
 - Floating Top Bar (`.floating-top-bar`) activated in compact mode offering seamless Back, Forward, Reload navigation buttons, security status lock icon, interactive URL / search chip with `Ctrl+K` hint, reader mode, split view, bookmark star, and expand sidebar action.
 - Automatic viewport geometry calculation with zero HWND occlusion: `webviewContainer` dynamically resizes to fill the expanded horizontal space and adjusts vertically below the floating top bar with full `ResizeObserver` and `transitionend` synchronization.
@@ -173,7 +203,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.8.0] - 2026-11-14
 
 ### Added
-- Unified Command Palette & Quick Launcher (`Ctrl+K` / `Ctrl+P`) inspired by Spotlight, Raycast, and Zen Browser (`src/command-palette.ts`, `src/styles/browser-chrome.css`).
+- Unified Command Palette & Quick Launcher (`Ctrl+K` / `Ctrl+P`) (`src/command-palette.ts`, `src/styles/browser-chrome.css`).
 - Real-time multi-source search across:
   - Open tabs across all workspaces with workspace badges, pinned tab indicators, and active tab highlights.
   - Comprehensive browser actions: New Tab (`Ctrl+T`), Close Tab (`Ctrl+W`), Toggle Split View (`Ctrl+\`), Swap Split Panes, Close Split, Reader Mode (`Ctrl+Alt+R`), Find in Page (`Ctrl+F`), Site Security & Permissions, Clear Active Site Data, Toggle Bookmark, Zoom In/Out/Reset (`Ctrl++`/`-`/`0`), Navigation (Back, Forward, Reload `F5`), Workspace switching & creation, History, Settings, and Keyboard Shortcuts.
@@ -220,10 +250,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Modo Leitura / Reader Mode (`Ctrl+Alt+R`): distraction-free article reader powered by non-destructive Rust DOM cloning and candidate scoring, with reading time and word count metadata (`src/reader-view.ts`, `src-tauri/src/lib.rs`).
-- Floating reader toolbar pill with real-time typography controls: custom fonts (Sans, Serif, Mono), font size stepper (14–24px), column widths (compact, normal, wide), and custom themes (*Moss Dark*, *Light Cream*, *Parchment Sepia*).
+- Floating reader toolbar pill with real-time typography controls: custom fonts (Sans, Serif, Mono), font size stepper (14-24px), column widths (compact, normal, wide), and custom themes (*moss Dark*, *Light Cream*, *Parchment Sepia*).
 - Reader mode link interception opening remote links in new browser tabs while preserving in-article anchor jumps (`#hash`).
 - Localizar na Página / Find in Page (`Ctrl+F`): in-page text search with non-destructive `CSS.highlights` (`::highlight(__moss-find-match)`, `::highlight(__moss-find-active)`), case sensitivity toggle (`Aa`), and match navigation buttons (`src/find-in-page.ts`).
-- Zen Workspaces switcher and management (`src/workspaces.ts`, `src/workspace-switcher.ts`): scoped workspace views, tab isolation, and two-step workspace deletion.
+- Workspaces switcher and management (`src/workspaces.ts`, `src/workspace-switcher.ts`): scoped workspace views, tab isolation, and two-step workspace deletion.
 
 ### Security
 - Fail-closed reader mode HTML sanitizer stripping unsafe tags (`script`, `style`, `base`, `meta`, `link`, `iframe`, `object`, `embed`, `form`, `input`, `button`, `textarea`, `select`) and dangerous attributes (`on*`, `style`, `srcdoc`, `srcset`, `formaction`, and obfuscated `javascript:` URLs).
@@ -250,7 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Omnibar star button toggle with smooth animations and dynamic tooltip (`src/main.ts`).
 - Persistent navigation history drawer (`Ctrl+H`) with real-time fuzzy filtering, single item deletion, and two-step clear (`src/history.ts`, `src/history-panel.ts`).
 - Settings modal (`Ctrl+,`) with theme switcher (Dark, Light Warm Cream, System), search engine picker (DuckDuckGo, Google, Bing), and custom homepage configuration (`src/settings.ts`, `src/settings-panel.ts`).
-- Refined Zen Browser pastel green palette: *Misty Sage* (`#b8eb9a`), *Soft Matcha* (`#6eb54f`), *Moss Pastel* (`#a7e286`), and warm cream light mode (`src/styles/tokens.css`).
+- Refined pastel green palette: *Misty Sage* (`#b8eb9a`), *Soft Matcha* (`#6eb54f`), *moss Pastel* (`#a7e286`), and warm cream light mode (`src/styles/tokens.css`).
 - Universal panel focus controller with Tab circular navigation and global Escape key handler (`src/panel.ts`).
 
 ### Changed
@@ -273,6 +303,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-11-13
 
 ### Added
-- Bootstrap Moss browser project using Tauri 2.x, TypeScript, Vite, and pnpm.
+- Bootstrap moss browser project using Tauri 2.x, TypeScript, Vite, and pnpm.
 - GitHub Actions continuous integration workflow (`.github/workflows/ci.yml`).
 - MIT License and project documentation skeleton.

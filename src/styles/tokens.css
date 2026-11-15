@@ -1,13 +1,7 @@
 :root {
-  /* ==========================================================================
-     MOSS BROWSER — DESIGN TOKENS (ZEN BROWSER AESTHETIC)
-     Paleta refinada: Misty Sage, Soft Matcha, Moss Pastel
-     Temas claros: #f5fdf7, #FFFBF6 (warm cream undertones)
-     Temas escuros: undertones musgo serenos, glassmorphism Apple Mac
-     Estilo: Zen Browser — abas pill flutuantes, seleções suaves, glassmorphism
-     ========================================================================== */
+  /* moss - design tokens - paleta refinada: misty sage, soft matcha, moss pastel - temas claros: #f5fdf7, #fffbf6 (warm cream undertones) - temas escuros: undertones musgo serenos, glassmorphism apple mac */
 
-  /* --- Color Primitives: Refined Moss Pastel Green Scale --- */
+  /* Color Primitives: Refined moss Pastel Green Scale */
   /* Deep moss undertones (dark theme bases) */
   --color-moss-950:  #0f160c;
   --color-moss-900:  #182310;
@@ -47,12 +41,12 @@
   --color-surface-750: #1f3616;
   --color-surface-700: #243f1a;
 
-  /* Accent glows for dark theme (zen glow) */
+  /* Accent glows for dark theme (moss glow) */
   --color-moss-glow-500: #a7e286;
   --color-moss-glow-400: #b8eb9a;
   --color-moss-glow-300: #cbf3af;
 
-  /* Neutral grays (cooler, zen-like) */
+  /* Neutral grays (cooler, moss-like) */
   --color-neutral-900:  #171717;
   --color-neutral-800:  #262626;
   --color-neutral-700:  #3d3d3d;
@@ -64,7 +58,7 @@
   --color-neutral-100:  #f5f5f5;
   --color-neutral-50:   #fafafa;
 
-  /* --- Semantic Color Aliases (Dark-First with Glass) --- */
+  /* Semantic Color Aliases (Dark-First with Glass) */
   /* Dark theme (default) - serene moss undertones */
   --color-bg-primary:       var(--color-surface-950);
   --color-bg-secondary:     var(--color-surface-900);
@@ -92,14 +86,15 @@
   --color-border-glass:     rgba(255, 255, 255, 0.08);
   --color-border-glass-strong: rgba(255, 255, 255, 0.15);
 
-  --color-accent-primary:   var(--color-moss-450);
-  --color-accent-secondary: var(--color-moss-350);
-  --color-accent-hover:     var(--color-moss-350);
-  --color-accent-active:    var(--color-moss-250);
-  --color-accent-subtle:    rgba(184, 235, 154, 0.12);
-  --color-accent-border:    rgba(130, 199, 96, 0.35);
-  --color-accent-glow:      rgba(130, 199, 96, 0.35);
-  --color-accent-glow-strong: rgba(98, 160, 60, 0.5);
+  --color-accent-primary:   #7da27e;
+  --color-accent-secondary: #8ba888;
+  --color-accent-hover:     #91b592;
+  --color-accent-active:    #6e916f;
+  --color-accent-muted:     #5d755e;
+  --color-accent-subtle:    rgba(125, 162, 126, 0.15);
+  --color-accent-border:    rgba(125, 162, 126, 0.35);
+  --color-accent-glow:      rgba(125, 162, 126, 0.25);
+  --color-accent-glow-strong: rgba(110, 145, 111, 0.4);
 
   --color-danger:       #ef4444;
   --color-danger-hover: #f87171;
@@ -116,7 +111,7 @@
   --color-success-bg:    rgba(34, 197, 94, 0.12);
   --color-success-border: rgba(34, 197, 94, 0.25);
 
-  /* --- Window Button Colors (Semantic, theme-aware) --- */
+  /* Window Button Colors (Semantic, theme-aware) */
   --color-window-close:       #ff5f57;
   --color-window-close-hover: #ff7b73;
   --color-window-minimize:       #febc2e;
@@ -124,7 +119,7 @@
   --color-window-maximize:       #28ca42;
   --color-window-maximize-hover: #5ae46c;
 
-  /* --- Glass / Frosted Glass Tokens --- */
+  /* Glass / Frosted Glass Tokens */
   --glass-blur:           blur(24px);
   --glass-blur-strong:    blur(40px);
   --glass-saturate:       saturate(190%);
@@ -142,7 +137,7 @@
   --glass-shadow-strong:  0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--glass-border-strong);
   --glass-shadow-hover:   0 12px 40px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--color-border-focus);
 
-  /* --- Typography --- */
+  /* Typography */
   --font-family-sans:  'Inter', 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-family-mono:  'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, SFMono-Regular, Consolas, monospace;
   --font-family-ui:    var(--font-family-sans);
@@ -175,7 +170,7 @@
   --letter-spacing-wider:  0.05em;
   --letter-spacing-widest: 0.1em;
 
-  /* --- Spacing Scale (4px base unit) --- */
+  /* Spacing Scale (4px base unit) */
   --space-0:   0;
   --space-1:   0.25rem;  /* 4px */
   --space-2:   0.5rem;   /* 8px */
@@ -190,7 +185,7 @@
   --space-20:  5rem;     /* 80px */
   --space-24:  6rem;     /* 96px */
 
-  /* --- Border Radius --- */
+  /* Border Radius */
   --radius-none:     0;
   --radius-xs:       0.125rem;  /* 2px */
   --radius-sm:       0.25rem;   /* 4px */
@@ -206,7 +201,7 @@
   --radius-modal:    var(--radius-3xl);
   --radius-pill:     var(--radius-full);
 
-  /* --- Shadows (Layered for Glass) --- */
+  /* Shadows (Layered for Glass) */
   --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
@@ -219,7 +214,7 @@
   --shadow-glass:      var(--glass-shadow);
   --shadow-glass-lg:   var(--glass-shadow-strong);
 
-  /* --- UI Dimensions --- */
+  /* UI Dimensions */
   --toolbar-height:        48px;
   --tab-bar-height:        40px;
   --tab-min-width:         180px;
@@ -232,7 +227,7 @@
   --command-palette-width: 680px;
   --command-palette-height: 440px;
 
-  /* --- Split View Tokens --- */
+  /* Split View Tokens */
   --split-divider-width:       8px;
   --split-divider-width-hover: 8px;
   --split-divider-width-drag:  8px;
@@ -255,7 +250,7 @@
   --split-pane-active-ring:    0 0 0 2px var(--color-accent-glow), 0 0 0 4px var(--color-bg-primary);
   --split-pane-active-shadow:  inset 0 0 0 1px var(--color-accent-primary), var(--glass-shadow-strong);
 
-  /* --- Workspace Tokens --- */
+  /* Workspace Tokens */
   --workspace-pill-height:     32px;
   --workspace-pill-radius:     var(--radius-pill);
   --workspace-pill-bg:         var(--glass-bg);
@@ -265,7 +260,7 @@
   --workspace-popover-bg:      var(--glass-bg-strong);
   --workspace-item-radius:     var(--radius-md);
 
-  /* --- Find in Page Tokens --- */
+  /* Find in Page Tokens */
   --find-bar-height:           42px;
   --find-pill-height:          34px;
   --find-pill-bg:              var(--glass-bg-strong);
@@ -274,7 +269,7 @@
   --find-match-color:          #ffd43b;
   --find-match-active-color:   #ff922b;
 
-  /* --- Reader Mode Tokens --- */
+  /* Reader Mode Tokens */
   --reader-bg-color:           #121a14;
   --reader-text-color:         #d8e5d8;
   --reader-link-color:         #b8eb9a;
@@ -287,7 +282,7 @@
   --reader-max-width-wide:     900px;
   --reader-toolbar-height:     42px;
 
-  /* --- Z-Index Scale --- */
+  /* Z-Index Scale */
   --z-base:              0;
   --z-dropdown:          100;
   --z-sticky:            200;
@@ -300,11 +295,11 @@
   --z-wizard:            900;
   --z-glass-overlay:     1000;
 
-  /* --- Wizard / Onboarding Tokens --- */
-  --wizard-backdrop-bg: radial-gradient(circle at 50% 35%, rgba(68, 207, 110, 0.15) 0%, rgba(10, 15, 13, 0.88) 100%);
+  /* Wizard / Onboarding Tokens */
+  --wizard-backdrop-bg: radial-gradient(circle at 50% 35%, rgba(125, 162, 126, 0.18) 0%, rgba(10, 15, 13, 0.88) 100%);
   --wizard-backdrop-filter: blur(28px);
 
-  /* --- Motion Design Tokens (Apple Motion + Zen Browser inspired) --- */
+  /* Motion Design Tokens (Apple Motion inspired) */
   /* Durations */
   --duration-instant:   0ms;
   --duration-fast:      120ms;
@@ -360,14 +355,14 @@
   --motion-split-toggle:         var(--duration-smooth) var(--ease-spring-gentle);
   --motion-split-resize:         var(--duration-smooth) var(--ease-smooth-out);
 
-  /* --- Breakpoints --- */
+  /* Breakpoints */
   --bp-sm:  640px;
   --bp-md:  768px;
   --bp-lg:  1024px;
   --bp-xl:  1280px;
   --bp-2xl: 1536px;
 
-  /* --- Opacity --- */
+  /* Opacity */
   --opacity-disabled:   0.35;
   --opacity-hover:      0.06;
   --opacity-active:     0.1;
@@ -376,7 +371,7 @@
   --opacity-glass:      0.45;
   --opacity-glass-strong: 0.65;
 
-  /* --- Base Font Settings --- */
+  /* Base Font Settings */
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
 
@@ -392,10 +387,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ==========================================================================
-   LIGHT THEME OVERRIDES (data-theme is resolved from settings, incl. "system")
-   Zen light: warm cream surfaces, soft matcha accents, subtle moss borders
-   ========================================================================== */
+/* LIGHT THEME OVERRIDES (data-theme is resolved from settings, incl. "system") - moss light: warm cream surfaces, soft matcha accents, subtle moss borders */
 :root[data-theme="light"] {
     --color-bg-primary:       var(--color-surface-50);
     --color-bg-secondary:     var(--color-surface-100);
@@ -423,14 +415,14 @@
     --color-border-glass:     rgba(20, 20, 20, 0.06);
     --color-border-glass-strong: rgba(20, 20, 20, 0.12);
 
-    --color-accent-primary:   var(--color-moss-600);
-    --color-accent-secondary: var(--color-moss-500);
-    --color-accent-hover:     var(--color-moss-500);
-    --color-accent-active:    var(--color-moss-450);
-    --color-accent-subtle:    rgba(93, 142, 66, 0.12);
-    --color-accent-border:    rgba(93, 142, 66, 0.3);
-    --color-accent-glow:      rgba(93, 142, 66, 0.3);
-    --color-accent-glow-strong: rgba(78, 120, 55, 0.45);
+--color-accent-primary:   #6e8f6f;
+  --color-accent-secondary: #7da27e;
+  --color-accent-hover:     #8ba888;
+  --color-accent-active:    #5d755e;
+  --color-accent-subtle:    rgba(110, 143, 111, 0.15);
+  --color-accent-border:    rgba(110, 143, 111, 0.3);
+  --color-accent-glow:      rgba(110, 143, 111, 0.25);
+  --color-accent-glow-strong: rgba(93, 117, 94, 0.4);
 
     /* Window button colors (light theme - softer) */
     --color-window-close:       #e04034;
@@ -463,9 +455,7 @@
     color-scheme: light;
 }
 
-/* ==========================================================================
-   REDUCED MOTION
-   ========================================================================== */
+/* REDUCED MOTION */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast:      0ms;
@@ -503,9 +493,7 @@
   }
 }
 
-/* ==========================================================================
-   HIGH CONTRAST
-   ========================================================================== */
+/* HIGH CONTRAST */
 @media (prefers-contrast: high) {
   :root {
     --color-border-subtle:    var(--color-fg-primary);

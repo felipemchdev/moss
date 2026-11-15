@@ -23,6 +23,8 @@ export interface TabContextMenuActions {
   getFolders?: () => readonly { id: string; name: string; color?: string }[];
   getCurrentFolderId?: (tabId: string) => string | undefined;
   onCreateFolderWithTab?: (tabId: string) => void;
+  onNewPrivateTab?: () => void;
+  onTranslateTab?: (tabId: string) => void;
 }
 
 export interface TabContextMenu {
@@ -46,7 +48,7 @@ export function createTabContextMenu(
     style: "display: none;",
   });
 
-  // Pin button is dynamic — rebuilt on each open
+  // Pin button is dynamic - rebuilt on each open
   let pinButton: HTMLButtonElement | null = null;
   let splitButton: HTMLButtonElement | null = null;
   let reopenButton: HTMLButtonElement | null = null;
@@ -140,7 +142,7 @@ export function createTabContextMenu(
     glanceButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      ["Espiar no Glance (Zen Glance)"],
+      ["Espiar no Glance (Glance)"],
     ) as HTMLButtonElement;
     glanceButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -148,6 +150,40 @@ export function createTabContextMenu(
       actions.onGlanceTab?.(tabId);
     });
     element.append(glanceButton);
+  }
+
+  let privateTabButton: HTMLButtonElement | null = null;
+  function buildPrivateTabButton() {
+    if (privateTabButton) privateTabButton.remove();
+    if (!actions.onNewPrivateTab) return;
+    privateTabButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      ["Nova aba anônima (Ctrl+Shift+N)"],
+    ) as HTMLButtonElement;
+    privateTabButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onNewPrivateTab?.();
+    });
+    element.append(privateTabButton);
+  }
+
+  let translateButton: HTMLButtonElement | null = null;
+  function buildTranslateButton(tabId: string) {
+    if (translateButton) translateButton.remove();
+    if (!actions.onTranslateTab) return;
+    translateButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      ["Traduzir página (Ctrl+Shift+U)"],
+    ) as HTMLButtonElement;
+    translateButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onTranslateTab?.(tabId);
+    });
+    element.append(translateButton);
   }
 
   let sleepButton: HTMLButtonElement | null = null;
@@ -293,6 +329,8 @@ export function createTabContextMenu(
       buildSleepButton(tabId);
       buildReopenButton();
       buildGlanceButton(tabId);
+      buildPrivateTabButton();
+      buildTranslateButton(tabId);
 
       element.style.visibility = "hidden";
       element.style.display = "flex";

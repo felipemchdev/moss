@@ -29,11 +29,11 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     class: "boosts-popover",
     role: "dialog",
     "aria-modal": "true",
-    "aria-label": "Zen Boosts & Element Zapper",
+    "aria-label": "Aparência & Boosts",
     style: "display: none;",
   });
 
-  const headerTitle = el("span", { class: "boosts-header-title" }, ["Zen Boosts"]);
+  const headerTitle = el("span", { class: "boosts-header-title" }, ["Aparência & Boosts"]);
   const headerDomain = el("span", { class: "boosts-header-domain" }, [""]);
   const closeBtn = el(
     "button",

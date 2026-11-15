@@ -158,7 +158,7 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
     class: "reader-swatch reader-swatch--dark",
     "data-theme": "dark",
     role: "radio",
-    "aria-label": "Tema escuro (Moss Dark)",
+    "aria-label": "Tema escuro (moss dark)",
     title: "Tema escuro",
   });
   const themeLightSwatch = el("button", {
@@ -320,7 +320,7 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
         articleBody.querySelector(`[id="${CSS.escape(id)}"]`) ??
         articleBody.querySelector(`[name="${CSS.escape(id)}"]`);
       target?.scrollIntoView({ behavior: "smooth" });
-      return; // always exit — never treat a fragment as a web URL
+      return; // always exit - never treat a fragment as a web URL
     }
     e.preventDefault();
     if (isWebUrl(anchor.href)) {

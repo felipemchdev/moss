@@ -52,8 +52,8 @@ export const webview = {
     call("sync_site_permissions", { permissions }),
   resetSitePermissions: (domain: string) =>
     call("reset_site_permissions", { domain }),
-  applyTabBoost: (tabId: string, css: string) =>
-    call("apply_tab_boost", { tabId, css }),
+  applyTabBoost: (tabId: string, css: string, styleId?: string) =>
+    call("apply_tab_boost", { tabId, css, styleId }),
   startElementZapper: (tabId: string) =>
     call("start_element_zapper", { tabId }),
   setTabMuted: (tabId: string, muted: boolean) =>
@@ -62,6 +62,8 @@ export const webview = {
     call("toggle_tab_media_playback", { tabId }),
   syncTabMediaState: (tabId: string) =>
     call("sync_tab_media_state", { tabId }),
+  translateTab: (tabId: string, targetLang: string) =>
+    call("translate_tab", { tabId, targetLang }),
 };
 
 export const windowControls = {

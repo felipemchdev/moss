@@ -94,9 +94,9 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
       // Step 0: Welcome & Visual Theme
       const hero = el("div", { class: "welcome-hero" }, [
         el("div", { class: "welcome-leaf-badge" }, [icon("leaf")]),
-        el("h1", { class: "welcome-title" }, ["Boas-vindas ao Moss"]),
+        el("h1", { class: "welcome-title" }, ["Boas-vindas ao moss"]),
         el("p", { class: "welcome-subtitle" }, [
-          "Uma experiência de navegação tranquila, rápida e minimalista, inspirada no Zen Browser.",
+          "Uma experiência minimalista, fluida e serena para navegar na web.",
         ]),
       ]);
 
@@ -245,7 +245,7 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
         el("div", { class: "welcome-leaf-badge welcome-leaf-badge--sparkle" }, [icon("sparkles")]),
         el("h1", { class: "welcome-title" }, ["Tudo pronto para decolar!"]),
         el("p", { class: "welcome-subtitle" }, [
-          "O Moss está totalmente configurado e otimizado para o seu fluxo diário.",
+          "O moss está totalmente configurado e otimizado para o seu fluxo diário.",
         ]),
       ]);
 

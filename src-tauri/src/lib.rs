@@ -150,7 +150,11 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
     'amazon-adsystem.com',
     'ads.pubmatic.com',
     'rubiconproject.com',
-    'scorecardresearch.com'
+    'scorecardresearch.com',
+    'googleads.g.doubleclick.net',
+    'pagead2.googlesyndication.com',
+    'static.doubleclick.net',
+    'ad.youtube.com'
   ];
 
   function isTracker(url) {
@@ -159,9 +163,25 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
     try {
       var parsed = new URL(url, window.location.href);
       var host = parsed.hostname.toLowerCase();
+      var path = parsed.pathname.toLowerCase();
+      var search = parsed.search.toLowerCase();
+
       for (var i = 0; i < BLOCKED_DOMAINS.length; i++) {
         var d = BLOCKED_DOMAINS[i];
         if (host === d || host.endsWith('.' + d)) return true;
+      }
+
+      if (
+        path.includes('/pagead/') ||
+        path.includes('/api/stats/ads') ||
+        path.includes('/get_midroll_info') ||
+        path.includes('/ptracking')
+      ) {
+        return true;
+      }
+
+      if (host.includes('googlevideo.com') && (search.includes('adformat') || search.includes('ctier=') || search.includes('oad='))) {
+        return true;
       }
     } catch (_) {}
     return false;
@@ -173,6 +193,38 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
     try {
       window.dispatchEvent(new CustomEvent('moss-tracker-blocked', { detail: { count: window.__moss_trackers_blocked } }));
     } catch (_) {}
+  }
+
+  // Intercept fetch API
+  if (typeof window.fetch === 'function') {
+    const origFetch = window.fetch;
+    window.fetch = function(resource, init) {
+      var reqUrl = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+      if (isTracker(reqUrl)) {
+        countBlocked();
+        return Promise.resolve(new Response('', { status: 204, statusText: 'Blocked by moss privacy shield' }));
+      }
+      return origFetch.apply(this, arguments);
+    };
+  }
+
+  // Intercept XMLHttpRequest
+  if (typeof window.XMLHttpRequest === 'function') {
+    const origXhrOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      if (isTracker(url)) {
+        countBlocked();
+        this.__moss_blocked = true;
+      }
+      return origXhrOpen.apply(this, arguments);
+    };
+    const origXhrSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function() {
+      if (this.__moss_blocked) {
+        return;
+      }
+      return origXhrSend.apply(this, arguments);
+    };
   }
 
   // Stubs for analytics and tracking
@@ -240,6 +292,66 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
     }
     return origInsertBefore.call(this, newNode, refNode);
   };
+
+  // Specialized YouTube ad blocker
+  try {
+    if (window.location.hostname.includes('youtube.com')) {
+      const ytAdCss = `
+        .video-ads,
+        .ytp-ad-module,
+        .ytp-ad-overlay-container,
+        .ytp-ad-player-overlay,
+        .ytp-ad-player-overlay-layout,
+        ytd-ad-slot-renderer,
+        ytd-banner-promo-renderer,
+        ytd-in-feed-ad-layout-renderer,
+        #player-ads,
+        ytd-promoted-sparkles-web-renderer,
+        ytd-player-legacy-desktop-watch-ads-renderer,
+        #masthead-ad {
+          display: none !important;
+        }
+      `;
+
+      function injectYouTubeStyle() {
+        if (document.getElementById('__moss_yt_ad_style__')) return;
+        const style = document.createElement('style');
+        style.id = '__moss_yt_ad_style__';
+        style.textContent = ytAdCss;
+        (document.head || document.documentElement).appendChild(style);
+      }
+
+      injectYouTubeStyle();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectYouTubeStyle);
+      }
+
+      function handleYouTubeAds() {
+        if (window.__moss_shield_enabled === false) return;
+        const adShowing = document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay');
+        const video = document.querySelector('video');
+        if (adShowing && video) {
+          try {
+            video.playbackRate = 16;
+            video.muted = true;
+            if (Number.isFinite(video.duration) && video.duration > 0) {
+              video.currentTime = video.duration;
+            }
+          } catch (_) {}
+        }
+        const skipButtons = document.querySelectorAll(
+          '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-slot, .ytp-skip-ad-button'
+        );
+        for (var i = 0; i < skipButtons.length; i++) {
+          try {
+            skipButtons[i].click();
+          } catch (_) {}
+        }
+      }
+
+      setInterval(handleYouTubeAds, 150);
+    }
+  } catch (_) {}
 })();
 "#;
 
@@ -1132,19 +1244,27 @@ struct ZapPayload {
 }
 
 #[tauri::command]
-fn apply_tab_boost(app: AppHandle, tab_id: String, css: String) -> Result<(), String> {
+fn apply_tab_boost(
+    app: AppHandle,
+    tab_id: String,
+    css: String,
+    style_id: Option<String>,
+) -> Result<(), String> {
     let tab = match app.get_webview(&tab_label(&tab_id)) {
         Some(w) => w,
         None => return Ok(()),
     };
+    let element_id = style_id.unwrap_or_else(|| "__moss_boost_style__".to_string());
+    let json_id = serde_json::to_string(&element_id)
+        .unwrap_or_else(|_| "\"__moss_boost_style__\"".to_string());
     let json_css = serde_json::to_string(&css).unwrap_or_else(|_| "\"\"".to_string());
     let script = format!(
         r#"(() => {{
   try {{
-    let el = document.getElementById('__moss_boost_style__');
+    let el = document.getElementById({json_id});
     if (!el) {{
       el = document.createElement('style');
-      el.id = '__moss_boost_style__';
+      el.id = {json_id};
       (document.head || document.documentElement).appendChild(el);
     }}
     el.textContent = {json_css};
@@ -1428,6 +1548,76 @@ fn sync_tab_media_state(app: AppHandle, tab_id: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn translate_tab(app: AppHandle, tab_id: String, target_lang: String) -> Result<(), String> {
+    let tab = match app.get_webview(&tab_label(&tab_id)) {
+        Some(w) => w,
+        None => return Ok(()),
+    };
+    let lang_json = serde_json::to_string(&target_lang).unwrap_or_else(|_| "\"pt\"".to_string());
+    let script = format!(
+        r#"(() => {{
+  const targetLang = {lang_json};
+  if (targetLang === "original") {{
+    location.reload();
+    return;
+  }}
+  const existingCombo = document.querySelector('.goog-te-combo');
+  if (existingCombo) {{
+    existingCombo.value = targetLang;
+    existingCombo.dispatchEvent(new Event('change'));
+    return;
+  }}
+  window.__mossGoogleTranslateInit = function() {{
+    try {{
+      new google.translate.TranslateElement({{
+        pageLanguage: 'auto',
+        includedLanguages: 'pt,en,es,fr,de,it,ja',
+        autoDisplay: false
+      }}, '__moss_translate_container__');
+      setTimeout(() => {{
+        const select = document.querySelector('.goog-te-combo');
+        if (select) {{
+          select.value = targetLang;
+          select.dispatchEvent(new Event('change'));
+        }}
+      }}, 400);
+    }} catch (_) {{}}
+  }};
+  let container = document.getElementById('__moss_translate_container__');
+  if (!container) {{
+    container = document.createElement('div');
+    container.id = '__moss_translate_container__';
+    container.style.display = 'none';
+    document.body.appendChild(container);
+  }}
+  const s = document.createElement('script');
+  s.src = 'https://translate.google.com/translate_a/element.js?cb=__mossGoogleTranslateInit';
+  s.onerror = () => {{
+    try {{
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+      let n;
+      const textNodes = [];
+      while ((n = walker.nextNode()) && textNodes.length < 100) {{
+        if (n.nodeValue && n.nodeValue.trim().length > 3) textNodes.push(n);
+      }}
+      for (const node of textNodes) {{
+        const txt = node.nodeValue.trim();
+        fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' + encodeURIComponent(targetLang) + '&dt=t&q=' + encodeURIComponent(txt))
+          .then(r => r.json())
+          .then(d => {{
+            if (d && d[0]) node.nodeValue = d[0].map(x => x[0]).join('');
+          }}).catch(() => {{}});
+      }}
+    }} catch (_) {{}}
+  }};
+  document.body.appendChild(s);
+}})()"#
+    );
+    let _ = tab.eval(&script);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1463,6 +1653,7 @@ pub fn run() {
             set_tab_muted,
             toggle_tab_media_playback,
             sync_tab_media_state,
+            translate_tab,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

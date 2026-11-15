@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instalador moss - Preview</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg-deep: #0a0f0d;
+      --bg-card: rgba(16, 24, 20, 0.85);
+      --border-card: rgba(125, 162, 126, 0.22);
+      --accent: #7da27e;
+      --accent-hover: #91b592;
+      --accent-glow: rgba(125, 162, 126, 0.25);
+      --accent-subtle: rgba(125, 162, 126, 0.12);
+      --fg-primary: #e6ede8;
+      --fg-secondary: #9cb3a2;
+      --fg-muted: #7d8f82;
+      --radius-lg: 20px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    body {
+      background: var(--bg-deep);
+      background-image: 
+        radial-gradient(circle at 50% 20%, rgba(125, 162, 126, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(68, 90, 72, 0.12) 0%, transparent 50%);
+      color: var(--fg-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .badge-preview {
+      position: fixed;
+      top: 16px;
+      left: 20px;
+      background: var(--accent-subtle);
+      border: 1px solid var(--border-card);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-preview::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    /* Window Frame of the Installer */
+    .installer-window {
+      width: 580px;
+      max-width: 95vw;
+      background: var(--bg-card);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      box-shadow: 
+        0 24px 64px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(125, 162, 126, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .window-header {
+      height: 44px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(10, 15, 13, 0.5);
+    }
+
+    .traffic-lights {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .traffic-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      opacity: 0.85;
+      transition: opacity 0.2s;
+    }
+
+    .traffic-dot:hover { opacity: 1; }
+    .dot-close { background: #ff5f56; }
+    .dot-min { background: #ffbd2e; }
+    .dot-max { background: #27c93f; }
+
+    .window-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .installer-body {
+      padding: 40px 44px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .logo-container {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(125, 162, 126, 0.25) 0%, rgba(20, 32, 25, 0.8) 100%);
+      border: 1px solid rgba(125, 162, 126, 0.35);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .logo-container svg {
+      width: 38px;
+      height: 38px;
+      color: var(--accent);
+      filter: drop-shadow(0 2px 8px rgba(125, 162, 126, 0.5));
+    }
+
+    h1.brand-title {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--fg-primary);
+      margin-bottom: 6px;
+    }
+
+    p.brand-subtitle {
+      font-size: 14px;
+      color: var(--fg-secondary);
+      margin-bottom: 32px;
+      font-weight: 400;
+    }
+
+    /* Modern Progress / Status Card */
+    .status-card {
+      width: 100%;
+      background: rgba(10, 15, 13, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 28px;
+      text-align: left;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--fg-primary);
+    }
+
+    .progress-pct {
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 82%;
+      background: linear-gradient(90deg, #6c8f6e 0%, #8db58e 50%, #7da27e 100%);
+      border-radius: 999px;
+      box-shadow: 0 0 12px var(--accent-glow);
+      transition: width 0.4s ease;
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmer 1.8s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .step-item.active {
+      color: var(--fg-primary);
+    }
+
+    .step-item.done {
+      color: var(--fg-secondary);
+    }
+
+    .step-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-icon.done svg { color: var(--accent); }
+    .step-icon.active svg { color: var(--accent); animation: spin 2s infinite linear; }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .options-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 0 4px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--fg-secondary);
+      cursor: pointer;
+    }
+
+    .checkbox-custom {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      background: rgba(125, 162, 126, 0.15);
+      border: 1px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .checkbox-custom svg {
+      width: 12px;
+      height: 12px;
+      color: var(--accent);
+    }
+
+    .install-path-hint {
+      font-size: 11px;
+      color: var(--fg-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .buttons-row {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn:focus-visible, .traffic-dot:focus-visible, .checkbox-label:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--bg-deep), 0 0 0 4px var(--accent);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--fg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--fg-primary);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0b120d;
+      font-weight: 600;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 20px rgba(125, 162, 126, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .footer-meta {
+      margin-top: 24px;
+      font-size: 11px;
+      color: var(--fg-muted);
+      display: flex;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="badge-preview">
+    <span>PREVIEW DO NOVO INSTALADOR PERSONALIZADO · MOSS</span>
+  </div>
+
+  <div class="installer-window">
+    <div class="window-header">
+      <div class="traffic-lights">
+        <button class="traffic-dot dot-close" type="button" aria-label="Fechar"></button>
+        <button class="traffic-dot dot-min" type="button" aria-label="Minimizar"></button>
+        <button class="traffic-dot dot-max" type="button" aria-label="Maximizar"></button>
+      </div>
+      <div class="window-title">moss setup · v1.0.0</div>
+      <div style="width: 52px;"></div>
+    </div>
+
+    <div class="installer-body">
+      <div class="logo-container">
+        <!-- Moss Leaf Icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+          <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        </svg>
+      </div>
+
+      <h1 class="brand-title">moss</h1>
+      <p class="brand-subtitle">navegação minimalista e serena</p>
+
+      <div class="status-card" role="region" aria-label="Progresso da Instalação">
+        <div class="progress-header">
+          <span class="progress-label" id="progress-desc">Instalando componentes nativos...</span>
+          <span class="progress-pct" aria-live="polite">82%</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuenow="82" aria-valuemin="0" aria-valuemax="100" aria-labelledby="progress-desc">
+          <div class="progress-fill"></div>
+        </div>
+
+        <div class="steps-list" role="list">
+          <div class="step-item done" role="listitem">
+            <span class="step-icon done">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span>Verificando arquitetura (Windows x64)...</span>
+          </div>
+          <div class="step-item done" role="listitem">
+            <span class="step-icon done">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span>Extraindo binário otimizado para %LOCALAPPDATA%\Programs\moss</span>
+          </div>
+          <div class="step-item active" role="listitem">
+            <span class="step-icon active">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            </span>
+            <span>Registrando atalhos no Menu Iniciar e Área de Trabalho...</span>
+          </div>
+          <div class="step-item" role="listitem">
+            <span class="step-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+            </span>
+            <span>Inicialização do moss</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="options-row">
+        <label class="checkbox-label" tabindex="0" role="checkbox" aria-checked="true">
+          <div class="checkbox-custom">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span>Abrir o moss automaticamente ao concluir</span>
+        </label>
+        <span class="install-path-hint">currentUser · 1-click</span>
+      </div>
+
+      <div class="buttons-row">
+        <button class="btn btn-secondary" type="button">Cancelar</button>
+        <button class="btn btn-primary" type="button" aria-busy="true">
+          <span>Instalando...</span>
+        </button>
+      </div>
+
+      <div class="footer-meta">
+        <span>Zero Anúncios</span><span>•</span><span>Workspaces</span><span>•</span><span>Zero Bloatware</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

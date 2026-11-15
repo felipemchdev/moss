@@ -23,6 +23,12 @@ const COMMANDS: &[&str] = &[
     "set_site_permission",
     "sync_site_permissions",
     "reset_site_permissions",
+    "apply_tab_boost",
+    "start_element_zapper",
+    "set_tab_muted",
+    "toggle_tab_media_playback",
+    "sync_tab_media_state",
+    "translate_tab",
 ];
 
 fn main() {

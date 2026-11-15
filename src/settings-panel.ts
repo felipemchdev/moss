@@ -382,7 +382,7 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
         ]),
         section("Regras por Domínio", [
           el("p", { class: "settings-toggle-desc" }, [
-            "Ao navegar para domínios configurados, o Moss direciona a aba para o Workspace correspondente.",
+            "Ao navegar para domínios configurados, o moss direciona a aba para o Workspace correspondente.",
           ]),
           rulesListContainer,
           addRuleRow,

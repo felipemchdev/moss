@@ -63,6 +63,8 @@ export interface CommandPaletteActions {
   routeCurrentDomainToCurrentSpace?: () => void;
   openSpaceRoutingSettings?: () => void;
   openWelcomeWizard?: () => void;
+  openPrivateTab?: () => void;
+  translatePage?: () => void;
 }
 
 export interface CommandPaletteController {
@@ -231,6 +233,28 @@ export function createCommandPalette(
         run: () => actions.openTab(),
       },
       {
+        id: "action-new-private-tab",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Nova Aba Anônima",
+        subtitle: "Abrir uma nova aba de navegação anônima (sem histórico)",
+        iconName: "shield",
+        shortcut: ["Ctrl", "Shift", "N"],
+        keywords: ["nova", "aba", "tab", "anonima", "anonimo", "privada", "incognito", "private", "janela"],
+        run: () => (actions.openPrivateTab ? actions.openPrivateTab() : actions.openTab()),
+      },
+      {
+        id: "action-translate-page",
+        category: "actions",
+        categoryLabel: "Ações Rápidas",
+        title: "Traduzir Página",
+        subtitle: "Traduzir a página atual para português ou outro idioma",
+        iconName: "translate",
+        shortcut: ["Ctrl", "Shift", "U"],
+        keywords: ["traduzir", "translate", "idioma", "language", "portugues", "ingles", "traducao"],
+        run: () => actions.translatePage?.(),
+      },
+      {
         id: "action-close-tab",
         category: "actions",
         categoryLabel: "Ações Rápidas",
@@ -323,7 +347,7 @@ export function createCommandPalette(
         id: "action-glance",
         category: "actions",
         categoryLabel: "Ações Rápidas",
-        title: "Espiar URL (Zen Glance)",
+        title: "Espiar URL (Glance)",
         subtitle: "Visualizar link em janela sobreposta sem criar aba permanente",
         iconName: "eye",
         shortcut: ["Ctrl", "Shift", "G"],
@@ -384,7 +408,7 @@ export function createCommandPalette(
         id: "action-open-welcome-wizard",
         category: "actions",
         categoryLabel: "Ações Rápidas",
-        title: "Assistente de Boas-Vindas (Zen Welcome)",
+        title: "Assistente de Boas-Vindas",
         subtitle: "Reiniciar o assistente de configuração inicial e temas",
         iconName: "sparkles",
         keywords: ["welcome", "onboarding", "boas-vindas", "assistente", "setup", "wizard", "inicio"],
@@ -594,7 +618,7 @@ export function createCommandPalette(
         category: "actions",
         categoryLabel: "Ações Rápidas",
         title: "Atalhos de Teclado",
-        subtitle: "Ver todos os atalhos disponíveis no Moss",
+        subtitle: "Ver todos os atalhos disponíveis no moss",
         iconName: "command",
         shortcut: ["Ctrl", "/"],
         keywords: ["atalhos", "shortcuts", "teclado", "ajuda", "comandos"],

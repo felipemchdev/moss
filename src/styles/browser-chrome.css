@@ -1,12 +1,6 @@
-/* ==========================================================================
-   MOSS BROWSER — BROWSER CHROME STYLES (ZEN BROWSER VERTICAL SIDEBAR)
-   Layout: Sidebar esquerda fixa (~260px) + Viewport flutuante à direita
-   Glassmorphism Apple Mac + Zen Browser aesthetic
-   ========================================================================== */
+/* moss - browser chrome styles - layout: sidebar esquerda fixa (~260px) + viewport flutuante a direita - glassmorphism apple mac aesthetic */
 
-/* ==========================================================================
-   CSS VARIABLES — Sidebar & Viewport Specific
-   ========================================================================== */
+/* CSS VARIABLES - Sidebar & Viewport Specific */
 :root {
   /* Sidebar dimensions */
   --sidebar-width: 260px;
@@ -41,9 +35,7 @@
   --sidebar-scrollbar-width: 6px;
 }
 
-/* ==========================================================================
-   APP SHELL — Grid Layout
-   ========================================================================== */
+/* APP SHELL - Grid Layout */
 #app {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
@@ -60,9 +52,7 @@
   grid-template-columns: var(--sidebar-width-collapsed) 1fr;
 }
 
-/* ==========================================================================
-   SIDEBAR — Vertical Zen Browser Style
-   ========================================================================== */
+/* SIDEBAR - Vertical moss Style */
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -100,9 +90,7 @@
   z-index: 2;
 }
 
-/* ==========================================================================
-   SIDEBAR HEADER — Window Controls + Navigation
-   ========================================================================== */
+/* SIDEBAR HEADER - Window Controls + Navigation */
 .sidebar-header {
   display: flex;
   flex-direction: column;
@@ -251,9 +239,7 @@
   fill: none;
 }
 
-/* ==========================================================================
-   OMNIBAR — Pill in Sidebar
-   ========================================================================== */
+/* OMNIBAR - Pill in Sidebar */
 .sidebar-omnibar {
   display: flex;
   align-items: center;
@@ -487,9 +473,7 @@
   transform: rotate(90deg);
 }
 
-/* ==========================================================================
-   PINNED TABS — Squircles Grid
-   ========================================================================== */
+/* PINNED TABS - Squircles Grid */
 .pinned-tabs-section {
   padding: 0 var(--space-3) var(--space-2);
 }
@@ -639,9 +623,7 @@
   fill: none;
 }
 
-/* ==========================================================================
-   TABS LIST — Vertical
-   ========================================================================== */
+/* TABS LIST - Vertical */
 .tabs-section {
   flex: 1;
   display: flex;
@@ -725,7 +707,7 @@
   box-shadow: var(--shadow-focus);
 }
 
-/* Active tab — elevated pill */
+/* Active tab - elevated pill */
 .tab--active {
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-backdrop-strong);
@@ -754,6 +736,45 @@
 @keyframes tab-active-bar-in {
   from { opacity: 0; height: 0; }
   to { opacity: 1; height: 20px; }
+}
+
+/* Private / Incognito Tab - slate dark aesthetic */
+.tab--private {
+  background: rgba(30, 41, 59, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.tab--private:hover:not(.tab--active) {
+  background: rgba(51, 65, 85, 0.65);
+  color: #f8fafc;
+}
+
+.tab--private.tab--active {
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: #f8fafc;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(148, 163, 184, 0.3);
+}
+
+.tab--private.tab--active::before {
+  background: #94a3b8;
+}
+
+.tab-private-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.tab-private-badge svg {
+  width: 13px;
+  height: 13px;
 }
 
 .tab-favicon {
@@ -846,9 +867,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ==========================================================================
-   NEW TAB BUTTON
-   ========================================================================== */
+/* NEW TAB BUTTON */
 .new-tab-section {
   padding: var(--space-2) var(--space-3) var(--space-3);
   border-top: 1px solid var(--glass-border);
@@ -919,9 +938,7 @@
   padding: 0;
 }
 
-/* ==========================================================================
-   BOOKMARKS — Vertical List
-   ========================================================================== */
+/* BOOKMARKS - Vertical List */
 .bookmarks-section {
   padding: 0 var(--space-3) var(--space-3);
   border-top: 1px solid var(--glass-border);
@@ -1076,9 +1093,7 @@
   display: none;
 }
 
-/* ==========================================================================
-   SIDEBAR FOOTER — Settings, Privacy, Downloads
-   ========================================================================== */
+/* SIDEBAR FOOTER - Settings, Privacy, Downloads */
 .sidebar-footer {
   display: flex;
   align-items: center;
@@ -1171,9 +1186,7 @@
   width: 100%;
 }
 
-/* ==========================================================================
-   VIEWPORT — Floating Card (Right Side)
-   ========================================================================== */
+/* VIEWPORT - Floating Card (Right Side) */
 .viewport-area {
   position: relative;
   display: flex;
@@ -1369,9 +1382,7 @@
   100% { transform: translateX(100%) scaleX(0); }
 }
 
-/* ==========================================================================
-   SPLIT VIEW — Side-by-side Navigation (Zen Browser Style)
-   ========================================================================== */
+/* SPLIT VIEW - Side-by-side Navigation */
 
 /* Viewport split container */
 .viewport-split {
@@ -1407,7 +1418,7 @@
   overflow: hidden;
 }
 
-/* Active pane — focus ring + inset glow */
+/* Active pane - focus ring + inset glow */
 .split-pane--active {
   box-shadow: var(--split-pane-active-shadow);
   z-index: 5;
@@ -1792,9 +1803,7 @@
   color: var(--color-fg-tertiary);
 }
 
-/* ==========================================================================
-   COMMAND PALETTE (Spotlight / Raycast Centered Modal)
-   ========================================================================== */
+/* COMMAND PALETTE (Spotlight / Raycast Centered Modal) */
 .command-palette {
   position: fixed;
   top: 15vh;
@@ -2140,9 +2149,7 @@
 }
 
 
-/* ==========================================================================
-   HISTORY PANEL / MODAL (Ctrl+H)
-   ========================================================================== */
+/* HISTORY PANEL / MODAL (Ctrl+H) */
 .history-panel {
   position: fixed;
   top: 0;
@@ -2496,9 +2503,7 @@
   fill: none;
 }
 
-/* ==========================================================================
-   SETTINGS MODAL (Ctrl+,)
-   ========================================================================== */
+/* SETTINGS MODAL (Ctrl+,) */
 .settings-modal {
   position: fixed;
   top: 50%;
@@ -3042,9 +3047,7 @@
   font-family: var(--font-family-mono);
 }
 
-/* ==========================================================================
-   SCROLLBAR STYLING (Glass with fallback)
-   ========================================================================== */
+/* SCROLLBAR STYLING (Glass with fallback) */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-default) transparent;
@@ -3092,9 +3095,7 @@
   background: transparent;
 }
 
-/* ==========================================================================
-   SELECTION (Accessible contrast in both themes)
-   ========================================================================== */
+/* SELECTION (Accessible contrast in both themes) */
 ::selection {
   background: var(--color-accent-glow);
   color: var(--color-fg-inverse);
@@ -3110,9 +3111,7 @@
   color: var(--color-fg-inverse);
 }
 
-/* ==========================================================================
-   TAB CONTEXT MENU (Zen Browser / Glass)
-   ========================================================================== */
+/* TAB CONTEXT MENU (Glass) */
 .tab-context-menu {
   position: fixed;
   z-index: var(--z-popover);
@@ -3164,9 +3163,7 @@
   box-shadow: var(--shadow-focus);
 }
 
-/* ==========================================================================
-   SHORTCUTS MODAL
-   ========================================================================== */
+/* SHORTCUTS MODAL */
 .shortcuts-modal-body {
   flex: 1;
   padding: var(--space-6);
@@ -3255,9 +3252,7 @@
   color: var(--color-fg-secondary);
 }
 
-/* ==========================================================================
-   DOWNLOAD INDICATOR (Pastel Green Glass Pill)
-   ========================================================================== */
+/* DOWNLOAD INDICATOR (Pastel Green Glass Pill) */
 .download-pill {
   position: fixed;
   top: var(--space-3);
@@ -3328,9 +3323,7 @@
 }
 
 
-/* ==========================================================================
-   RESPONSIVE
-   ========================================================================== */
+/* RESPONSIVE */
 @media (max-width: 1024px) {
   :root {
     --sidebar-width: 240px;
@@ -3408,9 +3401,7 @@
   }
 }
 
-/* ==========================================================================
-   PRINT STYLES
-   ========================================================================== */
+/* PRINT STYLES */
 @media print {
   .sidebar,
   .command-palette,
@@ -3459,9 +3450,7 @@
   }
 }
 
-/* ==========================================================================
-   ACCESSIBILITY NOTES
-   ========================================================================== */
+/* ACCESSIBILITY NOTES */
   /*
     Icon-only buttons require aria-label in HTML:
     - .window-btn (close, minimize, maximize)
@@ -3498,9 +3487,7 @@
     <button class="split-toggle-btn" aria-pressed="false" aria-label="Alternar visualização dividida">...</button>
   */
 
-/* ==========================================================================
-   SCROLLBAR STYLING (Glass with fallback)
-   ========================================================================== */
+/* SCROLLBAR STYLING (Glass with fallback) */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-default) transparent;
@@ -3546,9 +3533,7 @@
   background: transparent;
 }
 
-/* ==========================================================================
-   SELECTION (Accessible contrast in both themes)
-   ========================================================================== */
+/* SELECTION (Accessible contrast in both themes) */
 ::selection {
   background: var(--color-accent-glow);
   color: var(--color-fg-inverse);
@@ -3570,9 +3555,7 @@
   }
 }
 
-/* ==========================================================================
-   FOCUS VISIBLE POLYFILL
-   ========================================================================== */
+/* FOCUS VISIBLE POLYFILL */
 :focus:not(:focus-visible) {
   outline: none;
 }
@@ -3582,9 +3565,7 @@
   outline-offset: 2px;
 }
 
-/* ==========================================================================
-   PRIVACY SHIELD (Ad-Block & Anti-Tracking Popover & Badge)
-   ========================================================================== */
+/* PRIVACY SHIELD (Ad-Block & Anti-Tracking Popover & Badge) */
 .shield-popover {
   position: fixed;
   left: calc(var(--sidebar-width) + 12px);
@@ -3670,7 +3651,7 @@
   color: var(--color-fg-secondary);
 }
 
-/* Apple/Zen Switch Toggle */
+/* Apple Switch Toggle */
 .shield-switch {
   position: relative;
   display: inline-block;
@@ -3825,9 +3806,7 @@
   opacity: 0.7;
 }
 
-/* ==========================================================================
-   WORKSPACES (Zen Workspaces)
-   ========================================================================== */
+/* WORKSPACES */
 
 .workspace-header-bar {
   display: flex;
@@ -4213,9 +4192,7 @@
   opacity: 0.9;
 }
 
-/* ==========================================================================
-   FIND IN PAGE (Ctrl+F)
-   ========================================================================== */
+/* FIND IN PAGE (Ctrl+F) */
 
 .find-in-page-bar {
   position: absolute;
@@ -4359,9 +4336,7 @@
   background: var(--color-danger-bg);
 }
 
-/* ==========================================================================
-   READER MODE (Ctrl+Alt+R)
-   ========================================================================== */
+/* READER MODE (Ctrl+Alt+R) */
 
 .reader-view {
   position: absolute;
@@ -4763,9 +4738,40 @@
   height: 14px;
 }
 
-/* ==========================================================================
-   Omnibar Zoom Badge (Fase 12)
-   ========================================================================== */
+/* Omnibar Translate Button */
+.omnibar-translate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition: color var(--motion-fast), background var(--motion-fast), transform var(--motion-spring);
+}
+
+.omnibar-translate-btn:hover {
+  color: var(--color-fg-primary);
+  background: var(--glass-bg-hover);
+}
+
+.omnibar-translate-btn:active {
+  transform: scale(0.92);
+}
+
+.omnibar-translate-btn--active {
+  color: var(--color-accent-primary);
+  background: var(--color-accent-subtle);
+}
+
+.omnibar-translate-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Omnibar Zoom Badge (Fase 12) */
 .omnibar-zoom-badge {
   display: inline-flex;
   align-items: center;
@@ -4798,9 +4804,7 @@
   transform: scale(0.95);
 }
 
-/* ==========================================================================
-   Site Permissions & Security Popover (Fase 13)
-   ========================================================================== */
+/* Site Permissions & Security Popover (Fase 13) */
 .omnibar-security-btn {
   display: flex;
   align-items: center;
@@ -5167,9 +5171,7 @@
   color: var(--color-accent-primary);
 }
 
-/* ==========================================================================
-   SIDEBAR COMPACT MODE (56px) & FLOATING TOP BAR (ZEN COMPACT MODE)
-   ========================================================================== */
+/* SIDEBAR COMPACT MODE (56px) & FLOATING TOP BAR (COMPACT MODE) */
 #app.sidebar-collapsed .sidebar-header {
   padding: var(--space-2) 0;
   align-items: center;
@@ -5180,6 +5182,7 @@
   gap: var(--space-2);
   margin-bottom: 0;
   justify-content: center;
+  width: 100%;
 }
 
 #app.sidebar-collapsed .window-controls {
@@ -5194,9 +5197,10 @@
 }
 
 #app.sidebar-collapsed .sidebar-toggle-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
+  margin: 0 auto;
 }
 
 #app.sidebar-collapsed .nav-row {
@@ -5204,8 +5208,8 @@
 }
 
 #app.sidebar-collapsed .sidebar-omnibar {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   margin: 6px auto;
   padding: 0;
   justify-content: center;
@@ -5243,8 +5247,8 @@
 
 #app.sidebar-collapsed .workspace-pill-btn {
   flex: none;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   margin: 0 auto;
   justify-content: center;
@@ -5267,9 +5271,10 @@
 }
 
 #app.sidebar-collapsed .pinned-tab {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
+  margin: 0 auto;
 }
 
 #app.sidebar-collapsed .tabs-section {
@@ -5277,12 +5282,15 @@
 }
 
 #app.sidebar-collapsed .tab {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   margin: 3px auto;
+  display: flex;
+  align-items: center;
   justify-content: center;
   border-radius: 12px;
+  position: relative;
 }
 
 #app.sidebar-collapsed .tab .tab-title,
@@ -5292,13 +5300,61 @@
 
 #app.sidebar-collapsed .tab-favicon {
   margin: 0;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+#app.sidebar-collapsed .tab--active {
+  padding: 0;
+}
+
+#app.sidebar-collapsed .tab--active::before {
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 24px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  opacity: 1;
+  animation: none;
+}
+
+#app.sidebar-collapsed .tab-audio-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-primary);
+  font-size: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+  margin: 0;
+  opacity: 1;
+  transform: none;
+}
+
+#app.sidebar-collapsed .tab-audio-indicator:hover {
+  transform: scale(1.1);
+  background: var(--color-bg-tertiary);
+}
+
+#app.sidebar-collapsed .tab-audio-indicator svg {
+  width: 10px;
+  height: 10px;
 }
 
 #app.sidebar-collapsed .new-tab-btn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   margin: 4px auto;
   justify-content: center;
@@ -5321,11 +5377,12 @@
 }
 
 #app.sidebar-collapsed .sidebar-footer .footer-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   justify-content: center;
   border-radius: 10px;
+  margin: 0 auto;
 }
 
 .floating-top-bar {
@@ -5463,9 +5520,7 @@
   height: calc(100% - 42px - var(--find-bar-height, 42px));
 }
 
-/* ==========================================================================
-   DOWNLOADS PANEL (FASE 17)
-   ========================================================================== */
+/* DOWNLOADS PANEL (FASE 17) */
 .downloads-panel {
   position: fixed;
   top: 0;
@@ -5666,9 +5721,77 @@
   height: 14px;
 }
 
-/* ==========================================================================
-   ZEN GLANCE / LINK PEEKING (FASE 18)
-   ========================================================================== */
+/* DOWNLOADS PANEL - Header Styles */
+.downloads-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  flex-shrink: 0;
+}
+
+.downloads-panel .panel-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.downloads-panel .panel-header-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-fg-secondary);
+  flex-shrink: 0;
+}
+
+.downloads-panel .panel-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  color: var(--color-fg-primary);
+}
+
+.downloads-panel .panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.downloads-panel .panel-header-btn,
+.downloads-panel .panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-fg-secondary);
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.downloads-panel .panel-header-btn:hover,
+.downloads-panel .panel-close:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-fg-primary);
+}
+
+.downloads-panel .panel-header-btn svg,
+.downloads-panel .panel-close svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* GLANCE / LINK PEEKING (FASE 18) */
 .glance-overlay {
   position: fixed;
   inset: 0;
@@ -5869,9 +5992,7 @@
   overflow: hidden;
 }
 
-/* ==========================================================================
-   Tab Folders & Tab Sleeping (Hibernation)
-   ========================================================================== */
+/* Tab Folders & Tab Sleeping (Hibernation) */
 
 .tab--sleeping {
   opacity: var(--opacity-sleeping, 0.6);
@@ -6062,9 +6183,7 @@
   height: 15px;
 }
 
-/* ==========================================================================
-   Moss Glass Toast Notification (Space Routing & Alerts)
-   ========================================================================== */
+/* moss Glass Toast Notification (Space Routing & Alerts) */
 
 .moss-toast {
   position: fixed;
@@ -6159,9 +6278,7 @@
   height: 12px;
 }
 
-/* ==========================================================================
-   Space Routing Settings Styles
-   ========================================================================== */
+/* Space Routing Settings Styles */
 
 .settings-field--inline {
   flex-direction: row !important;
@@ -6256,9 +6373,7 @@
   width: 160px;
 }
 
-/* ==========================================================================
-   Zen Boosts Popover & Element Zapper Styles
-   ========================================================================== */
+/* Boosts Popover & Element Zapper Styles */
 
 .boosts-popover {
   position: fixed;
@@ -6511,9 +6626,7 @@
   border-color: var(--color-danger);
 }
 
-/* ==========================================================================
-   Sidebar Media Controller Widget & Tab Audio Indicators
-   ========================================================================== */
+/* Sidebar Media Controller Widget & Tab Audio Indicators */
 
 .sidebar-media-widget {
   margin: 8px 10px;
@@ -6666,9 +6779,7 @@
   height: 13px;
 }
 
-/* ==========================================================================
-   Zen Welcome & Onboarding Setup Wizard Styles
-   ========================================================================== */
+/* Welcome & Onboarding Setup Wizard Styles */
 
 .welcome-wizard-backdrop {
   position: fixed;
@@ -7081,6 +7192,156 @@
     padding: 24px 24px;
     min-height: auto;
   }
+}
+
+/* Translate Popover Styles */
+.translate-popover {
+  position: fixed;
+  top: 96px;
+  left: 20px;
+  width: 290px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+  animation: popover-appear var(--duration-fast) var(--ease-out-spring);
+}
+
+.translate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.translate-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.translate-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-primary);
+}
+
+.translate-header-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.translate-header-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-primary);
+}
+
+.translate-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.translate-close-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.translate-close-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.translate-status-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-fg-secondary);
+}
+
+.translate-lang-group {
+  display: flex;
+  gap: 6px;
+}
+
+.translate-lang-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--color-fg-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast), border-color var(--motion-fast);
+  text-align: center;
+}
+
+.translate-lang-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.translate-lang-btn--active {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.translate-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.translate-action-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--motion-fast);
+  text-align: center;
+}
+
+.translate-action-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-fg-primary);
+}
+
+.translate-action-btn--primary {
+  background: var(--color-accent-primary);
+  color: #0d160e;
+  font-weight: var(--font-weight-semibold);
+  border-color: transparent;
+}
+
+.translate-action-btn--primary:hover {
+  filter: brightness(1.1);
+  color: #0d160e;
+}
+
+.translate-action-btn--secondary {
+  border-style: dashed;
 }
 
 

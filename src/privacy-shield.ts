@@ -250,18 +250,17 @@ export function createPrivacyShield(
 }
 
 export const YOUTUBE_AD_CSS = `
-  .video-ads,
-  .ytp-ad-module,
-  .ytp-ad-overlay-container,
-  .ytp-ad-player-overlay,
-  .ytp-ad-player-overlay-layout,
+  #masthead-ad,
+  #player-ads,
   ytd-ad-slot-renderer,
   ytd-banner-promo-renderer,
   ytd-in-feed-ad-layout-renderer,
-  #player-ads,
+  ytd-display-ad-renderer,
   ytd-promoted-sparkles-web-renderer,
-  ytd-player-legacy-desktop-watch-ads-renderer,
-  #masthead-ad {
+  ytd-promoted-video-renderer,
+  ytd-companion-slot-renderer,
+  .ytp-ad-overlay-container,
+  .ytp-ad-overlay-slot {
     display: none !important;
   }
 `;
@@ -269,10 +268,14 @@ export const YOUTUBE_AD_CSS = `
 export function isYouTubeUrl(url: string): boolean {
   if (!url) return false;
   try {
-    const parsed = new URL(url);
-    return parsed.hostname.includes("youtube.com") || parsed.hostname.includes("youtu.be");
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      host === "youtube.com" ||
+      host.endsWith(".youtube.com") ||
+      host === "youtu.be"
+    );
   } catch {
-    return url.includes("youtube.com") || url.includes("youtu.be");
+    return false;
   }
 }
 

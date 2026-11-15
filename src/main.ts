@@ -765,7 +765,15 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   ui.workspaceSection.append(workspaceSwitcher.element);
 
-  const privacyShield = createPrivacyShield(ui.privacyButton, syncWebviewVisibility);
+  function handlePrivacyShieldChange() {
+    syncWebviewVisibility();
+    if (!privacyShield.isEnabled()) return;
+    for (const tab of getTabs()) {
+      if (isYouTubeUrl(tab.url)) injectYouTubeShield(tab.id);
+    }
+  }
+
+  const privacyShield = createPrivacyShield(ui.privacyButton, handlePrivacyShieldChange);
 
   const findInPage = createFindInPage({
     getTargetTabId: () => getTargetTab()?.id ?? null,
@@ -2289,7 +2297,7 @@ window.addEventListener("DOMContentLoaded", () => {
       updateTab(tab.id, { url: payload.url, isLoading: true, title });
       applyZoomForTab(tab.id, payload.url);
       applyBoostToTab(tab.id, payload.url);
-      if (isYouTubeUrl(payload.url)) {
+      if (isYouTubeUrl(payload.url) && privacyShield.isEnabled()) {
         injectYouTubeShield(tab.id);
       }
       return;
@@ -2308,7 +2316,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
     applyZoomForTab(tab.id, payload.url);
     applyBoostToTab(tab.id, payload.url);
-    if (isYouTubeUrl(payload.url)) {
+    if (isYouTubeUrl(payload.url) && privacyShield.isEnabled()) {
       injectYouTubeShield(tab.id);
     }
     if (findInPage.isOpen() && payload.tabId === getTargetTab()?.id) {

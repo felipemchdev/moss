@@ -14,6 +14,15 @@ use tauri::{
 const CHROME_LABEL: &str = "main";
 const TAB_LABEL_PREFIX: &str = "tab-";
 
+#[cfg(windows)]
+mod webview2_blocker;
+
+#[derive(Default)]
+struct BlockerHandle {
+    token: i64,
+    filters: Vec<String>,
+}
+
 #[derive(Clone, Copy, Default, Deserialize, Serialize)]
 struct Viewport {
     x: f64,
@@ -54,6 +63,8 @@ struct BrowserState {
     tab_viewports: Mutex<HashMap<String, Viewport>>,
     shield_enabled: Mutex<bool>,
     site_permissions: Mutex<HashMap<String, DomainPermissions>>,
+    tracker_counts: Mutex<HashMap<String, u32>>,
+    blockers: Mutex<HashMap<String, BlockerHandle>>,
 }
 
 impl Default for BrowserState {
@@ -64,6 +75,8 @@ impl Default for BrowserState {
             tab_viewports: Mutex::new(HashMap::new()),
             shield_enabled: Mutex::new(true),
             site_permissions: Mutex::new(HashMap::new()),
+            tracker_counts: Mutex::new(HashMap::new()),
+            blockers: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -132,103 +145,11 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
   if (window.__moss_shield_injected) return;
   window.__moss_shield_injected = true;
 
-  const BLOCKED_DOMAINS = [
-    'google-analytics.com',
-    'googletagmanager.com',
-    'doubleclick.net',
-    'googlesyndication.com',
-    'googleadservices.com',
-    'connect.facebook.net',
-    'facebook.com/tr',
-    'hotjar.com',
-    'criteo.net',
-    'criteo.com',
-    'adservice.google.com',
-    'outbrain.com',
-    'taboola.com',
-    'adnxs.com',
-    'amazon-adsystem.com',
-    'ads.pubmatic.com',
-    'rubiconproject.com',
-    'scorecardresearch.com',
-    'googleads.g.doubleclick.net',
-    'pagead2.googlesyndication.com',
-    'static.doubleclick.net',
-    'ad.youtube.com'
-  ];
-
-  function isTracker(url) {
-    if (!url || typeof url !== 'string') return false;
-    if (window.__moss_shield_enabled === false) return false;
-    try {
-      var parsed = new URL(url, window.location.href);
-      var host = parsed.hostname.toLowerCase();
-      var path = parsed.pathname.toLowerCase();
-      var search = parsed.search.toLowerCase();
-
-      for (var i = 0; i < BLOCKED_DOMAINS.length; i++) {
-        var d = BLOCKED_DOMAINS[i];
-        if (host === d || host.endsWith('.' + d)) return true;
-      }
-
-      if (
-        path.includes('/pagead/') ||
-        path.includes('/api/stats/ads') ||
-        path.includes('/get_midroll_info') ||
-        path.includes('/ptracking')
-      ) {
-        return true;
-      }
-
-      if (host.includes('googlevideo.com') && (search.includes('adformat') || search.includes('ctier=') || search.includes('oad='))) {
-        return true;
-      }
-    } catch (_) {}
-    return false;
+  function shieldEnabled() {
+    return window.__moss_shield_enabled !== false;
   }
 
-  function countBlocked() {
-    if (window.__moss_shield_enabled === false) return;
-    window.__moss_trackers_blocked = (window.__moss_trackers_blocked || 0) + 1;
-    try {
-      window.dispatchEvent(new CustomEvent('moss-tracker-blocked', { detail: { count: window.__moss_trackers_blocked } }));
-    } catch (_) {}
-  }
-
-  // Intercept fetch API
-  if (typeof window.fetch === 'function') {
-    const origFetch = window.fetch;
-    window.fetch = function(resource, init) {
-      var reqUrl = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
-      if (isTracker(reqUrl)) {
-        countBlocked();
-        return Promise.resolve(new Response('', { status: 204, statusText: 'Blocked by moss privacy shield' }));
-      }
-      return origFetch.apply(this, arguments);
-    };
-  }
-
-  // Intercept XMLHttpRequest
-  if (typeof window.XMLHttpRequest === 'function') {
-    const origXhrOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method, url) {
-      if (isTracker(url)) {
-        countBlocked();
-        this.__moss_blocked = true;
-      }
-      return origXhrOpen.apply(this, arguments);
-    };
-    const origXhrSend = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function() {
-      if (this.__moss_blocked) {
-        return;
-      }
-      return origXhrSend.apply(this, arguments);
-    };
-  }
-
-  // Stubs for analytics and tracking
-  if (window.__moss_shield_enabled !== false) {
+  if (shieldEnabled()) {
     window.ga = window.ga || function() { (window.ga.q = window.ga.q || []).push(arguments); };
     window.ga.l = +new Date();
     window.gtag = window.gtag || function() { (window.dataLayer = window.dataLayer || []).push(arguments); };
@@ -238,120 +159,149 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
     window.fbq.version = '2.0';
   }
 
-  // Intercept document.createElement for <script>
-  const origCreateElement = Document.prototype.createElement;
-  Document.prototype.createElement = function(tagName, options) {
-    const el = origCreateElement.call(this, tagName, options);
-    if (typeof tagName === 'string' && tagName.toLowerCase() === 'script') {
-      const origSetAttribute = el.setAttribute;
-      el.setAttribute = function(name, val) {
-        if (name && name.toLowerCase() === 'src' && isTracker(val)) {
-          countBlocked();
-          return;
-        }
-        return origSetAttribute.call(this, name, val);
-      };
-      let actualSrc = '';
-      Object.defineProperty(el, 'src', {
-        get: function() { return actualSrc; },
-        set: function(val) {
-          if (isTracker(val)) {
-            countBlocked();
-            return;
-          }
-          actualSrc = val;
-          el.setAttribute('src', val);
-        },
-        configurable: true
+  var player = null;
+  var adActive = false;
+  var seekDone = false;
+  var contentDuration = NaN;
+  var adVideo = null;
+  var adMutation = null;
+  var wasMuted = false;
+  var wasPlaybackRate = 1;
+
+  function clickSkip() {
+    var selectors = ['.ytp-ad-skip-button', '.ytp-ad-skip-button-modern', '.ytp-ad-skip-button-slot', '.ytp-skip-ad-button'];
+    for (var i = 0; i < selectors.length; i++) {
+      var button = document.querySelector(selectors[i]);
+      if (button) {
+        try { button.click(); } catch (_) {}
+        return;
+      }
+    }
+  }
+
+  function bufferedCovers(video, target) {
+    var ranges = video.buffered;
+    for (var i = 0; i < ranges.length; i++) {
+      if (ranges.start(i) <= target && ranges.end(i) >= target) return true;
+    }
+    return false;
+  }
+
+  function detachAdVideo() {
+    if (!adVideo) return;
+    adVideo.removeEventListener('timeupdate', adTick);
+    adVideo.removeEventListener('progress', adTick);
+    adVideo.removeEventListener('durationchange', adTick);
+    adVideo = null;
+  }
+
+  function restoreVideo() {
+    if (adVideo) {
+      try { adVideo.playbackRate = wasPlaybackRate; } catch (_) {}
+      try { adVideo.muted = wasMuted; } catch (_) {}
+    }
+    detachAdVideo();
+    if (adMutation) {
+      adMutation.disconnect();
+      adMutation = null;
+    }
+    wasMuted = false;
+    wasPlaybackRate = 1;
+    adActive = false;
+    seekDone = false;
+  }
+
+  function adTick() {
+    if (!player) return;
+    if (!shieldEnabled()) {
+      if (adActive) restoreVideo();
+      return;
+    }
+    var video = player.querySelector('video');
+    if (!player.classList.contains('ad-showing')) {
+      if (adActive) restoreVideo();
+      if (video && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0) {
+        contentDuration = video.duration;
+      }
+      return;
+    }
+    if (!video) return;
+    if (!adActive) {
+      adActive = true;
+      seekDone = false;
+      adVideo = video;
+      wasMuted = !!video.muted;
+      wasPlaybackRate = video.playbackRate || 1;
+      adVideo.addEventListener('timeupdate', adTick);
+      adVideo.addEventListener('progress', adTick);
+      adVideo.addEventListener('durationchange', adTick);
+      adMutation = new MutationObserver(function() {
+        if (player && player.classList.contains('ad-showing')) adTick();
       });
+      adMutation.observe(player, { childList: true, subtree: true });
     }
-    return el;
+    var isSsai = Number.isFinite(video.duration) && Number.isFinite(contentDuration) && contentDuration > 0 && video.duration >= contentDuration - 1;
+    if (isSsai) {
+      clickSkip();
+      return;
+    }
+    clickSkip();
+    try { video.playbackRate = 16; } catch (_) {}
+    try { video.muted = true; } catch (_) {}
+    if (seekDone) return;
+    if (video.readyState < 2) return;
+    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+    if (!Number.isFinite(contentDuration) || contentDuration <= 0) return;
+    if (video.duration >= contentDuration - 1) return;
+    var target = Math.max(0, video.duration - 0.1);
+    if (!bufferedCovers(video, target)) return;
+    try {
+      video.currentTime = target;
+      seekDone = true;
+    } catch (_) {}
+  }
+
+  function attachPlayer() {
+    if (player) return;
+    player = document.getElementById('movie_player');
+    if (!player) return;
+    var video = player.querySelector('video');
+    if (video && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0) {
+      contentDuration = video.duration;
+    }
+    new MutationObserver(adTick).observe(player, { attributes: true, attributeFilter: ['class'] });
+    adTick();
+  }
+
+  window.__moss_set_shield_state = function(enabled) {
+    window.__moss_shield_enabled = enabled;
+    if (!enabled) {
+      var style = document.getElementById('__moss_yt_ad_style__');
+      if (style) style.remove();
+      restoreVideo();
+      return;
+    }
+    attachPlayer();
+    adTick();
   };
 
-  // Intercept Node.prototype.appendChild & insertBefore
-  const origAppendChild = Node.prototype.appendChild;
-  Node.prototype.appendChild = function(child) {
-    if (child && child.nodeName === 'SCRIPT') {
-      const src = child.src || child.getAttribute('src');
-      if (isTracker(src)) {
-        countBlocked();
-        return child;
-      }
-    }
-    return origAppendChild.call(this, child);
-  };
+  var host = location.hostname;
+  var isYouTubeHost = host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be';
+  if (!isYouTubeHost) return;
 
-  const origInsertBefore = Node.prototype.insertBefore;
-  Node.prototype.insertBefore = function(newNode, refNode) {
-    if (newNode && newNode.nodeName === 'SCRIPT') {
-      const src = newNode.src || newNode.getAttribute('src');
-      if (isTracker(src)) {
-        countBlocked();
-        return newNode;
-      }
-    }
-    return origInsertBefore.call(this, newNode, refNode);
-  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachPlayer);
+  } else {
+    attachPlayer();
+  }
 
-  // Specialized YouTube ad blocker
-  try {
-    if (window.location.hostname.includes('youtube.com')) {
-      const ytAdCss = `
-        .video-ads,
-        .ytp-ad-module,
-        .ytp-ad-overlay-container,
-        .ytp-ad-player-overlay,
-        .ytp-ad-player-overlay-layout,
-        ytd-ad-slot-renderer,
-        ytd-banner-promo-renderer,
-        ytd-in-feed-ad-layout-renderer,
-        #player-ads,
-        ytd-promoted-sparkles-web-renderer,
-        ytd-player-legacy-desktop-watch-ads-renderer,
-        #masthead-ad {
-          display: none !important;
-        }
-      `;
-
-      function injectYouTubeStyle() {
-        if (document.getElementById('__moss_yt_ad_style__')) return;
-        const style = document.createElement('style');
-        style.id = '__moss_yt_ad_style__';
-        style.textContent = ytAdCss;
-        (document.head || document.documentElement).appendChild(style);
-      }
-
-      injectYouTubeStyle();
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', injectYouTubeStyle);
-      }
-
-      function handleYouTubeAds() {
-        if (window.__moss_shield_enabled === false) return;
-        const adShowing = document.querySelector('.ad-showing, .ad-interrupting, .ytp-ad-player-overlay');
-        const video = document.querySelector('video');
-        if (adShowing && video) {
-          try {
-            video.playbackRate = 16;
-            video.muted = true;
-            if (Number.isFinite(video.duration) && video.duration > 0) {
-              video.currentTime = video.duration;
-            }
-          } catch (_) {}
-        }
-        const skipButtons = document.querySelectorAll(
-          '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-slot, .ytp-skip-ad-button'
-        );
-        for (var i = 0; i < skipButtons.length; i++) {
-          try {
-            skipButtons[i].click();
-          } catch (_) {}
-        }
-      }
-
-      setInterval(handleYouTubeAds, 150);
-    }
-  } catch (_) {}
+  if (!player) {
+    var bootObserver = new MutationObserver(function() {
+      attachPlayer();
+      if (player) bootObserver.disconnect();
+    });
+    bootObserver.observe(document.documentElement || document, { childList: true, subtree: true });
+  }
 })();
 "#;
 
@@ -413,7 +363,8 @@ fn create_tab_webview<R: Runtime>(
         shield_on, TRACKER_BLOCKER_SCRIPT
     );
 
-    let builder = WebviewBuilder::new(tab_label(tab_id), WebviewUrl::External(url))
+    let blank = Url::parse("about:blank").map_err(|err| err.to_string())?;
+    let builder = WebviewBuilder::new(tab_label(tab_id), WebviewUrl::External(blank))
         .initialization_script(&init_script)
         .on_download(move |_webview, event| {
             match event {
@@ -459,6 +410,9 @@ fn create_tab_webview<R: Runtime>(
             }
         })
         .on_page_load(move |webview, payload| {
+            if payload.url().scheme() == "about" {
+                return;
+            }
             let Some(tab_id) = tab_id_of(&webview) else { return };
             let state = match payload.event() {
                 PageLoadEvent::Started => "started",
@@ -469,26 +423,37 @@ fn create_tab_webview<R: Runtime>(
                 "tab://load",
                 TabLoadPayload { tab_id: tab_id.clone(), url: payload.url().to_string(), state },
             );
-            if payload.event() == PageLoadEvent::Finished {
-                let count_app = load_app.clone();
-                let count_tab_id = tab_id;
-                let _ = webview.eval_with_callback(
-                    "(window.__moss_trackers_blocked || 0).toString()",
-                    move |res| {
-                        let count = res.trim_matches('"').parse::<u32>().unwrap_or(0);
-                        emit_to_chrome(
-                            &count_app,
-                            "tracker-blocked-count",
-                            TrackerCountPayload {
-                                tab_id: count_tab_id.clone(),
-                                count,
-                            },
-                        );
-                    },
-                );
+            match payload.event() {
+                PageLoadEvent::Started => {
+                    if let Ok(mut counts) = load_app.state::<BrowserState>().tracker_counts.lock() {
+                        counts.insert(tab_id.clone(), 0);
+                    }
+                    emit_to_chrome(
+                        &load_app,
+                        "tracker-blocked-count",
+                        TrackerCountPayload { tab_id, count: 0 },
+                    );
+                }
+                PageLoadEvent::Finished => {
+                    let count = load_app
+                        .state::<BrowserState>()
+                        .tracker_counts
+                        .lock()
+                        .ok()
+                        .and_then(|counts| counts.get(&tab_id).copied())
+                        .unwrap_or(0);
+                    emit_to_chrome(
+                        &load_app,
+                        "tracker-blocked-count",
+                        TrackerCountPayload { tab_id, count },
+                    );
+                }
             }
         })
         .on_document_title_changed(move |webview, title| {
+            if webview.url().map(|url| url.scheme() == "about").unwrap_or(false) {
+                return;
+            }
             let Some(tab_id) = tab_id_of(&webview) else { return };
             emit_to_chrome(&title_app, "tab://title", TabTitlePayload { tab_id, title });
         })
@@ -526,9 +491,19 @@ fn create_tab_webview<R: Runtime>(
             }
         });
 
-    window
+    let webview = window
         .add_child(builder, viewport.position(), viewport.size())
-        .map_err(|err| err.to_string())
+        .map_err(|err| err.to_string())?;
+
+    #[cfg(windows)]
+    webview2_blocker::attach(app, tab_id, &webview);
+
+    if let Err(err) = webview.navigate(url) {
+        let _ = webview.close();
+        return Err(err.to_string());
+    }
+
+    Ok(webview)
 }
 
 #[tauri::command]
@@ -646,15 +621,37 @@ fn show_tabs(
 }
 
 #[tauri::command]
-fn close_tab(app: AppHandle, state: State<'_, BrowserState>, tab_id: String) -> Result<(), String> {
+async fn close_tab(
+    app: AppHandle,
+    state: State<'_, BrowserState>,
+    tab_id: String,
+) -> Result<(), String> {
     if let Ok(mut shown) = state.shown_tabs.lock() {
         shown.retain(|id| id != &tab_id);
     }
     if let Ok(mut viewports) = state.tab_viewports.lock() {
         viewports.remove(&tab_id);
     }
+    if let Ok(mut counts) = state.tracker_counts.lock() {
+        counts.remove(&tab_id);
+    }
+
+    #[cfg(windows)]
+    let handle = state
+        .blockers
+        .lock()
+        .ok()
+        .and_then(|mut blockers| blockers.remove(&tab_id));
+
     match app.get_webview(&tab_label(&tab_id)) {
-        Some(webview) => webview.close().map_err(|err| err.to_string()),
+        Some(webview) => {
+            #[cfg(windows)]
+            if let Some(handle) = handle {
+                let _ = webview
+                    .with_webview(move |platform| webview2_blocker::detach(platform, handle));
+            }
+            webview.close().map_err(|err| err.to_string())
+        }
         None => Ok(()),
     }
 }
@@ -692,7 +689,9 @@ fn set_privacy_shield(
     enabled: bool,
 ) -> Result<(), String> {
     *state.shield_enabled.lock().map_err(|err| err.to_string())? = enabled;
-    let script = format!("window.__moss_shield_enabled = {};", enabled);
+    let script = format!(
+        "window.__moss_shield_enabled = {enabled}; if (window.__moss_set_shield_state) window.__moss_set_shield_state({enabled});"
+    );
     for webview in tab_webviews(&app) {
         let _ = webview.eval(&script);
     }
@@ -700,31 +699,29 @@ fn set_privacy_shield(
 }
 
 #[tauri::command]
-fn sync_tab_trackers_blocked(app: AppHandle, tab_id: String) -> Result<(), String> {
-    let tab = get_tab(&app, &tab_id)?;
-    let app_clone = app.clone();
-    let tab_id_clone = tab_id;
-    let _ = tab.eval_with_callback(
-        "(window.__moss_trackers_blocked || 0).toString()",
-        move |res| {
-            let count = res.trim_matches('"').parse::<u32>().unwrap_or(0);
-            emit_to_chrome(
-                &app_clone,
-                "tracker-blocked-count",
-                TrackerCountPayload {
-                    tab_id: tab_id_clone.clone(),
-                    count,
-                },
-            );
-        },
+fn sync_tab_trackers_blocked(
+    app: AppHandle,
+    state: State<'_, BrowserState>,
+    tab_id: String,
+) -> Result<(), String> {
+    let count = state
+        .tracker_counts
+        .lock()
+        .ok()
+        .and_then(|counts| counts.get(&tab_id).copied())
+        .unwrap_or(0);
+    emit_to_chrome(
+        &app,
+        "tracker-blocked-count",
+        TrackerCountPayload { tab_id, count },
     );
     Ok(())
 }
 
 #[tauri::command]
-fn reset_trackers_count(app: AppHandle) -> Result<(), String> {
-    for webview in tab_webviews(&app) {
-        let _ = webview.eval("window.__moss_trackers_blocked = 0;");
+fn reset_trackers_count(state: State<'_, BrowserState>) -> Result<(), String> {
+    if let Ok(mut counts) = state.tracker_counts.lock() {
+        counts.clear();
     }
     Ok(())
 }

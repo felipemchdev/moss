@@ -34,7 +34,6 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let unlisten: UnlistenFn | null = null;
 
-  // 1. Elements
   const searchIconEl = el("span", { class: "find-in-page-icon" }, [icon("search")]);
 
   const inputEl = el("input", {

@@ -137,7 +137,6 @@
   --glass-shadow-strong:  0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--glass-border-strong);
   --glass-shadow-hover:   0 12px 40px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--color-border-focus);
 
-  /* Typography */
   --font-family-sans:  'Inter', 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-family-mono:  'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, SFMono-Regular, Consolas, monospace;
   --font-family-ui:    var(--font-family-sans);
@@ -185,7 +184,6 @@
   --space-20:  5rem;     /* 80px */
   --space-24:  6rem;     /* 96px */
 
-  /* Border Radius */
   --radius-none:     0;
   --radius-xs:       0.125rem;  /* 2px */
   --radius-sm:       0.25rem;   /* 4px */

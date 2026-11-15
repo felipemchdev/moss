@@ -141,7 +141,6 @@ function historyOf(tabId: string): NavHistory {
 }
 
 function buildChrome(root: HTMLElement) {
-  // 1. Window controls
   const closeWindowBtn = el("button", {
     class: "window-btn window-btn--close",
     type: "button",
@@ -188,7 +187,6 @@ function buildChrome(root: HTMLElement) {
     [windowControlsEl, sidebarToggleBtn],
   );
 
-  // 2. Navigation buttons
   const navButtons = {} as Record<NavAction, HTMLButtonElement>;
   for (const { action, label, icon: iconName } of NAV_BUTTONS) {
     navButtons[action] = el(
@@ -199,13 +197,11 @@ function buildChrome(root: HTMLElement) {
   }
   const navRow = el("div", { class: "nav-row" }, Object.values(navButtons));
 
-  // 3. Sidebar header
   const sidebarHeader = el("div", { class: "sidebar-header", "data-tauri-drag-region": "" }, [
     sidebarHeaderTop,
     navRow,
   ]);
 
-  // 4. Sidebar omnibar
   const omnibarInput = el("input", {
     class: "omnibar-input",
     type: "text",
@@ -288,7 +284,6 @@ function buildChrome(root: HTMLElement) {
     el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarTranslateBtn, omnibarSplitBtn, bookmarkToggle, boostsButton]),
   ]);
 
-  // 5. Pinned tabs section
   const pinnedTabsLabel = el("div", { class: "pinned-tabs-label" }, ["Fixadas"]);
   const pinnedTabsGrid = el("div", {
     class: "pinned-tabs-grid",
@@ -300,7 +295,6 @@ function buildChrome(root: HTMLElement) {
     pinnedTabsGrid,
   ]);
 
-  // 6. Tab bar, new tab & new folder buttons
   const newTabButton = el(
     "button",
     { class: "new-tab-btn tab-new-btn", type: "button", "aria-label": "Nova aba", title: "Nova aba (Ctrl+T)" },
@@ -315,7 +309,6 @@ function buildChrome(root: HTMLElement) {
   const tabList = el("div", { class: "tabs-list tab-list", role: "tablist" });
   const tabBar = el("div", { class: "tabs-section tab-bar" }, [tabList, newTabSection]);
 
-  // 7. Bookmarks bar
   const bookmarksList = el("ul", { class: "bookmarks-list" });
   const bookmarksBar = el(
     "nav",
@@ -328,7 +321,6 @@ function buildChrome(root: HTMLElement) {
     ],
   );
 
-  // 8. Sidebar footer
   const toggleAttrs = { type: "button", [PANEL_TOGGLE_ATTR]: "" };
   const splitButton = el(
     "button",
@@ -389,17 +381,14 @@ function buildChrome(root: HTMLElement) {
     downloadsButton,
   ]);
 
-  // 8.5. Workspace section
   const workspaceSection = el("div", { class: "workspace-section" });
 
-  // 8.6. Media Controller Widget
   const mediaWidget = createMediaWidget({
     onSelectTab(tabId) {
       selectTab(tabId);
     },
   });
 
-  // 9. Assemble sidebar
   const sidebar = el("aside", { class: "sidebar" }, [
     sidebarHeader,
     omnibar,
@@ -411,7 +400,6 @@ function buildChrome(root: HTMLElement) {
     sidebarFooter,
   ]);
 
-  // 10. Floating top bar for compact mode
   const floatingBackBtn = el(
     "button",
     { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Voltar", title: "Voltar (Alt+←)", disabled: "" },
@@ -492,7 +480,6 @@ function buildChrome(root: HTMLElement) {
     ]),
   ]);
 
-  // 11. Main view with floating webview container
   const emptyState = el("div", { class: "viewport-empty empty-state" }, [
     el("h1", { class: "viewport-empty-title empty-state-title" }, ["moss"]),
     el("p", { class: "viewport-empty-hint empty-state-hint" }, ["Digite um endereço na omnibar para começar."]),

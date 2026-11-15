@@ -49,7 +49,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     closeBtn,
   ]);
 
-  // Zapper action hero button
   const zapperBtn = el(
     "button",
     { class: "boosts-zapper-hero-btn", type: "button" },
@@ -62,7 +61,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     ],
   );
 
-  // Smart dark mode toggle
   const darkToggle = el("input", {
     type: "checkbox",
     class: "boosts-switch",
@@ -77,7 +75,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     darkToggle,
   ]);
 
-  // Sepia toggle
   const sepiaToggle = el("input", {
     type: "checkbox",
     class: "boosts-switch",
@@ -92,7 +89,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     sepiaToggle,
   ]);
 
-  // Brightness slider
   const brightnessSlider = el("input", {
     type: "range",
     min: "-50",
@@ -111,7 +107,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     brightnessSlider,
   ]);
 
-  // Contrast slider
   const contrastSlider = el("input", {
     type: "range",
     min: "-50",
@@ -130,7 +125,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     contrastSlider,
   ]);
 
-  // Custom CSS area
   const cssInput = el("textarea", {
     class: "boosts-css-textarea",
     placeholder: "/* CSS customizado para este site */\nbody {\n  /* ... */\n}",
@@ -142,7 +136,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     cssInput,
   ]);
 
-  // Zapped count and restore
   const zappedStatus = el("span", { class: "boosts-zapped-status" }, [""]);
   const restoreZapsBtn = el(
     "button",
@@ -152,7 +145,6 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
 
   const zapsRow = el("div", { class: "boosts-zaps-row" }, [zappedStatus, restoreZapsBtn]);
 
-  // Reset button
   const resetBtn = el(
     "button",
     { class: "boosts-reset-btn", type: "button" },

@@ -110,7 +110,6 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     }, 6000);
   }
 
-  // 1. Bookmarks export/import
   const exportBookmarksBtn = el(
     "button",
     { class: "settings-action-btn settings-action-btn--primary", type: "button" },
@@ -183,7 +182,6 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     bookmarksFileInput.value = "";
   });
 
-  // 2. Full backup export/restore
   const exportBackupBtn = el(
     "button",
     { class: "settings-action-btn settings-action-btn--primary", type: "button" },

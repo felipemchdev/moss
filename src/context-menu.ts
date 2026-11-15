@@ -48,7 +48,6 @@ export function createTabContextMenu(
     style: "display: none;",
   });
 
-  // Pin button is dynamic - rebuilt on each open
   let pinButton: HTMLButtonElement | null = null;
   let splitButton: HTMLButtonElement | null = null;
   let reopenButton: HTMLButtonElement | null = null;
@@ -61,7 +60,6 @@ export function createTabContextMenu(
     { label: "Fechar outras abas", action: actions.onCloseOthers },
   ];
 
-  // Build static items
   for (const option of staticOptions) {
     const itemButton = el(
       "button",
@@ -77,7 +75,6 @@ export function createTabContextMenu(
     element.append(itemButton);
   }
 
-  // Pin button (prepended dynamically before first item)
   function buildPinButton(tabId: string) {
     if (pinButton) pinButton.remove();
     const label = actions.isPinned(tabId) ? "Desafixar aba" : "Fixar aba";
@@ -95,7 +92,6 @@ export function createTabContextMenu(
     element.prepend(pinButton);
   }
 
-  // Split view toggle button
   function buildSplitButton(tabId: string) {
     if (splitButton) splitButton.remove();
     if (!actions.onToggleSplit) return;
@@ -116,7 +112,6 @@ export function createTabContextMenu(
     element.append(splitButton);
   }
 
-  // Reopen closed tab button
   function buildReopenButton() {
     if (reopenButton) reopenButton.remove();
     if (!actions.onReopenClosedTab) return;
@@ -135,7 +130,6 @@ export function createTabContextMenu(
     element.append(reopenButton);
   }
 
-  // Glance / Peek button
   function buildGlanceButton(tabId: string) {
     if (glanceButton) glanceButton.remove();
     if (!actions.onGlanceTab) return;

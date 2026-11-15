@@ -169,7 +169,6 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 
 ; Installer pages, must be ordered as they appear
 
-; --- moss Custom Modern UI 2 Theme ---
 !define MUI_BGCOLOR "0F1411"
 !define MUI_TEXTCOLOR "DCE2DE"
 !define MUI_FINISHPAGE_LINK_COLOR "7DA27E"

@@ -34,7 +34,7 @@ export interface ParsedHistoryItem {
   visitedAt: number;
 }
 
-export interface MossBackupData {
+export interface BackupData {
   version: 1;
   app: "moss";
   exportedAt: number;
@@ -107,7 +107,7 @@ export function exportBackupToJson(
   bookmarks: readonly Bookmark[],
   history: readonly HistoryEntry[],
 ): string {
-  const backup: MossBackupData = {
+  const backup: BackupData = {
     version: 1,
     app: "moss",
     exportedAt: Date.now(),

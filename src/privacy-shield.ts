@@ -49,7 +49,6 @@ export function createPrivacyShield(
 
   invoke("set_privacy_shield", { enabled }).catch(() => {});
 
-  // 1. Badge element over sidebar button
   const badge = el(
     "span",
     {
@@ -62,7 +61,6 @@ export function createPrivacyShield(
   anchorButton.style.position = "relative";
   anchorButton.append(badge);
 
-  // 2. Popover elements
   const headerIcon = el(
     "span",
     { class: `shield-popover-icon ${enabled ? "shield-popover-icon--active" : "shield-popover-icon--inactive"}` },

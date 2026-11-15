@@ -36,7 +36,6 @@ const AVAILABLE_ICONS: readonly { name: IconName; label: string }[] = [
 export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): WorkspaceSwitcher {
   let open = false;
 
-  // 1. Sidebar Header pill
   const activeIconEl = el("span", { class: "workspace-pill-icon" }, [icon("leaf")]);
   const activeLabelEl = el("span", { class: "workspace-pill-name" }, ["Pessoal"]);
   const chevronEl = el("span", { class: "workspace-pill-chevron" }, [icon("chevronDown")]);
@@ -82,7 +81,6 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
     nextBtn,
   ]);
 
-  // 2. Popover Dialog
   const popover = el("div", {
     class: "workspace-popover",
     role: "dialog",

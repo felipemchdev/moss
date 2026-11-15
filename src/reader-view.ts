@@ -114,7 +114,6 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
     }
   }
 
-  // 1. Toolbar controls
   const fontSansBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "sans", role: "radio", "aria-label": "Fonte sem serifa" }, ["Sans"]);
   const fontSerifBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "serif", role: "radio", "aria-label": "Fonte com serifa" }, ["Serif"]);
   const fontMonoBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "mono", role: "radio", "aria-label": "Fonte monoespaçada" }, ["Mono"]);
@@ -205,7 +204,6 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
 
   const toolbar = el("header", { class: "reader-toolbar" }, [toolbarPill]);
 
-  // 2. Article content elements
   const siteNameEl = el("span", { class: "reader-site-name" });
   const metaDotEl = el("span", { class: "reader-meta-dot" }, ["•"]);
   const readingTimeEl = el("span", { class: "reader-reading-time" });

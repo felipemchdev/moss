@@ -707,7 +707,6 @@
   box-shadow: var(--shadow-focus);
 }
 
-/* Active tab - elevated pill */
 .tab--active {
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-backdrop-strong);
@@ -857,7 +856,6 @@
   fill: none;
 }
 
-/* Tab loading spinner */
 .tab--loading .tab-favicon {
   animation: tab-loading-spin 1s var(--ease-linear) infinite;
 }
@@ -4771,7 +4769,6 @@
   height: 14px;
 }
 
-/* Omnibar Zoom Badge (Fase 12) */
 .omnibar-zoom-badge {
   display: inline-flex;
   align-items: center;
@@ -4804,7 +4801,6 @@
   transform: scale(0.95);
 }
 
-/* Site Permissions & Security Popover (Fase 13) */
 .omnibar-security-btn {
   display: flex;
   align-items: center;
@@ -5520,7 +5516,6 @@
   height: calc(100% - 42px - var(--find-bar-height, 42px));
 }
 
-/* DOWNLOADS PANEL (FASE 17) */
 .downloads-panel {
   position: fixed;
   top: 0;
@@ -5791,7 +5786,6 @@
   fill: none;
 }
 
-/* GLANCE / LINK PEEKING (FASE 18) */
 .glance-overlay {
   position: fixed;
   inset: 0;
@@ -7171,7 +7165,6 @@
   padding: 10px 24px;
 }
 
-/* Responsive Welcome Wizard (D3) */
 @media (max-width: 800px) {
   .welcome-theme-grid {
     grid-template-columns: repeat(2, 1fr);

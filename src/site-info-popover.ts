@@ -93,7 +93,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
     const security = getSecurityStatus(currentUrl);
     const permissions = getPermissionsForDomain(domain);
 
-    // 1. Header with Close Button
     const closeBtn = el(
       "button",
       {
@@ -119,7 +118,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
 
     const securityDesc = el("p", { class: "site-info-desc" }, [security.sublabel]);
 
-    // 2. Trackers & Privacy Card
     const privacyCard = el("div", { class: "site-info-privacy-card" }, [
       el("div", { class: "site-info-privacy-icon" }, [icon("shield")]),
       el("div", { class: "site-info-privacy-text" }, [
@@ -130,7 +128,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       ]),
     ]);
 
-    // 3. Permissions Section
     const permKeys: PermissionKey[] = ["camera", "microphone", "geolocation", "notifications"];
     const permRows = permKeys.map((key) => {
       const meta = PERMISSION_LABELS[key];
@@ -184,7 +181,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       el("div", { class: "site-perm-list" }, permRows),
     ]);
 
-    // 4. Clear Cookies & Cache Section
     const clearDesc = el("p", { class: "site-clear-desc" }, [
       "Limpará cookies, cache e armazenamento local apenas deste site.",
     ]);
@@ -248,7 +244,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       clearActionRow,
     ]);
 
-    // 5. Reset Permissions Button (if domain has custom permissions)
     const resetBtn = el(
       "button",
       {

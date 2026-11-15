@@ -92,7 +92,6 @@ function calculateScore(item: PaletteItem, query: string, terms: string[]): numb
 
   let score = 0;
 
-  // Exact match
   if (normTitle === normQuery) score += 100;
   else if (normTitle.startsWith(normQuery)) score += 60;
   else if (normTitle.includes(normQuery)) score += 30;

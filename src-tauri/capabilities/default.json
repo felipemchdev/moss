@@ -15,6 +15,7 @@
     "allow-go-forward",
     "allow-show-tab",
     "allow-show-tabs",
+    "allow-set-taskbar-active-tab",
     "allow-close-tab",
     "allow-minimize-window",
     "allow-toggle-maximize-window",

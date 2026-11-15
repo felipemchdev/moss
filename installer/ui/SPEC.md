@@ -105,6 +105,6 @@ Substituir o wizard MUI2 atual, que mostra Welcome, Reinstall, InstFiles e Finis
 - Layout cabe em 480x300 sem scroll.
 - Todos os textos em PT-BR e EN.
 - Troca de idioma funciona instantaneamente em todos os estados.
-- Moss mark usado no header e no centro.
+- moss mark usado no header e no centro.
 - Rodape com ano 2026.
 - DESIGN REV aprova ergonomia, contraste e consistencia com o app.

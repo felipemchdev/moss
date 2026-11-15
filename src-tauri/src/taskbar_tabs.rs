@@ -3,14 +3,14 @@ use std::sync::OnceLock;
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, Runtime};
-use windows::core::w;
+use windows::core::{w, PCWSTR};
 use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::HBRUSH;
 use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Shell::{ITaskbarList3, TaskbarList};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, RegisterClassW,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, LoadIconW, RegisterClassW,
     SetWindowLongPtrW, CREATESTRUCTW, GWLP_USERDATA, WA_ACTIVE, WINDOW_EX_STYLE, WM_ACTIVATE,
     WM_NCCREATE, WM_NCDESTROY, WNDCLASSW, WS_OVERLAPPED,
 };
@@ -118,11 +118,19 @@ fn ensure_class() {
         let Ok(module) = (unsafe { GetModuleHandleW(None) }) else {
             return;
         };
+        let icon = unsafe {
+            LoadIconW(
+                Some(HINSTANCE(module.0)),
+                PCWSTR(32512 as usize as *const u16),
+            )
+        }
+        .unwrap_or_default();
         let class = WNDCLASSW {
             lpfnWndProc: Some(proxy_wndproc),
             hInstance: HINSTANCE(module.0),
+            hIcon: icon,
             hbrBackground: HBRUSH::default(),
-            lpszClassName: w!("MossTabProxy"),
+            lpszClassName: w!("mossTabProxy"),
             ..Default::default()
         };
         unsafe {
@@ -139,7 +147,7 @@ fn create_proxy(main_window: HWND, context: ProxyContext) -> Option<HWND> {
     let result = unsafe {
         CreateWindowExW(
             WINDOW_EX_STYLE(0),
-            w!("MossTabProxy"),
+            w!("mossTabProxy"),
             w!("moss tab"),
             WS_OVERLAPPED,
             0,

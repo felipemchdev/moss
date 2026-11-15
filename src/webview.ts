@@ -58,6 +58,8 @@ export const webview = {
     call("start_element_zapper", { tabId }),
   setTabMuted: (tabId: string, muted: boolean) =>
     call("set_tab_muted", { tabId, muted }),
+  setTaskbarActiveTab: (tabId: string) =>
+    call("set_taskbar_active_tab", { tabId }),
   toggleTabMediaPlayback: (tabId: string) =>
     call("toggle_tab_media_playback", { tabId }),
   syncTabMediaState: (tabId: string) =>

@@ -139,6 +139,25 @@ export async function setTabZoom(tabId: string, factor: number, url?: string | n
   return clamped;
 }
 
+export function syncZoomFromWebview(
+  tabId: string,
+  factor: number,
+  url?: string | null,
+): number {
+  const safeFactor =
+    typeof factor === "number" && isFinite(factor) && factor > 0 ? factor : DEFAULT_ZOOM;
+  const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, safeFactor));
+  tabZooms.set(tabId, clamped);
+
+  const domain = getDomainFromUrl(url);
+  if (domain) {
+    saveDomainZoom(domain, clamped);
+  }
+
+  notify(tabId, clamped);
+  return clamped;
+}
+
 export async function zoomIn(tabId: string, url?: string | null): Promise<number> {
   const current = getZoomForTab(tabId, url);
   const next = getNextZoomIn(current);

@@ -91,9 +91,9 @@ import {
   clearTabZoom,
   formatZoomPercent,
   getZoomForTab,
-  isDefaultZoom,
   resetZoom,
   subscribeZoom,
+  syncZoomFromWebview,
   zoomIn,
   zoomOut,
 } from "./zoom";
@@ -106,6 +106,15 @@ interface TabLoadEvent {
   tabId: string;
   url: string;
   state: "started" | "finished";
+}
+
+interface TabZoomEvent {
+  tabId: string;
+  factor: number;
+}
+
+interface TabSelectedEvent {
+  tabId: string;
 }
 
 const NAV_BUTTONS: { action: NavAction; label: string; icon: IconName }[] = [
@@ -578,28 +587,106 @@ window.addEventListener("DOMContentLoaded", () => {
   let shownTabId: string | null = null;
   let shownUrl = "";
   let visibleWebviewId: string | null | undefined;
+  let lastTaskbarTabId: string | null = null;
+
+  const zoomOutButton = el(
+    "button",
+    { class: "zoom-popover-btn", type: "button", "aria-label": "Diminuir zoom", title: "Diminuir zoom" },
+    ["-"],
+  );
+  const zoomValueButton = el(
+    "button",
+    {
+      class: "zoom-popover-btn zoom-popover-value",
+      type: "button",
+      "aria-label": "Redefinir zoom para 100%",
+      title: "Redefinir para 100%",
+    },
+    ["100%"],
+  );
+  const zoomInButton = el(
+    "button",
+    { class: "zoom-popover-btn", type: "button", "aria-label": "Aumentar zoom", title: "Aumentar zoom" },
+    ["+"],
+  );
+  const zoomResetButton = el(
+    "button",
+    {
+      class: "zoom-popover-btn zoom-popover-reset",
+      type: "button",
+      "aria-label": "Redefinir zoom",
+      title: "Redefinir zoom",
+    },
+    ["Reset"],
+  );
+  const zoomPopover = el(
+    "div",
+    {
+      class: "zoom-popover",
+      role: "group",
+      "aria-label": "Controle de zoom",
+      style: "display: none;",
+    },
+    [zoomOutButton, zoomValueButton, zoomInButton, zoomResetButton],
+  );
+  document.body.append(zoomPopover);
+
+  function closeZoomPopover() {
+    zoomPopover.style.display = "none";
+  }
+
+  function openZoomPopover() {
+    const rect = ui.zoomBadge.getBoundingClientRect();
+    zoomPopover.style.left = `${Math.round(rect.left)}px`;
+    zoomPopover.style.top = `${Math.round(rect.bottom + 6)}px`;
+    zoomPopover.style.display = "flex";
+  }
 
   function renderZoomBadge(tabId?: string | null, url?: string | null) {
     if (!tabId) {
       ui.zoomBadge.style.display = "none";
+      closeZoomPopover();
       return;
     }
-    const factor = getZoomForTab(tabId, url);
-    if (isDefaultZoom(factor)) {
-      ui.zoomBadge.style.display = "none";
-    } else {
-      const pct = formatZoomPercent(factor);
-      ui.zoomBadge.textContent = pct;
-      ui.zoomBadge.title = `Zoom: ${pct}. Clique para redefinir para 100% (Ctrl+0)`;
-      ui.zoomBadge.setAttribute("aria-label", ui.zoomBadge.title);
-      ui.zoomBadge.style.display = "inline-flex";
-    }
+    const pct = formatZoomPercent(getZoomForTab(tabId, url));
+    ui.zoomBadge.textContent = pct;
+    ui.zoomBadge.title = `Zoom: ${pct}. Clique para abrir o controle de zoom`;
+    ui.zoomBadge.setAttribute("aria-label", ui.zoomBadge.title);
+    ui.zoomBadge.style.display = "inline-flex";
   }
 
-  ui.zoomBadge.addEventListener("click", () => {
+  ui.zoomBadge.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (zoomPopover.style.display === "none") openZoomPopover();
+    else closeZoomPopover();
+  });
+
+  zoomOutButton.addEventListener("click", () => {
     const target = getTargetTab();
-    if (!target) return;
-    resetZoom(target.id, target.url).catch(console.error);
+    if (target) zoomOut(target.id, target.url).catch(console.error);
+  });
+  zoomValueButton.addEventListener("click", () => {
+    const target = getTargetTab();
+    if (target) resetZoom(target.id, target.url).catch(console.error);
+  });
+  zoomInButton.addEventListener("click", () => {
+    const target = getTargetTab();
+    if (target) zoomIn(target.id, target.url).catch(console.error);
+  });
+  zoomResetButton.addEventListener("click", () => {
+    const target = getTargetTab();
+    if (target) resetZoom(target.id, target.url).catch(console.error);
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (zoomPopover.style.display === "none") return;
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (zoomPopover.contains(target) || ui.zoomBadge.contains(target)) return;
+    closeZoomPopover();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeZoomPopover();
   });
 
   subscribeZoom((tabId) => {
@@ -2300,6 +2387,10 @@ window.addEventListener("DOMContentLoaded", () => {
       if (isYouTubeUrl(payload.url) && privacyShield.isEnabled()) {
         injectYouTubeShield(tab.id);
       }
+      if (tab.id === getTargetTab()?.id) {
+        lastTaskbarTabId = tab.id;
+        webview.setTaskbarActiveTab(tab.id);
+      }
       return;
     }
     const history = historyOf(tab.id);
@@ -2322,6 +2413,64 @@ window.addEventListener("DOMContentLoaded", () => {
     if (findInPage.isOpen() && payload.tabId === getTargetTab()?.id) {
       findInPage.reapply();
     }
+  });
+
+  listen("zoom-in", () => {
+    const target = getTargetTab();
+    if (target) zoomIn(target.id, target.url).catch(console.error);
+  });
+  listen("zoom-out", () => {
+    const target = getTargetTab();
+    if (target) zoomOut(target.id, target.url).catch(console.error);
+  });
+  listen("zoom-reset", () => {
+    const target = getTargetTab();
+    if (target) resetZoom(target.id, target.url).catch(console.error);
+  });
+  listen("tab-new", () => openTab());
+  listen("tab-close", () => {
+    const target = getTargetTab();
+    if (target) closeTabAndWebview(target.id);
+  });
+  listen("focus-omnibar", () => focusOmnibar());
+  listen("tab-reload", () => runNavAction("reload"));
+  listen("find-in-page", () => {
+    if (findInPage.isOpen()) {
+      findInPage.input.focus();
+      findInPage.input.select();
+    } else {
+      closePanels();
+      findInPage.open();
+    }
+  });
+  listen("toggle-sidebar", () => toggleSidebar());
+  listen("command-palette", () => {
+    const wasOpen = commandPalette.isOpen();
+    closePanels();
+    if (!wasOpen) commandPalette.open();
+  });
+  listen("toggle-history", () => togglePanel(historyPanel));
+  listen("toggle-downloads", () => togglePanel(downloadsPanel));
+  listen("toggle-settings", () => togglePanel(settingsPanel));
+  listen("toggle-fullscreen", () => {
+    appWindow
+      .isFullscreen()
+      .then((fullscreen) => appWindow.setFullscreen(!fullscreen))
+      .catch(console.error);
+  });
+
+  listen<TabZoomEvent>("tab-zoom-changed", ({ payload }) => {
+    const tab = getTab(payload.tabId);
+    syncZoomFromWebview(payload.tabId, payload.factor, tab?.url);
+  });
+
+  listen<TabSelectedEvent>("tab-selected", ({ payload }) => {
+    const tab = getTab(payload.tabId);
+    if (!tab) return;
+    if (tab.workspaceId && tab.workspaceId !== getActiveWorkspaceId()) {
+      handleSwitchWorkspace(tab.workspaceId);
+    }
+    selectTab(payload.tabId);
   });
 
   listen<{ tab_id: string; selector: string; domain: string }>(
@@ -2442,6 +2591,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   subscribe((tabs) => {
     render(tabs);
+    const active = getTargetTab();
+    if (active && active.id !== lastTaskbarTabId) {
+      lastTaskbarTabId = active.id;
+      webview.setTaskbarActiveTab(active.id);
+    }
     if (findInPage.isOpen()) {
       findInPage.reapply();
     }

@@ -4801,6 +4801,59 @@
   transform: scale(0.95);
 }
 
+.zoom-popover {
+  position: fixed;
+  z-index: var(--z-popover);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-strong);
+  -webkit-backdrop-filter: var(--glass-backdrop-strong);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-fg-primary);
+  animation: popover-fade-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zoom-popover-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.zoom-popover-btn:hover {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-primary);
+}
+
+.zoom-popover-btn:active {
+  transform: scale(0.96);
+}
+
+.zoom-popover-value {
+  min-width: 46px;
+}
+
+.zoom-popover-reset {
+  color: var(--color-fg-secondary, var(--color-fg-primary));
+  font-weight: 500;
+}
+
 .omnibar-security-btn {
   display: flex;
   align-items: center;

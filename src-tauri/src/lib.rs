@@ -15,6 +15,10 @@ const CHROME_LABEL: &str = "main";
 const TAB_LABEL_PREFIX: &str = "tab-";
 
 #[cfg(windows)]
+mod accelerators;
+#[cfg(windows)]
+mod taskbar_tabs;
+#[cfg(windows)]
 mod webview2_blocker;
 
 #[derive(Default)]
@@ -65,6 +69,7 @@ struct BrowserState {
     site_permissions: Mutex<HashMap<String, DomainPermissions>>,
     tracker_counts: Mutex<HashMap<String, u32>>,
     blockers: Mutex<HashMap<String, BlockerHandle>>,
+    tab_proxies: Mutex<HashMap<String, isize>>,
 }
 
 impl Default for BrowserState {
@@ -77,6 +82,7 @@ impl Default for BrowserState {
             site_permissions: Mutex::new(HashMap::new()),
             tracker_counts: Mutex::new(HashMap::new()),
             blockers: Mutex::new(HashMap::new()),
+            tab_proxies: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -496,7 +502,11 @@ fn create_tab_webview<R: Runtime>(
         .map_err(|err| err.to_string())?;
 
     #[cfg(windows)]
-    webview2_blocker::attach(app, tab_id, &webview);
+    {
+        webview2_blocker::attach(app, tab_id, &webview);
+        accelerators::attach(app, tab_id, &webview);
+        taskbar_tabs::register(app, tab_id);
+    }
 
     if let Err(err) = webview.navigate(url) {
         let _ = webview.close();
@@ -637,6 +647,9 @@ async fn close_tab(
     }
 
     #[cfg(windows)]
+    taskbar_tabs::unregister(&app, &tab_id);
+
+    #[cfg(windows)]
     let handle = state
         .blockers
         .lock()
@@ -654,6 +667,15 @@ async fn close_tab(
         }
         None => Ok(()),
     }
+}
+
+#[tauri::command]
+fn set_taskbar_active_tab(app: AppHandle, tab_id: String) -> Result<(), String> {
+    #[cfg(windows)]
+    taskbar_tabs::set_active(&app, &tab_id);
+    #[cfg(not(windows))]
+    let _ = (&app, &tab_id);
+    Ok(())
 }
 
 #[tauri::command]
@@ -1630,6 +1652,7 @@ pub fn run() {
             show_tab,
             show_tabs,
             close_tab,
+            set_taskbar_active_tab,
             minimize_window,
             toggle_maximize_window,
             close_window,
@@ -1652,6 +1675,67 @@ pub fn run() {
             sync_tab_media_state,
             translate_tab,
         ])
+        .setup(|app| {
+            #[cfg(windows)]
+            {
+                use windows::core::PCWSTR;
+                use windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID;
+                use windows::Win32::UI::WindowsAndMessaging::{
+                    LoadImageW, SendMessageW, HICON, ICON_BIG, ICON_SMALL,
+                    IMAGE_ICON, LR_DEFAULTCOLOR, WM_SETICON,
+                };
+                use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+                use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
+
+                let _ = unsafe {
+                    let app_id: Vec<u16> = "dev.moss.browser\0".encode_utf16().collect();
+                    SetCurrentProcessExplicitAppUserModelID(PCWSTR(app_id.as_ptr()))
+                };
+
+                if let Some(window) = app.get_window(CHROME_LABEL) {
+                    if let Ok(raw_hwnd) = window.hwnd() {
+                        let hwnd = HWND(raw_hwnd.0 as _);
+                        unsafe {
+                            let hinstance = GetModuleHandleW(None).ok().map(|m| windows::Win32::Foundation::HINSTANCE(m.0));
+                            let icon_id = 32512 as usize as *const u16;
+                            if let Ok(hicon_big) = LoadImageW(
+                                hinstance,
+                                PCWSTR(icon_id),
+                                IMAGE_ICON,
+                                256,
+                                256,
+                                LR_DEFAULTCOLOR,
+                            ) {
+                                let hicon = HICON(hicon_big.0);
+                                SendMessageW(
+                                    hwnd,
+                                    WM_SETICON,
+                                    Some(WPARAM(ICON_BIG as usize)),
+                                    Some(LPARAM(hicon.0 as isize)),
+                                );
+                            }
+                            if let Ok(hicon_small) = LoadImageW(
+                                hinstance,
+                                PCWSTR(icon_id),
+                                IMAGE_ICON,
+                                32,
+                                32,
+                                LR_DEFAULTCOLOR,
+                            ) {
+                                let hicon = HICON(hicon_small.0);
+                                SendMessageW(
+                                    hwnd,
+                                    WM_SETICON,
+                                    Some(WPARAM(ICON_SMALL as usize)),
+                                    Some(LPARAM(hicon.0 as isize)),
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

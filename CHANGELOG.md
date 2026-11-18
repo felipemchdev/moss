@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-11-18
+
+### Added
+- **Full Bilingual Interface (i18n, PT-BR / EN-US)** (`src/i18n.ts`, `src/i18n-chrome.ts`, `src/i18n-panels.ts`, `src/main.ts`, `scripts/check-i18n.mjs`, `.github/workflows/ci.yml`, `package.json`):
+  - Complete PT-BR and EN-US localization coverage across `src/main.ts`, browser chrome, tabs, downloads pill, command palette, welcome wizard, reader view, and all popovers and panels, with runtime locale updates (`subscribeLocale`).
+  - Add AST key-parity, dynamic-key allowlist, and legacy-replace verification (`scripts/check-i18n.mjs`) enforced in the Frontend Typecheck CI workflow.
+- **Standalone 1-Click Tauri Bootstrapper** (`installer/bootstrapper/`, `scripts/build-installer.mjs`, `package.json`, `.github/workflows/ci.yml`):
+  - Add isolated 480x300 frameless bootstrapper UI (`#0F1411` / `#7DA27E`) with `embedded-setup` feature, RAII TEMP cleanup, `panic = "unwind"`, process-tree timeout termination, and dynamic version display.
+  - Add unified build pipeline (`scripts/build-installer.mjs`, `pnpm build:installer`) and `Bootstrapper Cargo Check` job in CI.
+
+### Fixed
+- **Privacy Shield Filter Rollback & YouTube Boot Observer** (`src-tauri/src/webview2_blocker.rs`, `src-tauri/src/lib.rs`):
+  - Roll back leaked `WebResourceRequested` filters on registration or lock failure.
+  - Bound YouTube `bootObserver` lifetime with `yt-navigate-finish` reset and remove redundant SSAI duration guard.
+
 ## [1.0.0] - 2026-11-15
 
 ### Production Release - Version 1.0.0

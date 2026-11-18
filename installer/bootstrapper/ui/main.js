@@ -2,7 +2,7 @@ const i18n = {
   pt: {
     "ready.title": "Instalar moss",
     "ready.updateTitle": "Atualizar moss",
-    "ready.subtitle": "Versão 1.0.0",
+    "ready.versionPrefix": "Versão",
     "ready.btn": "Instalar",
     "ready.updateBtn": "Atualizar",
     "installing.step1": "Preparando",
@@ -25,7 +25,7 @@ const i18n = {
   en: {
     "ready.title": "Install moss",
     "ready.updateTitle": "Update moss",
-    "ready.subtitle": "Version 1.0.0",
+    "ready.versionPrefix": "Version",
     "ready.btn": "Install",
     "ready.updateBtn": "Update",
     "installing.step1": "Preparing",
@@ -59,6 +59,7 @@ function detectLanguage() {
 
 let currentLang = detectLanguage();
 let existingInstall = false;
+let appVersion = "";
 let currentStep = 1;
 let customError = null;
 let defaultLogPath = "%LOCALAPPDATA%\\moss\\install.log";
@@ -81,12 +82,18 @@ const progressFill = document.querySelector(".progress-fill");
 const installStatusEl = document.getElementById("install-status");
 const stepEls = document.querySelectorAll(".steps .step");
 const readyTitleEl = document.getElementById("installer-title");
+const readySubtitleEl = document.getElementById("ready-subtitle");
+const appVersionEl = document.getElementById("app-version");
 const langSelectorEl = document.querySelector(".lang-selector");
 const stepsListEl = document.querySelector(".steps");
 
 function applyReadyCopy(lang) {
   const dict = i18n[lang];
   readyTitleEl.textContent = existingInstall ? dict["ready.updateTitle"] : dict["ready.title"];
+  readySubtitleEl.textContent = appVersion
+    ? `${dict["ready.versionPrefix"]} ${appVersion}`
+    : dict["ready.versionPrefix"];
+  appVersionEl.textContent = appVersion;
   installBtn.textContent = existingInstall ? dict["ready.updateBtn"] : dict["ready.btn"];
 }
 
@@ -193,6 +200,9 @@ async function refreshInstallStatus() {
   try {
     const status = await invoke("check_existing_install");
     existingInstall = Boolean(status?.installed);
+    if (status?.version) {
+      appVersion = status.version;
+    }
     if (status?.logPath) {
       defaultLogPath = status.logPath;
       errorLogPathEl.textContent = defaultLogPath;

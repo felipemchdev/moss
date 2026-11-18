@@ -37,13 +37,27 @@ struct ExtractedSetupGuard {
 #[cfg(feature = "embedded-setup")]
 impl Drop for ExtractedSetupGuard {
     fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
+        if let Err(err) = fs::remove_file(&self.path) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                let msg = format!(
+                    "WARN: Failed removing temporary setup {}: {err}",
+                    self.path.display()
+                );
+                let logged = install_log_path()
+                    .map(|log_path| try_append_log_line(&log_path, &msg))
+                    .unwrap_or(false);
+                if !logged {
+                    eprintln!("{msg}");
+                }
+            }
+        }
     }
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallStatus {
+    pub version: String,
     pub installed: bool,
     pub exe_exists: bool,
     pub registry_exists: bool,
@@ -250,6 +264,10 @@ fn resolve_existing_exe_path(reg: &RegistryInstallInfo) -> Result<(PathBuf, bool
 }
 
 fn append_log_line(log_path: &Path, line: &str) {
+    let _ = try_append_log_line(log_path, line);
+}
+
+fn try_append_log_line(log_path: &Path, line: &str) -> bool {
     if let Some(parent) = log_path.parent() {
         let _ = fs::create_dir_all(parent);
     }
@@ -259,8 +277,9 @@ fn append_log_line(log_path: &Path, line: &str) {
         .unwrap_or(0);
 
     if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(log_path) {
-        let _ = writeln!(file, "[{}] {}", timestamp, line);
+        return writeln!(file, "[{}] {}", timestamp, line).is_ok();
     }
+    false
 }
 
 fn emit_progress(app: &AppHandle, step: u8, key: &'static str, percent: u8) {
@@ -524,6 +543,7 @@ fn check_existing_install(state: State<'_, InstallerState>) -> Result<InstallSta
     })?;
 
     Ok(InstallStatus {
+        version: env!("CARGO_PKG_VERSION").to_string(),
         installed: exe_exists || reg.exists,
         exe_exists,
         registry_exists: reg.exists,
@@ -645,6 +665,19 @@ fn execute_install_blocking(
             Ok(Some(status)) => break status,
             Ok(None) => {
                 if started_at.elapsed() >= INSTALL_TIMEOUT {
+                    #[cfg(windows)]
+                    {
+                        use std::os::windows::process::CommandExt;
+                        const CREATE_NO_WINDOW: u32 = 0x08000000;
+                        let pid = child.id().to_string();
+                        let _ = Command::new("taskkill")
+                            .args(["/PID", &pid, "/T", "/F"])
+                            .stdin(Stdio::null())
+                            .stdout(Stdio::null())
+                            .stderr(Stdio::null())
+                            .creation_flags(CREATE_NO_WINDOW)
+                            .status();
+                    }
                     let _ = child.kill();
                     let _ = child.wait();
                     append_log_line(

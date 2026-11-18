@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "bootstrapper",
+  "description": "Capabilities restricted solely to the bootstrapper window.",
+  "windows": ["bootstrapper"],
+  "permissions": [
+    "core:event:default",
+    "core:window:allow-start-dragging",
+    "allow-check-existing-install",
+    "allow-run-install",
+    "allow-launch-moss",
+    "allow-close-installer"
+  ]
+}

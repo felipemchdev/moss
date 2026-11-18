@@ -1,6 +1,8 @@
 import { getBookmarks, isBookmarked } from "./bookmarks";
 import { el, hostnameOf } from "./dom";
 import { getRecentHistory, searchHistory } from "./history";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon, type IconName } from "./icons";
 import { resolveOmnibarInput } from "./omnibar";
 import { getSettings, searchUrl, SEARCH_ENGINES } from "./settings";
@@ -141,7 +143,7 @@ export function createCommandPalette(
   const input = el("input", {
     class: "command-palette-input",
     type: "text",
-    placeholder: "Digite um comando, aba, favorito ou pesquise na web...",
+    placeholder: t("palette.placeholder"),
     role: "combobox",
     "aria-autocomplete": "list",
     "aria-expanded": "true",
@@ -155,8 +157,8 @@ export function createCommandPalette(
     {
       class: "command-palette-clear-btn",
       type: "button",
-      "aria-label": "Limpar busca",
-      title: "Limpar",
+      "aria-label": t("palette.clearSearch"),
+      title: t("palette.clear"),
       style: "display: none;",
     },
     [icon("close")],
@@ -177,25 +179,35 @@ export function createCommandPalette(
     class: "command-palette-results",
     id: "command-palette-results",
     role: "listbox",
-    "aria-label": "Resultados de comandos",
+    "aria-label": t("palette.results"),
   });
 
-  const countBadge = el("span", { class: "command-palette-count" }, ["0 itens"]);
+  const countBadge = el("span", { class: "command-palette-count" }, [t("palette.itemsZero")]);
+
+  const hintNavigateLabel = el("span", { class: "command-palette-footer-hint-label" }, [
+    " " + t("palette.hintNavigate"),
+  ]);
+  const hintExecuteLabel = el("span", { class: "command-palette-footer-hint-label" }, [
+    " " + t("palette.hintExecute"),
+  ]);
+  const hintCloseLabel = el("span", { class: "command-palette-footer-hint-label" }, [
+    " " + t("palette.hintClose"),
+  ]);
 
   const footer = el("div", { class: "command-palette-footer" }, [
     el("div", { class: "command-palette-footer-hints" }, [
       el("span", { class: "command-palette-footer-hint" }, [
         el("kbd", { class: "command-palette-kbd" }, ["↑"]),
         el("kbd", { class: "command-palette-kbd" }, ["↓"]),
-        " Navegar",
+        hintNavigateLabel,
       ]),
       el("span", { class: "command-palette-footer-hint" }, [
         el("kbd", { class: "command-palette-kbd" }, ["↵"]),
-        " Executar",
+        hintExecuteLabel,
       ]),
       el("span", { class: "command-palette-footer-hint" }, [
         el("kbd", { class: "command-palette-kbd" }, ["Esc"]),
-        " Fechar",
+        hintCloseLabel,
       ]),
     ]),
     countBadge,
@@ -207,7 +219,7 @@ export function createCommandPalette(
       class: "command-palette",
       role: "dialog",
       "aria-modal": "true",
-      "aria-label": "Paleta de Comandos",
+      "aria-label": t("palette.title"),
       style: "display: none;",
     },
     [header, resultsList, footer],
@@ -218,14 +230,15 @@ export function createCommandPalette(
     const hasTarget = !!target;
     const splitActive = actions.isSplitActive();
     const isTargetBookmarked = hasTarget && target.url ? isBookmarked(target.url) : false;
+    const quickActions = t("palette.category.actions");
 
     const list: PaletteItem[] = [
       {
         id: "action-new-tab",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Nova Aba",
-        subtitle: "Abrir uma nova aba de navegação",
+        categoryLabel: quickActions,
+        title: t("palette.action.newTab.title"),
+        subtitle: t("palette.action.newTab.subtitle"),
         iconName: "plus",
         shortcut: ["Ctrl", "T"],
         keywords: ["nova", "aba", "tab", "criar", "open", "new"],
@@ -234,9 +247,9 @@ export function createCommandPalette(
       {
         id: "action-new-private-tab",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Nova Aba Anônima",
-        subtitle: "Abrir uma nova aba de navegação anônima (sem histórico)",
+        categoryLabel: quickActions,
+        title: t("palette.action.newPrivateTab.title"),
+        subtitle: t("palette.action.newPrivateTab.subtitle"),
         iconName: "shield",
         shortcut: ["Ctrl", "Shift", "N"],
         keywords: ["nova", "aba", "tab", "anonima", "anonimo", "privada", "incognito", "private", "janela"],
@@ -245,9 +258,9 @@ export function createCommandPalette(
       {
         id: "action-translate-page",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Traduzir Página",
-        subtitle: "Traduzir a página atual para português ou outro idioma",
+        categoryLabel: quickActions,
+        title: t("palette.action.translate.title"),
+        subtitle: t("palette.action.translate.subtitle"),
         iconName: "translate",
         shortcut: ["Ctrl", "Shift", "U"],
         keywords: ["traduzir", "translate", "idioma", "language", "portugues", "ingles", "traducao"],
@@ -256,9 +269,9 @@ export function createCommandPalette(
       {
         id: "action-close-tab",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Fechar Aba Atual",
-        subtitle: hasTarget ? target.title : "Fechar a aba ativa",
+        categoryLabel: quickActions,
+        title: t("palette.action.closeTab.title"),
+        subtitle: hasTarget ? target.title : t("palette.action.closeTab.subtitleFallback"),
         iconName: "close",
         shortcut: ["Ctrl", "W"],
         keywords: ["fechar", "close", "remover", "sair", "tab"],
@@ -267,9 +280,9 @@ export function createCommandPalette(
       {
         id: "action-reopen-closed-tab",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Reabrir Aba Fechada",
-        subtitle: "Restaurar a última aba encerrada",
+        categoryLabel: quickActions,
+        title: t("palette.action.reopen.title"),
+        subtitle: t("palette.action.reopen.subtitle"),
         iconName: "reload",
         shortcut: ["Ctrl", "Shift", "T"],
         keywords: ["reabrir", "restaurar", "aba", "fechada", "recuperar", "undo", "closed"],
@@ -278,11 +291,11 @@ export function createCommandPalette(
       {
         id: "action-split-view",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: splitActive ? "Desativar Tela Dividida" : "Dividir Tela (Split View)",
+        categoryLabel: quickActions,
+        title: splitActive ? t("palette.action.splitOff.title") : t("palette.action.splitOn.title"),
         subtitle: splitActive
-          ? "Fechar divisão e retornar à aba primária"
-          : "Navegar lado a lado em duas abas simultâneas",
+          ? t("palette.action.splitOff.subtitle")
+          : t("palette.action.splitOn.subtitle"),
         iconName: "split",
         shortcut: ["Ctrl", "\\"],
         keywords: ["split", "dividir", "divisao", "lado", "telas", "duas"],
@@ -291,13 +304,13 @@ export function createCommandPalette(
       {
         id: "action-toggle-sidebar",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
+        categoryLabel: quickActions,
         title: actions.isSidebarCollapsed()
-          ? "Expandir Barra Lateral"
-          : "Recolher Barra Lateral (Modo Compacto)",
+          ? t("palette.action.sidebarCollapsed.title")
+          : t("palette.action.sidebarExpanded.title"),
         subtitle: actions.isSidebarCollapsed()
-          ? "Exibir barra lateral completa com nomes e abas"
-          : "Modo compacto com dock de ícones de 56px",
+          ? t("palette.action.sidebarCollapsed.subtitle")
+          : t("palette.action.sidebarExpanded.subtitle"),
         iconName: "sidebar",
         shortcut: ["Ctrl", "B"],
         keywords: ["sidebar", "barra", "lateral", "compacto", "recolher", "expandir", "dock"],
@@ -310,9 +323,9 @@ export function createCommandPalette(
         {
           id: "action-swap-panes",
           category: "actions",
-          categoryLabel: "Ações Rápidas",
-          title: "Inverter Lados da Tela Dividida",
-          subtitle: "Trocar painel esquerdo com direito",
+          categoryLabel: quickActions,
+          title: t("palette.action.swapPanes.title"),
+          subtitle: t("palette.action.swapPanes.subtitle"),
           iconName: "swap",
           keywords: ["swap", "inverter", "trocar", "lado", "split"],
           run: () => actions.swapPanes(),
@@ -320,9 +333,9 @@ export function createCommandPalette(
         {
           id: "action-close-split",
           category: "actions",
-          categoryLabel: "Ações Rápidas",
-          title: "Fechar Tela Dividida",
-          subtitle: "Encerrar painel secundário",
+          categoryLabel: quickActions,
+          title: t("palette.action.closeSplit.title"),
+          subtitle: t("palette.action.closeSplit.subtitle"),
           iconName: "close",
           keywords: ["fechar", "split", "encerrar"],
           run: () => actions.closeSplit(),
@@ -334,9 +347,9 @@ export function createCommandPalette(
       {
         id: "action-reader-mode",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Alternar Modo Leitura",
-        subtitle: "Leitura confortável sem distrações nem anúncios",
+        categoryLabel: quickActions,
+        title: t("palette.action.reader.title"),
+        subtitle: t("palette.action.reader.subtitle"),
         iconName: "book",
         shortcut: ["Ctrl", "Alt", "R"],
         keywords: ["reader", "leitura", "modo", "ler", "artigo", "limpo"],
@@ -345,9 +358,9 @@ export function createCommandPalette(
       {
         id: "action-glance",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Espiar URL (Glance)",
-        subtitle: "Visualizar link em janela sobreposta sem criar aba permanente",
+        categoryLabel: quickActions,
+        title: t("palette.action.glance.title"),
+        subtitle: t("palette.action.glance.subtitle"),
         iconName: "eye",
         shortcut: ["Ctrl", "Shift", "G"],
         keywords: ["glance", "peek", "espiar", "previa", "preview", "link"],
@@ -356,9 +369,9 @@ export function createCommandPalette(
       {
         id: "action-new-folder",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Nova Pasta de Abas",
-        subtitle: "Agrupar e organizar abas em pastas recolhíveis",
+        categoryLabel: quickActions,
+        title: t("palette.action.folder.title"),
+        subtitle: t("palette.action.folder.subtitle"),
         iconName: "folderPlus",
         keywords: ["pasta", "folder", "grupo", "agrupar", "organizar"],
         run: () => actions.createTabFolder?.(),
@@ -366,9 +379,9 @@ export function createCommandPalette(
       {
         id: "action-hibernate-inactive",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Hibernar Abas Inativas (Economizar Memória)",
-        subtitle: "Descarregar webviews de abas em segundo plano para liberar RAM",
+        categoryLabel: quickActions,
+        title: t("palette.action.hibernate.title"),
+        subtitle: t("palette.action.hibernate.subtitle"),
         iconName: "moon",
         keywords: ["hibernar", "dormir", "sleep", "memoria", "ram", "saver", "economizar"],
         run: () => actions.hibernateInactiveTabs?.(),
@@ -376,9 +389,9 @@ export function createCommandPalette(
       {
         id: "action-wake-all",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Acordar Todas as Abas Hibernadas",
-        subtitle: "Reativar webviews de todas as abas suspensas",
+        categoryLabel: quickActions,
+        title: t("palette.action.wake.title"),
+        subtitle: t("palette.action.wake.subtitle"),
         iconName: "sun",
         keywords: ["acordar", "wake", "reativar", "restaurar", "abas"],
         run: () => actions.wakeAllTabs?.(),
@@ -386,9 +399,9 @@ export function createCommandPalette(
       {
         id: "action-route-current-domain",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Roteamento: Vincular este site ao Espaço Atual",
-        subtitle: "Sempre abrir o domínio atual no Workspace ativo",
+        categoryLabel: quickActions,
+        title: t("palette.action.routeCurrent.title"),
+        subtitle: t("palette.action.routeCurrent.subtitle"),
         iconName: "briefcase",
         keywords: ["roteamento", "regra", "espaco", "workspace", "vincular", "domain", "route"],
         run: () => actions.routeCurrentDomainToCurrentSpace?.(),
@@ -396,9 +409,9 @@ export function createCommandPalette(
       {
         id: "action-open-space-routing",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Roteamento: Gerenciar Regras de Espaços",
-        subtitle: "Configurar mapeamentos de domínios para workspaces",
+        categoryLabel: quickActions,
+        title: t("palette.action.spaceRouting.title"),
+        subtitle: t("palette.action.spaceRouting.subtitle"),
         iconName: "settings",
         keywords: ["roteamento", "regras", "espacos", "workspace", "configurar", "gerenciar"],
         run: () => actions.openSpaceRoutingSettings?.(),
@@ -406,9 +419,9 @@ export function createCommandPalette(
       {
         id: "action-open-welcome-wizard",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Assistente de Boas-Vindas",
-        subtitle: "Reiniciar o assistente de configuração inicial e temas",
+        categoryLabel: quickActions,
+        title: t("palette.action.welcome.title"),
+        subtitle: t("palette.action.welcome.subtitle"),
         iconName: "sparkles",
         keywords: ["welcome", "onboarding", "boas-vindas", "assistente", "setup", "wizard", "inicio"],
         run: () => actions.openWelcomeWizard?.(),
@@ -416,9 +429,9 @@ export function createCommandPalette(
       {
         id: "action-find-in-page",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Localizar na Página",
-        subtitle: "Buscar palavras ou frases na aba ativa",
+        categoryLabel: quickActions,
+        title: t("palette.action.find.title"),
+        subtitle: t("palette.action.find.subtitle"),
         iconName: "search",
         shortcut: ["Ctrl", "F"],
         keywords: ["find", "buscar", "localizar", "pagina", "pesquisar", "search"],
@@ -427,9 +440,12 @@ export function createCommandPalette(
       {
         id: "action-bookmark-toggle",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: isTargetBookmarked ? "Remover dos Favoritos" : "Adicionar aos Favoritos",
-        subtitle: hasTarget && target.url ? target.url : "Favoritar URL da aba ativa",
+        categoryLabel: quickActions,
+        title: isTargetBookmarked
+          ? t("palette.action.bookmarkRemove.title")
+          : t("palette.action.bookmarkAdd.title"),
+        subtitle:
+          hasTarget && target.url ? target.url : t("palette.action.bookmark.subtitleFallback"),
         iconName: "star",
         keywords: ["favorito", "bookmark", "estrela", "salvar"],
         run: () => actions.toggleBookmark(),
@@ -437,9 +453,9 @@ export function createCommandPalette(
       {
         id: "action-site-info",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Informações e Permissões do Site",
-        subtitle: "Ver certificado HTTPS, rastreadores bloqueados e permissões",
+        categoryLabel: quickActions,
+        title: t("palette.action.siteInfo.title"),
+        subtitle: t("palette.action.siteInfo.subtitle"),
         iconName: "lock",
         keywords: ["seguranca", "certificado", "permissoes", "camera", "cookies", "site"],
         run: () => actions.openSiteInfo(),
@@ -447,9 +463,9 @@ export function createCommandPalette(
       {
         id: "action-clear-site-data",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Limpar Cookies e Dados do Site Ativo...",
-        subtitle: "Abrir painel de segurança para confirmar limpeza de cookies e cache",
+        categoryLabel: quickActions,
+        title: t("palette.action.clearSiteData.title"),
+        subtitle: t("palette.action.clearSiteData.subtitle"),
         iconName: "trash",
         keywords: ["limpar", "cookies", "cache", "dados", "clear", "armazenamento"],
         run: () => actions.openSiteInfo(),
@@ -457,9 +473,9 @@ export function createCommandPalette(
       {
         id: "action-zoom-in",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Aumentar Zoom",
-        subtitle: "Ampliar escala de visualização da página",
+        categoryLabel: quickActions,
+        title: t("palette.action.zoomIn.title"),
+        subtitle: t("palette.action.zoomIn.subtitle"),
         iconName: "zoomIn",
         shortcut: ["Ctrl", "+"],
         keywords: ["zoom", "aumentar", "ampliar", "maior", "escala"],
@@ -468,9 +484,9 @@ export function createCommandPalette(
       {
         id: "action-zoom-out",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Diminuir Zoom",
-        subtitle: "Reduzir escala de visualização da página",
+        categoryLabel: quickActions,
+        title: t("palette.action.zoomOut.title"),
+        subtitle: t("palette.action.zoomOut.subtitle"),
         iconName: "zoomOut",
         shortcut: ["Ctrl", "-"],
         keywords: ["zoom", "diminuir", "reduzir", "menor", "escala"],
@@ -479,9 +495,9 @@ export function createCommandPalette(
       {
         id: "action-zoom-reset",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Redefinir Zoom (100%)",
-        subtitle: "Restaurar escala padrão da página",
+        categoryLabel: quickActions,
+        title: t("palette.action.zoomReset.title"),
+        subtitle: t("palette.action.zoomReset.subtitle"),
         iconName: "search",
         shortcut: ["Ctrl", "0"],
         keywords: ["zoom", "redefinir", "reset", "100%", "padrao"],
@@ -490,9 +506,9 @@ export function createCommandPalette(
       {
         id: "action-reload",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Recarregar Página",
-        subtitle: "Atualizar conteúdo da aba ativa",
+        categoryLabel: quickActions,
+        title: t("palette.action.reload.title"),
+        subtitle: t("palette.action.reload.subtitle"),
         iconName: "reload",
         shortcut: ["F5"],
         keywords: ["reload", "recarregar", "atualizar", "refresh", "f5"],
@@ -501,9 +517,9 @@ export function createCommandPalette(
       {
         id: "action-nav-back",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Voltar Página",
-        subtitle: "Ir para a página anterior no histórico da aba",
+        categoryLabel: quickActions,
+        title: t("palette.action.back.title"),
+        subtitle: t("palette.action.back.subtitle"),
         iconName: "back",
         shortcut: ["Alt", "←"],
         keywords: ["voltar", "back", "anterior"],
@@ -512,9 +528,9 @@ export function createCommandPalette(
       {
         id: "action-nav-forward",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Avançar Página",
-        subtitle: "Ir para a próxima página no histórico da aba",
+        categoryLabel: quickActions,
+        title: t("palette.action.forward.title"),
+        subtitle: t("palette.action.forward.subtitle"),
         iconName: "forward",
         shortcut: ["Alt", "→"],
         keywords: ["avancar", "forward", "proxima"],
@@ -523,9 +539,9 @@ export function createCommandPalette(
       {
         id: "action-next-workspace",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Próximo Espaço de Trabalho",
-        subtitle: "Alternar para o próximo workspace",
+        categoryLabel: quickActions,
+        title: t("palette.action.nextWorkspace.title"),
+        subtitle: t("palette.action.nextWorkspace.subtitle"),
         iconName: "leaf",
         shortcut: ["Ctrl", "Alt", "→"],
         keywords: ["workspace", "espaco", "trabalho", "proximo"],
@@ -534,9 +550,9 @@ export function createCommandPalette(
       {
         id: "action-prev-workspace",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Espaço de Trabalho Anterior",
-        subtitle: "Alternar para o workspace anterior",
+        categoryLabel: quickActions,
+        title: t("palette.action.prevWorkspace.title"),
+        subtitle: t("palette.action.prevWorkspace.subtitle"),
         iconName: "leaf",
         shortcut: ["Ctrl", "Alt", "←"],
         keywords: ["workspace", "espaco", "trabalho", "anterior"],
@@ -545,9 +561,9 @@ export function createCommandPalette(
       {
         id: "action-new-workspace",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Novo Espaço de Trabalho",
-        subtitle: "Criar um novo espaço isolado de abas",
+        categoryLabel: quickActions,
+        title: t("palette.action.newWorkspace.title"),
+        subtitle: t("palette.action.newWorkspace.subtitle"),
         iconName: "plus",
         keywords: ["workspace", "novo", "espaco", "criar"],
         run: () => actions.newWorkspace(),
@@ -559,9 +575,9 @@ export function createCommandPalette(
       list.push({
         id: `action-ws-${ws.id}`,
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: `Alternar para Espaço: ${ws.name}`,
-        subtitle: `Mudar para o espaço de trabalho ${ws.name}`,
+        categoryLabel: quickActions,
+        title: t("palette.action.switchWorkspace.title", { name: ws.name }),
+        subtitle: t("palette.action.switchWorkspace.subtitle", { name: ws.name }),
         iconName: (ws.icon as IconName) || "leaf",
         keywords: ["workspace", "espaco", "trabalho", ws.name.toLowerCase()],
         run: () => actions.switchWorkspace(ws.id),
@@ -572,9 +588,9 @@ export function createCommandPalette(
       {
         id: "action-history",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Abrir Histórico",
-        subtitle: "Ver páginas visitadas anteriormente",
+        categoryLabel: quickActions,
+        title: t("palette.action.history.title"),
+        subtitle: t("palette.action.history.subtitle"),
         iconName: "history",
         shortcut: ["Ctrl", "H"],
         keywords: ["historico", "history", "visitas", "paginas"],
@@ -583,9 +599,9 @@ export function createCommandPalette(
       {
         id: "action-downloads",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Abrir Downloads",
-        subtitle: "Ver arquivos baixados e em andamento",
+        categoryLabel: quickActions,
+        title: t("palette.action.downloads.title"),
+        subtitle: t("palette.action.downloads.subtitle"),
         iconName: "download",
         shortcut: ["Ctrl", "J"],
         keywords: ["downloads", "baixar", "arquivos", "gestor", "pasta"],
@@ -594,9 +610,9 @@ export function createCommandPalette(
       {
         id: "action-clear-history",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Limpar Histórico de Navegação",
-        subtitle: "Remover todos os registros de histórico",
+        categoryLabel: quickActions,
+        title: t("palette.action.clearHistory.title"),
+        subtitle: t("palette.action.clearHistory.subtitle"),
         iconName: "trash",
         keywords: ["limpar", "historico", "apagar", "excluir", "clear"],
         run: () => actions.clearHistory(),
@@ -604,9 +620,9 @@ export function createCommandPalette(
       {
         id: "action-settings",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Configurações",
-        subtitle: "Tema, motor de busca, página inicial e dados",
+        categoryLabel: quickActions,
+        title: t("palette.action.settings.title"),
+        subtitle: t("palette.action.settings.subtitle"),
         iconName: "settings",
         shortcut: ["Ctrl", ","],
         keywords: ["configuracoes", "settings", "tema", "opcoes", "preferencias"],
@@ -615,9 +631,9 @@ export function createCommandPalette(
       {
         id: "action-shortcuts",
         category: "actions",
-        categoryLabel: "Ações Rápidas",
-        title: "Atalhos de Teclado",
-        subtitle: "Ver todos os atalhos disponíveis no moss",
+        categoryLabel: quickActions,
+        title: t("palette.action.shortcuts.title"),
+        subtitle: t("palette.action.shortcuts.subtitle"),
         iconName: "command",
         shortcut: ["Ctrl", "/"],
         keywords: ["atalhos", "shortcuts", "teclado", "ajuda", "comandos"],
@@ -636,24 +652,26 @@ export function createCommandPalette(
 
     return tabs.map((tab) => {
       const isActive = tab.id === activeTab?.id;
-      const wsName = tab.workspaceId ? wsMap.get(tab.workspaceId) ?? "Workspace" : "Pessoal";
+      const wsName = tab.workspaceId
+        ? wsMap.get(tab.workspaceId) ?? t("palette.workspaceFallback")
+        : t("palette.personalWorkspace");
 
       let badge = wsName;
       let badgeType: PaletteItem["badgeType"] = "workspace";
       if (isActive) {
-        badge = "Ativa";
+        badge = t("palette.badge.active");
         badgeType = "active";
       } else if (tab.isPinned) {
-        badge = "Fixada";
+        badge = t("palette.badge.pinned");
         badgeType = "pinned";
       }
 
       return {
         id: `tab-${tab.id}`,
         category: "tabs",
-        categoryLabel: "Abas Abertas",
-        title: tab.title || "Nova aba",
-        subtitle: tab.url || "Página inicial",
+        categoryLabel: t("palette.category.tabs"),
+        title: tab.title || t("palette.untitledTab"),
+        subtitle: tab.url || t("palette.homepage"),
         iconName: tab.isPinned ? "star" : "globe",
         badge,
         badgeType,
@@ -670,7 +688,7 @@ export function createCommandPalette(
     return bookmarks.map((b) => ({
       id: `bookmark-${b.id}`,
       category: "bookmarks",
-      categoryLabel: "Favoritos",
+      categoryLabel: t("palette.category.bookmarks"),
       title: b.title || hostnameOf(b.url),
       subtitle: b.url,
       iconName: "star",
@@ -686,7 +704,7 @@ export function createCommandPalette(
     return entries.map((h) => ({
       id: `history-${h.id}`,
       category: "history",
-      categoryLabel: "Histórico Recente",
+      categoryLabel: t("palette.category.history"),
       title: h.title || hostnameOf(h.url),
       subtitle: h.url,
       iconName: "history",
@@ -717,8 +735,8 @@ export function createCommandPalette(
       items.push({
         id: "web-direct-url",
         category: "web",
-        categoryLabel: "Pesquisa na Web",
-        title: `Abrir "${trimmed}"`,
+        categoryLabel: t("palette.category.web"),
+        title: t("palette.openUrl", { query: trimmed }),
         subtitle: resolved,
         iconName: "globe",
         keywords: ["ir", "url", "abrir", "navegar"],
@@ -731,9 +749,9 @@ export function createCommandPalette(
     items.push({
       id: "web-search-query",
       category: "web",
-      categoryLabel: "Pesquisa na Web",
-      title: `Pesquisar "${trimmed}" no ${engineName}`,
-      subtitle: `Buscar no motor padrão`,
+      categoryLabel: t("palette.category.web"),
+      title: t("palette.searchIn", { query: trimmed, engine: engineName }),
+      subtitle: t("palette.searchDefaultEngine"),
       iconName: "search",
       keywords: ["pesquisa", "buscar", "search", "web", "google"],
       run: () => {
@@ -774,7 +792,7 @@ export function createCommandPalette(
         const normKeys = (item.keywords ?? []).map(normalize).join(" ");
         const haystack = `${normTitle} ${normSub} ${normKeys}`;
 
-        const allTermsMatch = terms.every((t) => haystack.includes(t));
+        const allTermsMatch = terms.every((term) => haystack.includes(term));
         if (allTermsMatch) {
           const score = calculateScore(item, trimmed, terms);
           matched.push({ ...item, score });
@@ -804,14 +822,12 @@ export function createCommandPalette(
     clearBtn.style.display = query.trim().length > 0 ? "flex" : "none";
 
     if (flatItems.length === 0) {
-      countBadge.textContent = "0 resultados";
+      countBadge.textContent = t("palette.itemsZero");
       const emptyNode = el("div", { class: "command-palette-empty" }, [
         el("p", { class: "command-palette-empty-title" }, [
-          `Nenhum comando encontrado para "${query}".`,
+          t("palette.emptyTitle", { query }),
         ]),
-        el("p", { class: "command-palette-empty-desc" }, [
-          "Tente pesquisar por abas, favoritos, ações do sistema ou pressione Enter para pesquisar na web.",
-        ]),
+        el("p", { class: "command-palette-empty-desc" }, [t("palette.emptyDesc")]),
       ]);
       resultsList.append(emptyNode);
       selectedIndex = -1;
@@ -819,7 +835,10 @@ export function createCommandPalette(
       return;
     }
 
-    countBadge.textContent = `${flatItems.length} ${flatItems.length === 1 ? "resultado" : "resultados"}`;
+    countBadge.textContent =
+      flatItems.length === 1
+        ? t("palette.resultOne")
+        : t("palette.resultMany", { count: flatItems.length });
 
     if (selectedIndex < 0 || selectedIndex >= flatItems.length) {
       selectedIndex = 0;
@@ -1038,6 +1057,18 @@ export function createCommandPalette(
 
   overlay.addEventListener("pointerdown", () => {
     palette.close();
+  });
+
+  subscribeLocale(() => {
+    input.placeholder = t("palette.placeholder");
+    clearBtn.setAttribute("aria-label", t("palette.clearSearch"));
+    clearBtn.setAttribute("title", t("palette.clear"));
+    resultsList.setAttribute("aria-label", t("palette.results"));
+    element.setAttribute("aria-label", t("palette.title"));
+    hintNavigateLabel.textContent = " " + t("palette.hintNavigate");
+    hintExecuteLabel.textContent = " " + t("palette.hintExecute");
+    hintCloseLabel.textContent = " " + t("palette.hintClose");
+    if (isOpen) renderResults();
   });
 
   const palette: CommandPaletteController = {

@@ -1,89 +1,84 @@
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon } from "./icons";
 import { createPanel, type Panel } from "./panel";
 
 interface ShortcutItem {
   keys: string[];
-  description: string;
+  labelKey: string;
 }
 
 interface ShortcutCategory {
-  title: string;
+  titleKey: string;
   items: ShortcutItem[];
 }
 
 const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
-    title: "Navegação e Abas",
+    titleKey: "shortcuts.category.navigation",
     items: [
-      { keys: ["Ctrl", "T"], description: "Nova aba" },
-      { keys: ["Ctrl", "W"], description: "Fechar aba atual" },
-      { keys: ["Ctrl", "Shift", "T"], description: "Reabrir aba fechada" },
-      { keys: ["Ctrl", "B"], description: "Alternar barra lateral (Modo Compacto)" },
-      { keys: ["Ctrl", "\\"], description: "Alternar tela dividida (Split View)" },
-      { keys: ["Ctrl", "Shift", "S"], description: "Alternar tela dividida" },
-      { keys: ["Ctrl", "Tab"], description: "Próxima aba" },
-      { keys: ["Ctrl", "Shift", "Tab"], description: "Aba anterior" },
-      { keys: ["Ctrl", "Alt", "1-9"], description: "Alternar espaço de trabalho" },
-      { keys: ["Ctrl", "Alt", "←/→"], description: "Espaço anterior / próximo" },
-      { keys: ["Ctrl", "Shift", "M"], description: "Mover aba para próximo espaço" },
-      { keys: ["Alt", "←"], description: "Voltar página" },
-      { keys: ["Alt", "→"], description: "Avançar página" },
-      { keys: ["F5"], description: "Recarregar página" },
+      { keys: ["Ctrl", "T"], labelKey: "shortcuts.nav.newTab" },
+      { keys: ["Ctrl", "W"], labelKey: "shortcuts.nav.closeTab" },
+      { keys: ["Ctrl", "Shift", "T"], labelKey: "shortcuts.nav.reopenTab" },
+      { keys: ["Ctrl", "B"], labelKey: "shortcuts.nav.toggleSidebar" },
+      { keys: ["Ctrl", "\\"], labelKey: "shortcuts.nav.toggleSplit" },
+      { keys: ["Ctrl", "Shift", "S"], labelKey: "shortcuts.nav.toggleSplitAlt" },
+      { keys: ["Ctrl", "Tab"], labelKey: "shortcuts.nav.nextTab" },
+      { keys: ["Ctrl", "Shift", "Tab"], labelKey: "shortcuts.nav.prevTab" },
+      { keys: ["Ctrl", "Alt", "1-9"], labelKey: "shortcuts.nav.switchWorkspace" },
+      { keys: ["Ctrl", "Alt", "←/→"], labelKey: "shortcuts.nav.cycleWorkspace" },
+      { keys: ["Ctrl", "Shift", "M"], labelKey: "shortcuts.nav.moveTabWorkspace" },
+      { keys: ["Alt", "←"], labelKey: "shortcuts.nav.back" },
+      { keys: ["Alt", "→"], labelKey: "shortcuts.nav.forward" },
+      { keys: ["F5"], labelKey: "shortcuts.nav.reload" },
     ],
   },
   {
-    title: "Recursos e Atalhos",
+    titleKey: "shortcuts.category.features",
     items: [
-      { keys: ["Ctrl", "K"], description: "Paleta de comandos (Quick Launcher)" },
-      { keys: ["Ctrl", "P"], description: "Paleta de comandos / Buscar abas" },
-      { keys: ["Ctrl", "L"], description: "Focar na omnibar" },
-      { keys: ["Ctrl", "Alt", "R"], description: "Modo leitura (Reader Mode)" },
-      { keys: ["Ctrl", "+"], description: "Aumentar zoom da página" },
-      { keys: ["Ctrl", "-"], description: "Diminuir zoom da página" },
-      { keys: ["Ctrl", "0"], description: "Redefinir zoom (100%)" },
-      { keys: ["Ctrl", "Shift", "T"], description: "Alternar tema de leitura" },
-      { keys: ["Ctrl", "Shift", "F"], description: "Alternar fonte de leitura" },
-      { keys: ["Ctrl", "Shift", "./,"], description: "Aumentar/diminuir fonte" },
-      { keys: ["Ctrl", "F"], description: "Localizar na página" },
-      { keys: ["F3"], description: "Próxima ocorrência" },
-      { keys: ["Shift", "F3"], description: "Ocorrência anterior" },
-      { keys: ["Ctrl", "Shift", "N"], description: "Nova aba anônima" },
-      { keys: ["Ctrl", "Shift", "U"], description: "Traduzir página" },
-      { keys: ["Ctrl", "Shift", "G"], description: "Espiar URL (Glance)" },
-      { keys: ["Shift", "Click"], description: "Espiar link no Glance" },
-      { keys: ["Ctrl", "Shift", "Z"], description: "Element Zapper (Eliminar elemento)" },
-      { keys: ["Ctrl", "H"], description: "Abrir histórico" },
-      { keys: ["Ctrl", "J"], description: "Abrir downloads" },
-      { keys: ["Ctrl", ","], description: "Abrir configurações" },
-      { keys: ["Ctrl", "/"], description: "Atalhos de teclado" },
-      { keys: ["?"], description: "Atalhos (fora da omnibar)" },
-      { keys: ["Esc"], description: "Fechar painéis / Cancelar" },
-      { keys: ["Enter"], description: "Pesquisar ou carregar URL" },
+      { keys: ["Ctrl", "K"], labelKey: "shortcuts.features.commandPalette" },
+      { keys: ["Ctrl", "P"], labelKey: "shortcuts.features.commandPaletteTabs" },
+      { keys: ["Ctrl", "L"], labelKey: "shortcuts.features.focusOmnibar" },
+      { keys: ["Ctrl", "Alt", "R"], labelKey: "shortcuts.features.readerMode" },
+      { keys: ["Ctrl", "+"], labelKey: "shortcuts.features.zoomIn" },
+      { keys: ["Ctrl", "-"], labelKey: "shortcuts.features.zoomOut" },
+      { keys: ["Ctrl", "0"], labelKey: "shortcuts.features.zoomReset" },
+      { keys: ["Ctrl", "Shift", "T"], labelKey: "shortcuts.features.readerTheme" },
+      { keys: ["Ctrl", "Shift", "F"], labelKey: "shortcuts.features.readerFont" },
+      { keys: ["Ctrl", "Shift", "./,"], labelKey: "shortcuts.features.readerFontSize" },
+      { keys: ["Ctrl", "F"], labelKey: "shortcuts.features.find" },
+      { keys: ["F3"], labelKey: "shortcuts.features.findNext" },
+      { keys: ["Shift", "F3"], labelKey: "shortcuts.features.findPrev" },
+      { keys: ["Ctrl", "Shift", "N"], labelKey: "shortcuts.features.privateTab" },
+      { keys: ["Ctrl", "Shift", "U"], labelKey: "shortcuts.features.translate" },
+      { keys: ["Ctrl", "Shift", "G"], labelKey: "shortcuts.features.glance" },
+      { keys: ["Shift", "Click"], labelKey: "shortcuts.features.glanceClick" },
+      { keys: ["Ctrl", "Shift", "Z"], labelKey: "shortcuts.features.zapper" },
+      { keys: ["Ctrl", "H"], labelKey: "shortcuts.features.history" },
+      { keys: ["Ctrl", "J"], labelKey: "shortcuts.features.downloads" },
+      { keys: ["Ctrl", ","], labelKey: "shortcuts.features.settings" },
+      { keys: ["Ctrl", "/"], labelKey: "shortcuts.features.shortcuts" },
+      { keys: ["?"], labelKey: "shortcuts.features.shortcutsOutside" },
+      { keys: ["Esc"], labelKey: "shortcuts.features.escape" },
+      { keys: ["Enter"], labelKey: "shortcuts.features.enter" },
     ],
   },
 ];
 
-export function createShortcutsModal(onChange: () => void): { panel: Panel; overlay: HTMLElement } {
-  const closeButton = el(
-    "button",
-    { class: "settings-close", type: "button", "aria-label": "Fechar" },
-    [icon("close")],
-  );
-  const overlay = el("div", { class: "settings-overlay", "aria-hidden": "true" });
-
+function renderColumns(gridEl: HTMLElement) {
   const columns = SHORTCUT_CATEGORIES.map((category) => {
     const table = el("table", { class: "shortcuts-table" }, [
       el("thead", {}, [
         el("tr", {}, [
-          el("th", { scope: "col" }, ["Atalho"]),
-          el("th", { scope: "col" }, ["Ação"]),
+          el("th", { scope: "col" }, [t("shortcuts.columnKey")]),
+          el("th", { scope: "col" }, [t("shortcuts.columnAction")]),
         ]),
       ]),
       el(
         "tbody",
         {},
-        category.items.map(({ keys, description }) =>
+        category.items.map(({ keys, labelKey }) =>
           el("tr", { class: "shortcuts-row" }, [
             el("td", { class: "shortcuts-td-keys" }, [
               el(
@@ -92,17 +87,36 @@ export function createShortcutsModal(onChange: () => void): { panel: Panel; over
                 keys.map((k) => el("kbd", { class: "shortcuts-kbd" }, [k])),
               ),
             ]),
-            el("td", { class: "shortcuts-td-desc" }, [description]),
+            el("td", { class: "shortcuts-td-desc" }, [t(labelKey)]),
           ]),
         ),
       ),
     ]);
 
-    return el("div", { class: "shortcuts-column" }, [
-      el("h3", { class: "shortcuts-column-title" }, [category.title]),
-      table,
-    ]);
+    const titleEl = el("h3", { class: "shortcuts-column-title" }, [t(category.titleKey)]);
+
+    return el("div", { class: "shortcuts-column" }, [titleEl, table]);
   });
+
+  gridEl.replaceChildren(...columns);
+}
+
+export function createShortcutsModal(onChange: () => void): { panel: Panel; overlay: HTMLElement } {
+  const closeButton = el(
+    "button",
+    {
+      class: "settings-close",
+      type: "button",
+      "aria-label": t("shortcuts.close"),
+      title: t("shortcuts.close"),
+    },
+    [icon("close")],
+  );
+  const overlay = el("div", { class: "settings-overlay", "aria-hidden": "true" });
+  const gridEl = el("div", { class: "shortcuts-grid" });
+  const titleEl = el("h2", { class: "settings-title", id: "shortcuts-title" }, [t("shortcuts.title")]);
+
+  renderColumns(gridEl);
 
   const element = el(
     "div",
@@ -113,15 +127,19 @@ export function createShortcutsModal(onChange: () => void): { panel: Panel; over
       "aria-labelledby": "shortcuts-title",
     },
     [
-      el("header", { class: "settings-header" }, [
-        el("h2", { class: "settings-title", id: "shortcuts-title" }, ["Atalhos de teclado"]),
-        closeButton,
-      ]),
-      el("div", { class: "shortcuts-modal-body" }, [
-        el("div", { class: "shortcuts-grid" }, columns),
-      ]),
+      el("header", { class: "settings-header" }, [titleEl, closeButton]),
+      el("div", { class: "shortcuts-modal-body" }, [gridEl]),
     ],
   );
+
+  const applyLocale = () => {
+    titleEl.textContent = t("shortcuts.title");
+    closeButton.setAttribute("aria-label", t("shortcuts.close"));
+    closeButton.setAttribute("title", t("shortcuts.close"));
+    renderColumns(gridEl);
+  };
+
+  subscribeLocale(applyLocale);
 
   const panel = createPanel({
     element,

@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 
 export interface TabContextMenuActions {
   onReload: (tabId: string) => void;
@@ -52,36 +54,43 @@ export function createTabContextMenu(
   let splitButton: HTMLButtonElement | null = null;
   let reopenButton: HTMLButtonElement | null = null;
   let glanceButton: HTMLButtonElement | null = null;
+  const staticButtons: HTMLButtonElement[] = [];
 
-  const staticOptions: { label: string; action: (tabId: string) => void }[] = [
-    { label: "Recarregar", action: actions.onReload },
-    { label: "Duplicar", action: actions.onDuplicate },
-    { label: "Fechar aba", action: actions.onClose },
-    { label: "Fechar outras abas", action: actions.onCloseOthers },
+  const staticOptions: { labelKey: string; action: (tabId: string) => void }[] = [
+    { labelKey: "ctx.reload", action: actions.onReload },
+    { labelKey: "ctx.duplicate", action: actions.onDuplicate },
+    { labelKey: "ctx.closeTab", action: actions.onClose },
+    { labelKey: "ctx.closeOthers", action: actions.onCloseOthers },
   ];
 
-  for (const option of staticOptions) {
-    const itemButton = el(
-      "button",
-      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      [option.label],
-    );
-    itemButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const targetTabId = activeTabId;
-      menu.close();
-      if (targetTabId) option.action(targetTabId);
-    });
-    element.append(itemButton);
+  function buildStaticOptions() {
+    for (const node of staticButtons) node.remove();
+    staticButtons.length = 0;
+    for (const option of staticOptions) {
+      const itemButton = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [t(option.labelKey)],
+      );
+      itemButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const targetTabId = activeTabId;
+        menu.close();
+        if (targetTabId) option.action(targetTabId);
+      });
+      staticButtons.push(itemButton);
+    }
+    element.prepend(...staticButtons);
   }
+
+  buildStaticOptions();
 
   function buildPinButton(tabId: string) {
     if (pinButton) pinButton.remove();
-    const label = actions.isPinned(tabId) ? "Desafixar aba" : "Fixar aba";
     pinButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      [label],
+      [actions.isPinned(tabId) ? t("ctx.unpin") : t("ctx.pin")],
     ) as HTMLButtonElement;
     pinButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -97,11 +106,10 @@ export function createTabContextMenu(
     if (!actions.onToggleSplit) return;
     const isSplit = actions.isSplitActive?.() ?? false;
     const isThisTabSplit = actions.isSplitTab?.(tabId) ?? false;
-    const label = isSplit && isThisTabSplit ? "Fechar tela dividida" : "Dividir tela com esta aba";
     splitButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      [label],
+      [isSplit && isThisTabSplit ? t("ctx.closeSplit") : t("ctx.openSplit")],
     ) as HTMLButtonElement;
     splitButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -120,7 +128,7 @@ export function createTabContextMenu(
     reopenButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      ["Reabrir aba fechada (Ctrl+Shift+T)"],
+      [t("ctx.reopen")],
     ) as HTMLButtonElement;
     reopenButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -136,7 +144,7 @@ export function createTabContextMenu(
     glanceButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      ["Espiar no Glance (Glance)"],
+      [t("ctx.glance")],
     ) as HTMLButtonElement;
     glanceButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -153,7 +161,7 @@ export function createTabContextMenu(
     privateTabButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      ["Nova aba anônima (Ctrl+Shift+N)"],
+      [t("ctx.privateTab")],
     ) as HTMLButtonElement;
     privateTabButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -170,7 +178,7 @@ export function createTabContextMenu(
     translateButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      ["Traduzir página (Ctrl+Shift+U)"],
+      [t("ctx.translate")],
     ) as HTMLButtonElement;
     translateButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -185,11 +193,10 @@ export function createTabContextMenu(
     if (sleepButton) sleepButton.remove();
     if (!actions.onSleepTab) return;
     const sleeping = actions.isSleeping ? actions.isSleeping(tabId) : false;
-    const label = sleeping ? "Acordar aba" : "Hibernar aba (Economizar memória)";
     sleepButton = el(
       "button",
       { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-      [label],
+      [sleeping ? t("ctx.wake") : t("ctx.sleep")],
     ) as HTMLButtonElement;
     sleepButton.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -214,7 +221,7 @@ export function createTabContextMenu(
       const removeBtn = el(
         "button",
         { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-        [`Remover da pasta (${currentFolder ? currentFolder.name : "Pasta"})`],
+        [t("ctx.removeFromFolder", { name: currentFolder ? currentFolder.name : t("ctx.folderFallback") })],
       ) as HTMLButtonElement;
       removeBtn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -230,7 +237,7 @@ export function createTabContextMenu(
       const btn = el(
         "button",
         { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-        [`Mover para pasta: ${f.name}`],
+        [t("ctx.moveToFolder", { name: f.name })],
       ) as HTMLButtonElement;
       btn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -245,7 +252,7 @@ export function createTabContextMenu(
       const newFolderBtn = el(
         "button",
         { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-        ["+ Criar pasta com esta aba"],
+        [t("ctx.createFolder")],
       ) as HTMLButtonElement;
       newFolderBtn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -271,7 +278,7 @@ export function createTabContextMenu(
       const btn = el(
         "button",
         { class: "tab-context-menu__item", type: "button", role: "menuitem" },
-        [`Mover para ${ws.name}`],
+        [t("ctx.moveToWorkspace", { name: ws.name })],
       ) as HTMLButtonElement;
       btn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -316,15 +323,7 @@ export function createTabContextMenu(
     open(tabId: string, x: number, y: number) {
       activeTabId = tabId;
       open = true;
-      buildPinButton(tabId);
-      buildSplitButton(tabId);
-      buildWorkspaceButtons();
-      buildFolderButtons(tabId);
-      buildSleepButton(tabId);
-      buildReopenButton();
-      buildGlanceButton(tabId);
-      buildPrivateTabButton();
-      buildTranslateButton(tabId);
+      rebuildForLocale(tabId);
 
       element.style.visibility = "hidden";
       element.style.display = "flex";
@@ -355,6 +354,24 @@ export function createTabContextMenu(
       onChange?.();
     },
   };
+
+  function rebuildForLocale(tabId: string) {
+    buildStaticOptions();
+    buildPinButton(tabId);
+    buildSplitButton(tabId);
+    buildWorkspaceButtons();
+    buildFolderButtons(tabId);
+    buildSleepButton(tabId);
+    buildReopenButton();
+    buildGlanceButton(tabId);
+    buildPrivateTabButton();
+    buildTranslateButton(tabId);
+  }
+
+  subscribeLocale(() => {
+    if (!activeTabId) return;
+    rebuildForLocale(activeTabId);
+  });
 
   return menu;
 }

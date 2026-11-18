@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon, type IconName } from "./icons";
 import { getTabs } from "./tabs";
 import {
@@ -24,20 +26,20 @@ export interface WorkspaceSwitcher {
   destroy: () => void;
 }
 
-const AVAILABLE_ICONS: readonly { name: IconName; label: string }[] = [
-  { name: "leaf", label: "Folha / Pessoal" },
-  { name: "briefcase", label: "Maleta / Trabalho" },
-  { name: "code", label: "Código / Dev" },
-  { name: "book", label: "Livro / Estudos" },
-  { name: "globe", label: "Globo / Geral" },
-  { name: "star", label: "Estrela / Favoritos" },
+const AVAILABLE_ICONS: readonly { name: IconName; labelKey: string }[] = [
+  { name: "leaf", labelKey: "ws.icon.leaf" },
+  { name: "briefcase", labelKey: "ws.icon.briefcase" },
+  { name: "code", labelKey: "ws.icon.code" },
+  { name: "book", labelKey: "ws.icon.book" },
+  { name: "globe", labelKey: "ws.icon.globe" },
+  { name: "star", labelKey: "ws.icon.star" },
 ];
 
 export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): WorkspaceSwitcher {
   let open = false;
 
   const activeIconEl = el("span", { class: "workspace-pill-icon" }, [icon("leaf")]);
-  const activeLabelEl = el("span", { class: "workspace-pill-name" }, ["Pessoal"]);
+  const activeLabelEl = el("span", { class: "workspace-pill-name" });
   const chevronEl = el("span", { class: "workspace-pill-chevron" }, [icon("chevronDown")]);
 
   const pillBtn = el(
@@ -47,8 +49,6 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
       type: "button",
       "aria-haspopup": "dialog",
       "aria-expanded": "false",
-      "aria-label": "Alternar espaço de trabalho",
-      title: "Espaços de trabalho (Ctrl+Alt+1..9)",
     },
     [activeIconEl, activeLabelEl, chevronEl],
   );
@@ -58,8 +58,6 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
     {
       class: "workspace-nav-btn workspace-nav-btn--prev",
       type: "button",
-      "aria-label": "Espaço anterior (Ctrl+Alt+←)",
-      title: "Espaço anterior (Ctrl+Alt+←)",
     },
     [icon("chevronLeft")],
   );
@@ -69,8 +67,6 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
     {
       class: "workspace-nav-btn workspace-nav-btn--next",
       type: "button",
-      "aria-label": "Próximo espaço (Ctrl+Alt+→)",
-      title: "Próximo espaço (Ctrl+Alt+→)",
     },
     [icon("chevronRight")],
   );
@@ -85,7 +81,6 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
     class: "workspace-popover",
     role: "dialog",
     "aria-modal": "true",
-    "aria-label": "Gerenciar Espaços de Trabalho",
     style: "display: none;",
   });
 
@@ -94,13 +89,13 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
   const toggleFormBtn = el(
     "button",
     { class: "workspace-add-btn", type: "button" },
-    [icon("plus"), el("span", {}, ["Novo Espaço"])],
+    [icon("plus"), el("span", {}, [t("ws.new")])],
   );
 
+  const popoverTitleEl = el("span", { class: "workspace-popover-title" }, [t("ws.title")]);
+
   popover.append(
-    el("div", { class: "workspace-popover-header" }, [
-      el("span", { class: "workspace-popover-title" }, ["Espaços de Trabalho"]),
-    ]),
+    el("div", { class: "workspace-popover-header" }, [popoverTitleEl]),
     listEl,
     formEl,
     toggleFormBtn,
@@ -111,24 +106,25 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
   const nameInput = el("input", {
     class: "workspace-name-input",
     type: "text",
-    placeholder: "Nome do espaço...",
+    placeholder: t("ws.namePlaceholder"),
     maxlength: "30",
   }) as HTMLInputElement;
 
   const iconOptionsRow = el(
     "div",
     { class: "workspace-icon-picker" },
-    AVAILABLE_ICONS.map(({ name, label }) => {
+    AVAILABLE_ICONS.map(({ name, labelKey }) => {
       const btn = el(
         "button",
         {
           class: `workspace-icon-opt ${name === "folder" ? "workspace-icon-opt--selected" : ""}`,
           type: "button",
-          "aria-label": label,
-          title: label,
+          "aria-label": t(labelKey),
+          title: t(labelKey),
         },
         [icon(name)],
       );
+      btn.dataset.labelKey = labelKey;
       btn.addEventListener("click", () => {
         selectedIcon = name;
         for (const b of iconOptionsRow.querySelectorAll(".workspace-icon-opt")) {
@@ -143,13 +139,13 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
   const submitCreateBtn = el(
     "button",
     { class: "workspace-submit-btn", type: "submit" },
-    ["Criar Espaço"],
+    [t("ws.create")],
   );
 
   const cancelCreateBtn = el(
     "button",
     { class: "workspace-cancel-btn", type: "button" },
-    ["Cancelar"],
+    [t("ws.cancel")],
   );
 
   formEl.append(
@@ -190,7 +186,7 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
       ...workspaces.map((ws) => {
         const isActive = ws.id === active.id;
         const tabCount = allTabs.filter(
-          (t) => !t.isPinned && (t.workspaceId ?? "default") === ws.id,
+          (tab) => !tab.isPinned && (tab.workspaceId ?? "default") === ws.id,
         ).length;
 
         const iconEl = el("span", { class: "workspace-item-icon" }, [
@@ -198,7 +194,7 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
         ]);
         const nameEl = el("span", { class: "workspace-item-name" }, [ws.name]);
         const countEl = el("span", { class: "workspace-item-badge" }, [
-          `${tabCount} ${tabCount === 1 ? "aba" : "abas"}`,
+          t(tabCount === 1 ? "ws.tabOne" : "ws.tabMany", { count: tabCount }),
         ]);
 
         const actionsEl = el("div", { class: "workspace-item-actions" });
@@ -212,8 +208,8 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
             {
               class: "workspace-action-btn workspace-action-btn--delete",
               type: "button",
-              "aria-label": `Excluir espaço ${ws.name}`,
-              title: "Excluir espaço",
+              "aria-label": t("ws.deleteAria", { name: ws.name }),
+              title: t("ws.deleteTitle"),
             },
             [icon("trash")],
           ) as HTMLButtonElement;
@@ -223,12 +219,14 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
             if (!confirming) {
               confirming = true;
               deleteBtn.classList.add("workspace-action-btn--confirming");
-              deleteBtn.title = "Clique novamente para confirmar exclusão";
-              deleteBtn.replaceChildren(el("span", { class: "workspace-confirm-text" }, ["Excluir?"]));
+              deleteBtn.title = t("ws.deleteConfirmTitle");
+              deleteBtn.replaceChildren(
+                el("span", { class: "workspace-confirm-text" }, [t("ws.deleteConfirmLabel")]),
+              );
               confirmTimeout = setTimeout(() => {
                 confirming = false;
                 deleteBtn.classList.remove("workspace-action-btn--confirming");
-                deleteBtn.title = "Excluir espaço";
+                deleteBtn.title = t("ws.deleteTitle");
                 deleteBtn.replaceChildren(icon("trash"));
               }, 3000);
             } else {
@@ -281,6 +279,32 @@ export function createWorkspaceSwitcher(options: WorkspaceSwitcherOptions): Work
     activeLabelEl.textContent = active.name;
     container.style.setProperty("--active-workspace-color", active.color || "#b8eb9a");
   }
+
+  function applyLocale() {
+    pillBtn.setAttribute("aria-label", t("ws.switchAria"));
+    pillBtn.setAttribute("title", t("ws.switchTitle"));
+    prevBtn.setAttribute("aria-label", t("ws.prevAria"));
+    prevBtn.setAttribute("title", t("ws.prevAria"));
+    nextBtn.setAttribute("aria-label", t("ws.nextAria"));
+    nextBtn.setAttribute("title", t("ws.nextAria"));
+    popover.setAttribute("aria-label", t("ws.manageTitle"));
+    popoverTitleEl.textContent = t("ws.title");
+    const toggleLabel = toggleFormBtn.querySelector("span");
+    if (toggleLabel) toggleLabel.textContent = t("ws.new");
+    nameInput.placeholder = t("ws.namePlaceholder");
+    submitCreateBtn.textContent = t("ws.create");
+    cancelCreateBtn.textContent = t("ws.cancel");
+    for (const btn of iconOptionsRow.querySelectorAll<HTMLElement>(".workspace-icon-opt")) {
+      const key = btn.dataset.labelKey;
+      if (!key) continue;
+      btn.setAttribute("aria-label", t(key));
+      btn.setAttribute("title", t(key));
+    }
+    if (open) renderList();
+  }
+
+  subscribeLocale(applyLocale);
+  applyLocale();
 
   pillBtn.addEventListener("click", () => {
     if (open) switcher.close();

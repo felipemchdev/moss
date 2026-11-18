@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon } from "./icons";
 import { getSettings, updateSettings, SEARCH_ENGINES, type SearchEngine, type Theme } from "./settings";
 import { createTab } from "./tabs";
@@ -20,7 +22,7 @@ export const ESSENTIAL_APPS: EssentialApp[] = [
   { id: "notion", name: "Notion", url: "https://notion.so", iconName: "book", category: "work" },
   { id: "spotify", name: "Spotify", url: "https://open.spotify.com", iconName: "volume2", category: "media" },
   { id: "reddit", name: "Reddit", url: "https://reddit.com", iconName: "globe", category: "social" },
-  { id: "wikipedia", name: "Wikipédia", url: "https://wikipedia.org", iconName: "search", category: "work" },
+  { id: "wikipedia", name: "Wikipedia", url: "https://wikipedia.org", iconName: "search", category: "work" },
 ];
 
 export function isOnboardingCompleted(): boolean {
@@ -68,12 +70,14 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
     class: "welcome-wizard-card",
     role: "dialog",
     "aria-modal": "true",
+    "aria-label": t("welcome.title"),
   });
 
   backdrop.appendChild(card);
 
   function renderStep() {
     card.replaceChildren();
+    card.setAttribute("aria-label", t("welcome.title"));
 
     // Step dots indicator
     const dots = el(
@@ -94,16 +98,14 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
       // Step 0: Welcome & Visual Theme
       const hero = el("div", { class: "welcome-hero" }, [
         el("div", { class: "welcome-leaf-badge" }, [icon("leaf")]),
-        el("h1", { class: "welcome-title" }, ["Boas-vindas ao moss"]),
-        el("p", { class: "welcome-subtitle" }, [
-          "Uma experiência minimalista, fluida e serena para navegar na web.",
-        ]),
+        el("h1", { class: "welcome-title" }, [t("welcome.title")]),
+        el("p", { class: "welcome-subtitle" }, [t("welcome.subtitle")]),
       ]);
 
       const themeOptions = [
-        { id: "dark", label: "Escuro", iconName: "moon" as const },
-        { id: "light", label: "Claro", iconName: "sun" as const },
-        { id: "auto", label: "Automático", iconName: "settings" as const },
+        { id: "dark", label: t("welcome.themeDark"), iconName: "moon" as const },
+        { id: "light", label: t("welcome.themeLight"), iconName: "sun" as const },
+        { id: "auto", label: t("welcome.themeAuto"), iconName: "settings" as const },
       ];
 
       const themeGrid = el(
@@ -135,10 +137,8 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
     } else if (currentStep === 1) {
       // Step 1: Search Engine
       const header = el("div", { class: "welcome-step-header" }, [
-        el("h2", { class: "welcome-step-title" }, ["Escolha seu motor de busca"]),
-        el("p", { class: "welcome-step-desc" }, [
-          "Utilizado para pesquisas rápidas digitadas diretamente na Omnibar.",
-        ]),
+        el("h2", { class: "welcome-step-title" }, [t("welcome.engineTitle")]),
+        el("p", { class: "welcome-step-desc" }, [t("welcome.engineDesc")]),
       ]);
 
       const engineGrid = el(
@@ -155,7 +155,9 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
               el("span", { class: "welcome-engine-icon" }, [icon("search")]),
               el("div", { class: "welcome-engine-meta" }, [
                 el("strong", {}, [eng.label]),
-                el("span", {}, [eng.value === "duckduckgo" ? "Foco em privacidade" : "Busca web global"]),
+                el("span", {}, [
+                  eng.value === "duckduckgo" ? t("welcome.enginePrivacy") : t("welcome.engineGlobal"),
+                ]),
               ]),
             ],
           );
@@ -173,10 +175,8 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
       // Step 2: Privacy Shield
       const header = el("div", { class: "welcome-step-header" }, [
         el("div", { class: "welcome-shield-icon" }, [icon("shield")]),
-        el("h2", { class: "welcome-step-title" }, ["Escudo de Privacidade Nativo"]),
-        el("p", { class: "welcome-step-desc" }, [
-          "Bloqueie anúncios intrusivos, rastreadores e scripts de espionagem com proteção local de alta performance.",
-        ]),
+        el("h2", { class: "welcome-step-title" }, [t("welcome.shieldTitle")]),
+        el("p", { class: "welcome-step-desc" }, [t("welcome.shieldDesc")]),
       ]);
 
       const shieldCard = el(
@@ -185,8 +185,8 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
         [
           el("div", { class: "welcome-shield-toggle-row" }, [
             el("div", { class: "welcome-shield-text" }, [
-              el("strong", {}, ["Ativar Escudo Anti-Rastreamento"]),
-              el("span", {}, ["Navegue com até 2.5x mais velocidade e sem anúncios"]),
+              el("strong", {}, [t("welcome.shieldToggle")]),
+              el("span", {}, [t("welcome.shieldToggleDesc")]),
             ]),
             el("input", {
               type: "checkbox",
@@ -206,10 +206,8 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
     } else if (currentStep === 3) {
       // Step 3: Essentials Web Apps Grid
       const header = el("div", { class: "welcome-step-header" }, [
-        el("h2", { class: "welcome-step-title" }, ["Selecione seus apps essenciais"]),
-        el("p", { class: "welcome-step-desc" }, [
-          "Inicie sua jornada com suas ferramentas favoritas prontas para uso.",
-        ]),
+        el("h2", { class: "welcome-step-title" }, [t("welcome.appsTitle")]),
+        el("p", { class: "welcome-step-desc" }, [t("welcome.appsDesc")]),
       ]);
 
       const appsGrid = el(
@@ -243,10 +241,8 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
       // Step 4: Finished!
       const hero = el("div", { class: "welcome-hero" }, [
         el("div", { class: "welcome-leaf-badge welcome-leaf-badge--sparkle" }, [icon("sparkles")]),
-        el("h1", { class: "welcome-title" }, ["Tudo pronto para decolar!"]),
-        el("p", { class: "welcome-subtitle" }, [
-          "O moss está totalmente configurado e otimizado para o seu fluxo diário.",
-        ]),
+        el("h1", { class: "welcome-title" }, [t("welcome.doneTitle")]),
+        el("p", { class: "welcome-subtitle" }, [t("welcome.doneSubtitle")]),
       ]);
 
       stepContent = el("div", { class: "welcome-step-body" }, [hero]);
@@ -260,7 +256,7 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
         type: "button",
         style: currentStep === 0 ? "visibility: hidden;" : "",
       },
-      ["Voltar"],
+      [t("welcome.back")],
     );
     prevBtn.addEventListener("click", () => {
       if (currentStep > 0) {
@@ -276,7 +272,7 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
         class: `welcome-nav-btn welcome-nav-btn--next ${isLastStep ? "welcome-nav-btn--finish" : ""}`,
         type: "button",
       },
-      [isLastStep ? "Mergulhe de cabeça! 🌿" : "Continuar →"],
+      [isLastStep ? t("welcome.finish") : t("welcome.continue")],
     );
     nextBtn.addEventListener("click", () => {
       if (isLastStep) {
@@ -335,6 +331,10 @@ export function createWelcomeWizard(onComplete?: () => void): WelcomeWizardContr
       backdrop.style.display = "none";
     },
   };
+
+  subscribeLocale(() => {
+    if (open) renderStep();
+  });
 
   return controller;
 }

@@ -6,20 +6,38 @@ import {
   subscribeHistory,
   type HistoryEntry,
 } from "./history";
+import { getLocale, subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon } from "./icons";
 import { createPanel, type Panel } from "./panel";
 
 const CONFIRM_TIMEOUT_MS = 3000;
-const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
-const dayFormat = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+
+let cachedLocale: string | null = null;
+let cachedTimeFormat: Intl.DateTimeFormat | null = null;
+let cachedDayFormat: Intl.DateTimeFormat | null = null;
+
+function formatters(): { time: Intl.DateTimeFormat; day: Intl.DateTimeFormat } {
+  const locale = getLocale();
+  if (cachedLocale !== locale || !cachedTimeFormat || !cachedDayFormat) {
+    cachedLocale = locale;
+    cachedTimeFormat = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" });
+    cachedDayFormat = new Intl.DateTimeFormat(locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+  }
+  return { time: cachedTimeFormat, day: cachedDayFormat };
+}
 
 function dayLabel(timestamp: number): string {
   const day = new Date(timestamp).setHours(0, 0, 0, 0);
   const now = new Date();
-  if (day === new Date(now).setHours(0, 0, 0, 0)) return "Hoje";
+  if (day === new Date(now).setHours(0, 0, 0, 0)) return t("history.today");
   now.setDate(now.getDate() - 1);
-  if (day === now.setHours(0, 0, 0, 0)) return "Ontem";
-  return dayFormat.format(timestamp);
+  if (day === now.setHours(0, 0, 0, 0)) return t("history.yesterday");
+  return formatters().day.format(timestamp);
 }
 
 function renderItem(entry: HistoryEntry): HTMLElement {
@@ -30,11 +48,16 @@ function renderItem(entry: HistoryEntry): HTMLElement {
       el("span", { class: "history-item-url" }, [hostnameOf(entry.url)]),
     ]),
     el("time", { class: "history-item-time", datetime: new Date(entry.visitedAt).toISOString() }, [
-      timeFormat.format(entry.visitedAt),
+      formatters().time.format(entry.visitedAt),
     ]),
     el(
       "button",
-      { class: "history-item-delete", type: "button", "aria-label": "Remover do histórico", title: "Remover" },
+      {
+        class: "history-item-delete",
+        type: "button",
+        "aria-label": t("history.removeAria"),
+        title: t("history.removeTitle"),
+      },
       [icon("close")],
     ),
   ]);
@@ -47,15 +70,17 @@ export function createHistoryPanel(
   const search = el("input", {
     class: "history-search-input",
     type: "search",
-    placeholder: "Pesquisar no histórico",
+    placeholder: t("history.searchPlaceholder"),
     autocomplete: "off",
     spellcheck: "false",
-    "aria-label": "Pesquisar no histórico",
+    "aria-label": t("history.searchPlaceholder"),
   });
-  const closeButton = el("button", { class: "settings-close", type: "button", "aria-label": "Fechar" }, [
-    icon("close"),
-  ]);
-  const clearLabel = el("span", {}, ["Limpar histórico"]);
+  const closeButton = el(
+    "button",
+    { class: "settings-close", type: "button", "aria-label": t("history.close") },
+    [icon("close")],
+  );
+  const clearLabel = el("span", {}, [t("history.clear")]);
   const clearButton = el("button", { class: "history-clear-btn", type: "button" }, [icon("trash"), clearLabel]);
   const content = el("div", { class: "history-content" });
   const emptyTitle = el("p", { class: "history-empty-title" });
@@ -67,14 +92,13 @@ export function createHistoryPanel(
   ]);
   const footer = el("footer", { class: "history-footer" }, [clearButton]);
 
+  const titleEl = el("h2", { class: "history-title", id: "history-title" }, [t("history.title")]);
+
   const element = el(
     "aside",
     { class: "history-panel", role: "dialog", "aria-modal": "true", "aria-labelledby": "history-title" },
     [
-      el("header", { class: "history-header" }, [
-        el("h2", { class: "history-title", id: "history-title" }, ["Histórico"]),
-        closeButton,
-      ]),
+      el("header", { class: "history-header" }, [titleEl, closeButton]),
       el("div", { class: "history-search" }, [
         el("span", { class: "history-search-icon" }, [icon("search")]),
         search,
@@ -100,10 +124,10 @@ export function createHistoryPanel(
     const query = search.value.trim();
     const entries = searchHistory(query);
     if (entries.length === 0) {
-      emptyTitle.textContent = query ? "Nenhum resultado" : "Nenhuma página visitada";
+      emptyTitle.textContent = query ? t("history.emptySearch") : t("history.emptyNoPages");
       emptySubtitle.textContent = query
-        ? "Tente outros termos de pesquisa."
-        : "As páginas que você visitar aparecerão aqui.";
+        ? t("history.emptySearchDesc")
+        : t("history.emptyNoPagesDesc");
       content.replaceChildren(empty);
     } else {
       const groups: HTMLElement[] = [];
@@ -133,13 +157,13 @@ export function createHistoryPanel(
   function resetClear() {
     clearTimeout(confirmTimer);
     confirming = false;
-    clearLabel.textContent = "Limpar histórico";
+    clearLabel.textContent = t("history.clear");
   }
 
   clearButton.addEventListener("click", () => {
     if (!confirming) {
       confirming = true;
-      clearLabel.textContent = "Clique novamente para confirmar";
+      clearLabel.textContent = t("history.clearConfirm");
       confirmTimer = window.setTimeout(resetClear, CONFIRM_TIMEOUT_MS);
       return;
     }
@@ -175,6 +199,16 @@ export function createHistoryPanel(
   });
 
   subscribeHistory(() => {
+    if (panel.isOpen()) render();
+  });
+
+  subscribeLocale(() => {
+    titleEl.textContent = t("history.title");
+    closeButton.setAttribute("aria-label", t("history.close"));
+    search.placeholder = t("history.searchPlaceholder");
+    search.setAttribute("aria-label", t("history.searchPlaceholder"));
+    if (confirming) clearLabel.textContent = t("history.clearConfirm");
+    else clearLabel.textContent = t("history.clear");
     if (panel.isOpen()) render();
   });
 

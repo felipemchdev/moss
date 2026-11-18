@@ -1,5 +1,7 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon } from "./icons";
 import { webview } from "./webview";
 
@@ -39,8 +41,8 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
   const inputEl = el("input", {
     type: "search",
     class: "find-in-page-input",
-    placeholder: "Localizar na página...",
-    "aria-label": "Termo de busca na página",
+    placeholder: t("find.placeholder"),
+    "aria-label": t("find.inputAria"),
     spellcheck: "false",
     autocomplete: "off",
   }) as HTMLInputElement;
@@ -57,8 +59,8 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
     {
       type: "button",
       class: "find-in-page-btn find-in-page-btn--prev",
-      "aria-label": "Ocorrência anterior (Shift+Enter)",
-      title: "Ocorrência anterior (Shift+Enter ou Shift+F3)",
+      "aria-label": t("find.prevAria"),
+      title: t("find.prevTitle"),
     },
     [icon("chevronUp")],
   );
@@ -68,8 +70,8 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
     {
       type: "button",
       class: "find-in-page-btn find-in-page-btn--next",
-      "aria-label": "Próxima ocorrência (Enter)",
-      title: "Próxima ocorrência (Enter ou F3)",
+      "aria-label": t("find.nextAria"),
+      title: t("find.nextTitle"),
     },
     [icon("chevronDown")],
   );
@@ -79,8 +81,8 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
     {
       type: "button",
       class: "find-in-page-btn find-in-page-btn--case",
-      "aria-label": "Diferenciar maiúsculas/minúsculas",
-      title: "Diferenciar maiúsculas e minúsculas",
+      "aria-label": t("find.caseAria"),
+      title: t("find.caseTitle"),
       "aria-pressed": "false",
     },
     [el("span", { class: "find-in-page-case-label" }, ["Aa"])],
@@ -91,8 +93,8 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
     {
       type: "button",
       class: "find-in-page-btn find-in-page-btn--close",
-      "aria-label": "Fechar localização (Esc)",
-      title: "Fechar (Esc)",
+      "aria-label": t("find.closeAria"),
+      title: t("find.closeTitle"),
     },
     [icon("close")],
   );
@@ -113,7 +115,7 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
     {
       class: "find-in-page-bar",
       role: "search",
-      "aria-label": "Localizar na página",
+      "aria-label": t("find.barAria"),
       style: "display: none;",
     },
     [pill],
@@ -206,6 +208,20 @@ export function createFindInPage(options: FindInPageOptions): FindInPage {
     } else {
       unlisten = fn;
     }
+  });
+
+  subscribeLocale(() => {
+    inputEl.placeholder = t("find.placeholder");
+    inputEl.setAttribute("aria-label", t("find.inputAria"));
+    prevBtn.setAttribute("aria-label", t("find.prevAria"));
+    prevBtn.setAttribute("title", t("find.prevTitle"));
+    nextBtn.setAttribute("aria-label", t("find.nextAria"));
+    nextBtn.setAttribute("title", t("find.nextTitle"));
+    caseBtn.setAttribute("aria-label", t("find.caseAria"));
+    caseBtn.setAttribute("title", t("find.caseTitle"));
+    closeBtn.setAttribute("aria-label", t("find.closeAria"));
+    closeBtn.setAttribute("title", t("find.closeTitle"));
+    container.setAttribute("aria-label", t("find.barAria"));
   });
 
   const controller: FindInPage = {

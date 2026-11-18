@@ -1,5 +1,7 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon } from "./icons";
 import { isWebUrl } from "./storage";
 import { webview } from "./webview";
@@ -96,7 +98,7 @@ function sanitizeReaderHtml(rawHtml: string): string {
     }
     return doc.body.innerHTML;
   } catch {
-    return '<p>Não foi possível exibir este conteúdo com segurança.</p>';
+    return `<p>${t("reader.unsafeBody")}</p>`;
   }
 }
 
@@ -106,6 +108,8 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
   let destroyed = false;
   let unlisten: UnlistenFn | null = null;
   let extractionTimeout: number | null = null;
+  let lastPayload: ReaderContentPayload | null = null;
+  let isPending = false;
 
   function clearExtractionTimeout() {
     if (extractionTimeout !== null) {
@@ -114,10 +118,10 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
     }
   }
 
-  const fontSansBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "sans", role: "radio", "aria-label": "Fonte sem serifa" }, ["Sans"]);
-  const fontSerifBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "serif", role: "radio", "aria-label": "Fonte com serifa" }, ["Serif"]);
-  const fontMonoBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "mono", role: "radio", "aria-label": "Fonte monoespaçada" }, ["Mono"]);
-  const fontGroup = el("div", { class: "reader-group reader-group--font", role: "radiogroup", "aria-label": "Família tipográfica" }, [
+  const fontSansBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "sans", role: "radio" }, ["Sans"]);
+  const fontSerifBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "serif", role: "radio" }, ["Serif"]);
+  const fontMonoBtn = el("button", { type: "button", class: "reader-font-btn", "data-font": "mono", role: "radio" }, ["Mono"]);
+  const fontGroup = el("div", { class: "reader-group reader-group--font", role: "radiogroup", "aria-label": t("reader.fontFamily") }, [
     fontSansBtn,
     fontSerifBtn,
     fontMonoBtn,
@@ -126,8 +130,8 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
   const sizeDecBtn = el("button", {
     type: "button",
     class: "reader-btn reader-size-btn",
-    "aria-label": "Diminuir fonte (Ctrl+Shift+,)",
-    title: "Diminuir fonte (Ctrl+Shift+,)",
+    "aria-label": t("reader.decrease"),
+    title: t("reader.decrease"),
   }, ["A−"]);
 
   const sizeLabel = el("span", { class: "reader-size-label" }, [`${settings.fontSize}px`]);
@@ -135,8 +139,8 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
   const sizeIncBtn = el("button", {
     type: "button",
     class: "reader-btn reader-size-btn",
-    "aria-label": "Aumentar fonte (Ctrl+Shift+.)",
-    title: "Aumentar fonte (Ctrl+Shift+.)",
+    "aria-label": t("reader.increase"),
+    title: t("reader.increase"),
   }, ["A+"]);
 
   const sizeGroup = el("div", { class: "reader-group reader-group--size" }, [
@@ -148,8 +152,8 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
   const widthBtn = el("button", {
     type: "button",
     class: "reader-btn reader-width-btn",
-    "aria-label": "Largura da coluna de leitura",
-    title: "Alternar largura da coluna",
+    "aria-label": t("reader.width"),
+    title: t("reader.widthTitle"),
   }, ["↔"]);
 
   const themeDarkSwatch = el("button", {
@@ -157,27 +161,27 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
     class: "reader-swatch reader-swatch--dark",
     "data-theme": "dark",
     role: "radio",
-    "aria-label": "Tema escuro (moss dark)",
-    title: "Tema escuro",
+    "aria-label": t("reader.themeDark"),
+    title: t("reader.themeDarkTitle"),
   });
   const themeLightSwatch = el("button", {
     type: "button",
     class: "reader-swatch reader-swatch--light",
     "data-theme": "light",
     role: "radio",
-    "aria-label": "Tema claro (Light Cream)",
-    title: "Tema claro",
+    "aria-label": t("reader.themeLight"),
+    title: t("reader.themeLightTitle"),
   });
   const themeSepiaSwatch = el("button", {
     type: "button",
     class: "reader-swatch reader-swatch--sepia",
     "data-theme": "sepia",
     role: "radio",
-    "aria-label": "Tema sépia (Parchment)",
-    title: "Tema sépia",
+    "aria-label": t("reader.themeSepia"),
+    title: t("reader.themeSepiaTitle"),
   });
 
-  const themeGroup = el("div", { class: "reader-group reader-group--theme", role: "radiogroup", "aria-label": "Tema de leitura" }, [
+  const themeGroup = el("div", { class: "reader-group reader-group--theme", role: "radiogroup", "aria-label": t("reader.themeGroup") }, [
     themeDarkSwatch,
     themeLightSwatch,
     themeSepiaSwatch,
@@ -186,8 +190,8 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
   const closeBtn = el("button", {
     type: "button",
     class: "reader-btn reader-close-btn",
-    "aria-label": "Sair do modo leitura (Esc ou Ctrl+Alt+R)",
-    title: "Sair do modo leitura (Esc)",
+    "aria-label": t("reader.close"),
+    title: t("reader.closeTitle"),
   }, [icon("close")]);
 
   const toolbarPill = el("div", { class: "reader-toolbar-pill" }, [
@@ -224,7 +228,7 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
   const container = el("div", {
     class: "reader-view",
     role: "region",
-    "aria-label": "Modo Leitura",
+    "aria-label": t("reader.region"),
     style: "display: none;",
   }, [toolbar, scrollContainer]);
 
@@ -249,6 +253,91 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
     }
 
     persistSettings(settings);
+  }
+
+  function applyLocale() {
+    container.setAttribute("aria-label", t("reader.region"));
+    fontGroup.setAttribute("aria-label", t("reader.fontFamily"));
+    fontSansBtn.setAttribute("aria-label", t("reader.fontSans"));
+    fontSerifBtn.setAttribute("aria-label", t("reader.fontSerif"));
+    fontMonoBtn.setAttribute("aria-label", t("reader.fontMono"));
+    sizeDecBtn.setAttribute("aria-label", t("reader.decrease"));
+    sizeDecBtn.setAttribute("title", t("reader.decrease"));
+    sizeIncBtn.setAttribute("aria-label", t("reader.increase"));
+    sizeIncBtn.setAttribute("title", t("reader.increase"));
+    widthBtn.setAttribute("aria-label", t("reader.width"));
+    widthBtn.setAttribute("title", t("reader.widthTitle"));
+    themeGroup.setAttribute("aria-label", t("reader.themeGroup"));
+    themeDarkSwatch.setAttribute("aria-label", t("reader.themeDark"));
+    themeDarkSwatch.setAttribute("title", t("reader.themeDarkTitle"));
+    themeLightSwatch.setAttribute("aria-label", t("reader.themeLight"));
+    themeLightSwatch.setAttribute("title", t("reader.themeLightTitle"));
+    themeSepiaSwatch.setAttribute("aria-label", t("reader.themeSepia"));
+    themeSepiaSwatch.setAttribute("title", t("reader.themeSepiaTitle"));
+    closeBtn.setAttribute("aria-label", t("reader.close"));
+    closeBtn.setAttribute("title", t("reader.closeTitle"));
+    if (activeTabId) {
+      if (isPending) renderPending();
+      else renderPayload(lastPayload);
+    }
+  }
+
+  function renderPending() {
+    titleEl.textContent = t("reader.loadingTitle");
+    siteNameEl.textContent = "moss";
+    metaDotEl.style.display = "";
+    readingTimeEl.textContent = t("reader.loadingTime");
+    bylineEl.style.display = "none";
+    articleBody.replaceChildren(
+      el("div", { class: "reader-loading-skeleton" }, [
+        el("p", {}, [t("reader.loadingSkeleton")]),
+      ]),
+    );
+  }
+
+  function renderTimeout() {
+    titleEl.textContent = t("reader.timeoutTitle");
+    metaDotEl.style.display = "none";
+    readingTimeEl.textContent = "";
+    articleBody.replaceChildren(el("p", { class: "reader-empty" }, [t("reader.timeoutBody")]));
+  }
+
+  function renderPayload(data: ReaderContentPayload | null) {
+    if (!data) return;
+    if (!data.success) {
+      titleEl.textContent = data.title || t("reader.failedTitle");
+      siteNameEl.textContent = data.siteName || "moss";
+      metaDotEl.style.display = "none";
+      readingTimeEl.textContent = "";
+      bylineEl.style.display = "none";
+      const parser = new DOMParser();
+      const text = data.contentHtml
+        ? (parser.parseFromString(data.contentHtml, "text/html").body.textContent || "") ||
+          t("reader.failedBody")
+        : t("reader.failedBody");
+      const emptyMsg = el("p", { class: "reader-empty" }, [text]);
+      articleBody.replaceChildren(emptyMsg);
+      return;
+    }
+
+    titleEl.textContent = data.title;
+    siteNameEl.textContent = data.siteName || "moss";
+    metaDotEl.style.display = "";
+    readingTimeEl.textContent = t("reader.readingTime", {
+      minutes: data.readingTimeMinutes,
+      words: data.wordCount,
+    });
+
+    if (data.byline) {
+      bylineEl.textContent = t("reader.byline", { byline: data.byline });
+      bylineEl.style.display = "";
+    } else {
+      bylineEl.textContent = "";
+      bylineEl.style.display = "none";
+    }
+
+    articleBody.innerHTML = sanitizeReaderHtml(data.contentHtml);
+    scrollContainer.scrollTop = 0;
   }
 
   // Event handlers
@@ -332,42 +421,18 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
     if (event.payload.tabId !== activeTabId) return;
 
     clearExtractionTimeout();
-
-    const data = event.payload;
-    if (!data.success) {
-      titleEl.textContent = data.title || "Não foi possível carregar o artigo";
-      siteNameEl.textContent = data.siteName || "moss";
-      metaDotEl.style.display = "none";
-      readingTimeEl.textContent = "";
-      bylineEl.style.display = "none";
-      const parser = new DOMParser();
-      const text = data.contentHtml ? (parser.parseFromString(data.contentHtml, "text/html").body.textContent || "") : "Não foi encontrado conteúdo legível nesta página.";
-      const emptyMsg = el("p", { class: "reader-empty" }, [text]);
-      articleBody.replaceChildren(emptyMsg);
-      return;
-    }
-
-    titleEl.textContent = data.title;
-    siteNameEl.textContent = data.siteName || "moss";
-    metaDotEl.style.display = "";
-    readingTimeEl.textContent = `${data.readingTimeMinutes} min de leitura (${data.wordCount} palavras)`;
-
-    if (data.byline) {
-      bylineEl.textContent = `Por ${data.byline}`;
-      bylineEl.style.display = "";
-    } else {
-      bylineEl.textContent = "";
-      bylineEl.style.display = "none";
-    }
-
-    articleBody.innerHTML = sanitizeReaderHtml(data.contentHtml);
-    scrollContainer.scrollTop = 0;
+    isPending = false;
+    lastPayload = event.payload;
+    renderPayload(lastPayload);
   }).then((fn) => {
     if (destroyed) fn();
     else unlisten = fn;
   });
 
   applySettings();
+  applyLocale();
+
+  subscribeLocale(applyLocale);
 
   const readerView: ReaderView = {
     element: container,
@@ -377,25 +442,17 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
       container.style.display = "flex";
 
       clearExtractionTimeout();
+      isPending = true;
+      lastPayload = null;
 
-      // Show temporary loading state
-      titleEl.textContent = "Carregando modo leitura...";
-      siteNameEl.textContent = "moss";
-      metaDotEl.style.display = "";
-      readingTimeEl.textContent = "Calculando...";
-      bylineEl.style.display = "none";
-      articleBody.innerHTML = '<div class="reader-loading-skeleton"><p>Extraindo conteúdo legível da página...</p></div>';
+      renderPending();
 
       options.onOpen?.();
 
       extractionTimeout = window.setTimeout(() => {
         if (activeTabId === tabId && articleBody.querySelector(".reader-loading-skeleton")) {
-          titleEl.textContent = "Não foi possível extrair o artigo";
-          metaDotEl.style.display = "none";
-          readingTimeEl.textContent = "";
-          articleBody.replaceChildren(
-            el("p", { class: "reader-empty" }, ["Tempo limite esgotado ao extrair conteúdo da página. Verifique se a página contém texto legível."])
-          );
+          isPending = false;
+          renderTimeout();
         }
       }, 4000);
 
@@ -405,6 +462,8 @@ export function createReaderView(options: ReaderViewOptions): ReaderView {
       if (!activeTabId) return;
       clearExtractionTimeout();
       activeTabId = null;
+      isPending = false;
+      lastPayload = null;
       container.style.display = "none";
       options.onClose?.();
     },

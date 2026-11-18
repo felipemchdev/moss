@@ -1,9 +1,11 @@
 import { el, getDomainFromUrl } from "./dom";
+import { t, subscribeLocale } from "./i18n";
+import "./i18n-panels";
 import { icon, type IconName } from "./icons";
 import {
+  getPermissionLabel,
   getPermissionsForDomain,
   hasCustomPermissions,
-  PERMISSION_LABELS,
   resetPermissionsForDomain,
   setPermission,
   type PermissionKey,
@@ -34,7 +36,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
     class: "site-info-popover",
     role: "dialog",
     "aria-modal": "true",
-    "aria-label": "Informações e permissões do site",
     style: "display: none;",
   });
 
@@ -47,8 +48,8 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
     if (!rawUrl) {
       return {
         iconName: "globe",
-        label: "Página em branco",
-        sublabel: "Nenhum site carregado",
+        label: t("siteInfo.blankPage"),
+        sublabel: t("siteInfo.blankPageDesc"),
         level: "local",
       };
     }
@@ -57,30 +58,30 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       if (parsed.protocol === "https:") {
         return {
           iconName: "lock",
-          label: "Conexão Segura",
-          sublabel: "As informações enviadas a este site são criptografadas e privadas.",
+          label: t("siteInfo.secure"),
+          sublabel: t("siteInfo.secureDesc"),
           level: "secure",
         };
       }
       if (parsed.protocol === "http:") {
         return {
           iconName: "unlock",
-          label: "Conexão Não Segura",
-          sublabel: "Você não deve inserir informações confidenciais neste site (senhas, cartões).",
+          label: t("siteInfo.insecure"),
+          sublabel: t("siteInfo.insecureDesc"),
           level: "insecure",
         };
       }
       return {
         iconName: "globe",
-        label: "Arquivo Local",
-        sublabel: "Página local ou interna do navegador.",
+        label: t("siteInfo.localFile"),
+        sublabel: t("siteInfo.localFileDesc"),
         level: "local",
       };
     } catch {
       return {
         iconName: "globe",
-        label: "Página Interna",
-        sublabel: "Origem local do navegador.",
+        label: t("siteInfo.internalPage"),
+        sublabel: t("siteInfo.internalPageDesc"),
         level: "local",
       };
     }
@@ -88,6 +89,7 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
 
   function renderContent() {
     popover.replaceChildren();
+    popover.setAttribute("aria-label", t("siteInfo.title"));
 
     const domain = getDomainFromUrl(currentUrl);
     const security = getSecurityStatus(currentUrl);
@@ -98,8 +100,8 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       {
         class: "site-info-close-btn",
         type: "button",
-        "aria-label": "Fechar",
-        title: "Fechar (Esc)",
+        "aria-label": t("siteInfo.close"),
+        title: t("siteInfo.closeShortcut"),
       },
       [icon("close")],
     );
@@ -122,15 +124,17 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       el("div", { class: "site-info-privacy-icon" }, [icon("shield")]),
       el("div", { class: "site-info-privacy-text" }, [
         el("span", { class: "site-info-privacy-count" }, [
-          `${currentTrackers} rastreador${currentTrackers === 1 ? "" : "es"} bloqueado${currentTrackers === 1 ? "" : "s"}`,
+          t(currentTrackers === 1 ? "siteInfo.trackerOne" : "siteInfo.trackerMany", {
+            count: currentTrackers,
+          }),
         ]),
-        el("span", { class: "site-info-privacy-sub" }, ["Escudo nativo de proteção ativo"]),
+        el("span", { class: "site-info-privacy-sub" }, [t("siteInfo.privacyActive")]),
       ]),
     ]);
 
     const permKeys: PermissionKey[] = ["camera", "microphone", "geolocation", "notifications"];
     const permRows = permKeys.map((key) => {
-      const meta = PERMISSION_LABELS[key];
+      const meta = getPermissionLabel(key);
       const iconName: IconName =
         key === "camera"
           ? "camera"
@@ -146,9 +150,9 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
       }) as HTMLSelectElement;
 
       const opts: { value: PermissionStatus; label: string }[] = [
-        { value: "ask", label: "Perguntar" },
-        { value: "allow", label: "Permitir" },
-        { value: "block", label: "Bloquear" },
+        { value: "ask", label: t("siteInfo.permissionAsk") },
+        { value: "allow", label: t("siteInfo.permissionAllow") },
+        { value: "block", label: t("siteInfo.permissionBlock") },
       ];
 
       for (const opt of opts) {
@@ -177,13 +181,11 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
     });
 
     const permsSection = el("div", { class: "site-info-section" }, [
-      el("div", { class: "site-info-section-title" }, ["Permissões"]),
+      el("div", { class: "site-info-section-title" }, [t("siteInfo.permissionsTitle")]),
       el("div", { class: "site-perm-list" }, permRows),
     ]);
 
-    const clearDesc = el("p", { class: "site-clear-desc" }, [
-      "Limpará cookies, cache e armazenamento local apenas deste site.",
-    ]);
+    const clearDesc = el("p", { class: "site-clear-desc" }, [t("siteInfo.clearDesc")]);
 
     let clearActionRow: HTMLElement;
 
@@ -194,7 +196,7 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
           class: "site-clear-btn",
           type: "button",
         },
-        [icon("trash"), el("span", {}, ["Limpar dados deste site"])],
+        [icon("trash"), el("span", {}, [t("siteInfo.clearData")])],
       );
       clearBtn.addEventListener("click", () => {
         confirmingClear = true;
@@ -208,7 +210,7 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
           class: "site-clear-cancel-btn",
           type: "button",
         },
-        ["Cancelar"],
+        [t("siteInfo.cancel")],
       );
       cancelBtn.addEventListener("click", () => {
         confirmingClear = false;
@@ -221,7 +223,7 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
           class: "site-clear-confirm-btn",
           type: "button",
         },
-        [icon("trash"), el("span", {}, ["Confirmar e Recarregar"])],
+        [icon("trash"), el("span", {}, [t("siteInfo.confirmReload")])],
       );
       confirmBtn.addEventListener("click", async () => {
         confirmingClear = false;
@@ -239,7 +241,7 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
     }
 
     const clearSection = el("div", { class: "site-info-section site-info-section--clear" }, [
-      el("div", { class: "site-info-section-title" }, ["Cookies e Dados de Navegação"]),
+      el("div", { class: "site-info-section-title" }, [t("siteInfo.clearSectionTitle")]),
       clearDesc,
       clearActionRow,
     ]);
@@ -250,7 +252,7 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
         class: "site-reset-btn",
         type: "button",
       },
-      ["Redefinir permissões padrão"],
+      [t("siteInfo.resetPermissions")],
     );
     resetBtn.addEventListener("click", () => {
       if (domain) {
@@ -279,7 +281,6 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
     popover.style.display = "";
     onVisibilityChange();
 
-    // Focus on close button or first select
     const focusTarget = popover.querySelector<HTMLElement>(".site-info-close-btn");
     focusTarget?.focus();
   }
@@ -321,8 +322,13 @@ export function createSiteInfoPopover(onVisibilityChange: () => void) {
 
   window.addEventListener("keydown", handleKeydown);
 
+  const unsubscribeLocale = subscribeLocale(() => {
+    if (isOpen) renderContent();
+  });
+
   function destroy() {
     close();
+    unsubscribeLocale();
     window.removeEventListener("keydown", handleKeydown);
     overlay.remove();
     popover.remove();

@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+import "./i18n-panels";
 import { webview } from "./webview";
 
 export type PermissionStatus = "ask" | "allow" | "block";
@@ -10,24 +12,12 @@ export interface SitePermissions {
   notifications: PermissionStatus;
 }
 
-export const PERMISSION_LABELS: Record<PermissionKey, { title: string; description: string }> = {
-  camera: {
-    title: "Câmera",
-    description: "Permite que o site capture vídeo",
-  },
-  microphone: {
-    title: "Microfone",
-    description: "Permite que o site grave áudio",
-  },
-  geolocation: {
-    title: "Localização",
-    description: "Permite que o site saiba sua localização física",
-  },
-  notifications: {
-    title: "Notificações",
-    description: "Permite que o site exiba alertas na área de trabalho",
-  },
-};
+export function getPermissionLabel(key: PermissionKey): { title: string; description: string } {
+  return {
+    title: t(`perms.${key}.title`),
+    description: t(`perms.${key}.description`),
+  };
+}
 
 export const DEFAULT_PERMISSIONS: SitePermissions = {
   camera: "ask",

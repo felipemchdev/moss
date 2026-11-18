@@ -3,20 +3,21 @@ import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { el } from "./dom";
 import {
   clearDownloads,
+  getDownloads,
   removeDownload,
   subscribeDownloads,
   type DownloadItem,
 } from "./downloads";
+import { getLocale, subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
 import { icon } from "./icons";
 import { createPanel, type Panel } from "./panel";
 
-const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
 function formatTimestamp(timestamp: number): string {
   const diff = Date.now() - timestamp;
-  if (diff < 60_000) return "Agora";
-  if (diff < 3600_000) return `${Math.round(diff / 60_000)} min atrás`;
-  return timeFormat.format(timestamp);
+  if (diff < 60_000) return t("downloads.now");
+  if (diff < 3600_000) return t("downloads.minutesAgo", { count: Math.round(diff / 60_000) });
+  return new Intl.DateTimeFormat(getLocale(), { hour: "2-digit", minute: "2-digit" }).format(timestamp);
 }
 
 function renderDownloadItem(item: DownloadItem): HTMLElement {
@@ -30,13 +31,17 @@ function renderDownloadItem(item: DownloadItem): HTMLElement {
         style: `width: ${Math.max(5, item.progress)}%`,
       }),
     ]);
-    const label = el("span", { class: "download-item-status" }, [`Baixando: ${item.progress}%`]);
+    const label = el("span", { class: "download-item-status" }, [
+      t("downloads.downloading", { progress: item.progress }),
+    ]);
     meta.append(bar, label);
   } else if (item.state === "completed") {
     const timeLabel = item.completedAt ? formatTimestamp(item.completedAt) : "";
-    meta.textContent = timeLabel ? `Concluído • ${timeLabel}` : "Concluído";
+    meta.textContent = timeLabel
+      ? t("downloads.completedWithTime", { time: timeLabel })
+      : t("downloads.completed");
   } else {
-    meta.textContent = "Falhou";
+    meta.textContent = t("downloads.failed");
     meta.classList.add("download-item-meta--failed");
   }
 
@@ -48,8 +53,8 @@ function renderDownloadItem(item: DownloadItem): HTMLElement {
       {
         class: "download-action-btn",
         type: "button",
-        title: "Abrir arquivo",
-        "aria-label": `Abrir ${item.filename}`,
+        title: t("downloads.openFile"),
+        "aria-label": t("downloads.openFileAria", { filename: item.filename }),
       },
       [icon("externalLink")],
     );
@@ -63,8 +68,8 @@ function renderDownloadItem(item: DownloadItem): HTMLElement {
       {
         class: "download-action-btn",
         type: "button",
-        title: "Mostrar na pasta",
-        "aria-label": `Mostrar ${item.filename} na pasta`,
+        title: t("downloads.revealInFolder"),
+        "aria-label": t("downloads.revealInFolderAria", { filename: item.filename }),
       },
       [icon("folder")],
     );
@@ -81,8 +86,8 @@ function renderDownloadItem(item: DownloadItem): HTMLElement {
     {
       class: "download-action-btn download-action-btn--delete",
       type: "button",
-      title: "Remover da lista",
-      "aria-label": "Remover da lista",
+      title: t("downloads.remove"),
+      "aria-label": t("downloads.remove"),
     },
     [icon("close")],
   );
@@ -109,10 +114,14 @@ function renderDownloadItem(item: DownloadItem): HTMLElement {
 
 export function createDownloadsPanel(onChange: () => void): Panel {
   const listEl = el("ul", { class: "downloads-list" });
+  const emptyTitleEl = el("p", { class: "downloads-empty-title" }, [t("downloads.emptyTitle")]);
+  const emptySubtitleEl = el("span", { class: "downloads-empty-subtitle" }, [
+    t("downloads.emptySubtitle"),
+  ]);
   const emptyEl = el("div", { class: "downloads-empty" }, [
     el("div", { class: "downloads-empty-icon" }, [icon("download")]),
-    el("p", { class: "downloads-empty-title" }, ["Nenhum download recente"]),
-    el("span", { class: "downloads-empty-subtitle" }, ["Os arquivos baixados aparecerão aqui"]),
+    emptyTitleEl,
+    emptySubtitleEl,
   ]);
 
   const openFolderBtn = el(
@@ -120,8 +129,8 @@ export function createDownloadsPanel(onChange: () => void): Panel {
     {
       class: "panel-header-btn",
       type: "button",
-      title: "Abrir pasta de downloads",
-      "aria-label": "Abrir pasta de downloads",
+      title: t("downloads.openFolder"),
+      "aria-label": t("downloads.openFolder"),
     },
     [icon("folder")],
   );
@@ -139,8 +148,8 @@ export function createDownloadsPanel(onChange: () => void): Panel {
     {
       class: "panel-header-btn",
       type: "button",
-      title: "Limpar histórico de downloads",
-      "aria-label": "Limpar histórico de downloads",
+      title: t("downloads.clearHistory"),
+      "aria-label": t("downloads.clearHistory"),
     },
     [icon("trash")],
   );
@@ -153,26 +162,25 @@ export function createDownloadsPanel(onChange: () => void): Panel {
     {
       class: "panel-close",
       type: "button",
-      "aria-label": "Fechar painel de downloads",
-      title: "Fechar (Esc)",
+      "aria-label": t("downloads.closePanel"),
+      title: t("downloads.closeShortcut"),
     },
     [icon("close")],
   );
 
+  const titleEl = el("h2", { class: "panel-title" }, [t("downloads.title")]);
+
   const header = el("div", { class: "panel-header" }, [
     el("div", { class: "panel-header-title-group" }, [
       el("span", { class: "panel-header-icon" }, [icon("download")]),
-      el("h2", { class: "panel-title" }, ["Downloads"]),
+      titleEl,
     ]),
     el("div", { class: "panel-header-actions" }, [openFolderBtn, clearBtn, closeBtn]),
   ]);
 
   const body = el("div", { class: "downloads-panel-body" }, [emptyEl, listEl]);
 
-  const element = el("section", { class: "panel downloads-panel", "aria-label": "Downloads" }, [
-    header,
-    body,
-  ]);
+  const element = el("section", { class: "panel downloads-panel" }, [header, body]);
 
   function renderList(items: readonly DownloadItem[]) {
     listEl.replaceChildren();
@@ -192,6 +200,20 @@ export function createDownloadsPanel(onChange: () => void): Panel {
 
   subscribeDownloads((items) => {
     renderList(items);
+  });
+
+  subscribeLocale(() => {
+    element.setAttribute("aria-label", t("downloads.title"));
+    titleEl.textContent = t("downloads.title");
+    emptyTitleEl.textContent = t("downloads.emptyTitle");
+    emptySubtitleEl.textContent = t("downloads.emptySubtitle");
+    openFolderBtn.title = t("downloads.openFolder");
+    openFolderBtn.setAttribute("aria-label", t("downloads.openFolder"));
+    clearBtn.title = t("downloads.clearHistory");
+    clearBtn.setAttribute("aria-label", t("downloads.clearHistory"));
+    closeBtn.setAttribute("aria-label", t("downloads.closePanel"));
+    closeBtn.title = t("downloads.closeShortcut");
+    renderList(getDownloads());
   });
 
   const panel = createPanel({

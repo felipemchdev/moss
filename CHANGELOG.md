@@ -18,10 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Native Window Dragging Support** (`src/main.ts`, `src-tauri/capabilities/default.json`):
   - Add native window dragging with `data-tauri-drag-region` on the chrome headers and floating top bar.
   - Implement direct drag fallback using `startDragging()` with `core:window:allow-start-dragging` permission.
-- **Integrated YouTube Ad-Blocker** (`src-tauri/src/lib.rs`, `src/privacy-shield.ts`, `src/main.ts`):
-  - Block ad network requests, tracking beacons, and mid-roll streams directly in the native child webview engine.
-  - Inject dedicated visual CSS suppression in `#__moss_yt_ad_style__` to hide banners, masthead ads, and player overlays.
-  - Accelerate video ads by 16x, mute audio, and trigger automatic skip button clicks immediately.
+- **Native Privacy Shield & YouTube Ad-Blocker** (`src-tauri/src/webview2_blocker.rs`, `src-tauri/src/lib.rs`, `src/privacy-shield.ts`, `src/main.ts`):
+  - Block known ad and tracker hosts natively via Windows WebView2 `WebResourceRequested` with host blocklist and empty 403 responses (Windows-only in 1.0).
+  - Inject dedicated visual CSS suppression in `#__moss_yt_ad_style__` to hide banners, masthead ads, and player overlays on exact YouTube hosts.
+  - Accelerate video ads by 16x, mute audio, and trigger automatic skip button clicks using `MutationObserver` with `readyState`, buffered media, and SSAI guards while preserving user mute and playback rate.
+- **Taskbar Tab Previews & WebView2 Accelerators** (`src-tauri/src/taskbar_tabs.rs`, `src-tauri/src/accelerators.rs`, `src-tauri/src/lib.rs`, `src/main.ts`, `src/webview.ts`, `src/zoom.ts`, `src-tauri/capabilities/default.json`):
+  - Add Windows taskbar tab previews via `ITaskbarList3` proxy windows with tab activation and `set_taskbar_active_tab` capability.
+  - Forward native WebView2 `AcceleratorKeyPressed` and `ZoomFactorChanged` (`syncZoomFromWebview`) events from child webviews.
+- **Settings Panel Localization (i18n, PT-BR / EN-US)** (`src/i18n.ts`, `src/settings-panel.ts`):
+  - Add PT-BR and EN-US localization store (`moss:locale`) with browser language detection, runtime string updates, and language selector.
+  - Scope for 1.0.0: i18n coverage applies exclusively to the Settings panel (`src/settings-panel.ts`); full bilingual localization for `src/main.ts` and remaining UI panels is deferred to 1.0.1.
 - **Private Browsing Tabs** (`src/tabs.ts`, `src/main.ts`, `src/styles/browser-chrome.css`, `src/icons.ts`):
   - Add private tab flag `isPrivate` with global keyboard shortcut `Ctrl+Shift+N`.
   - Private tabs do not record history or session state.
@@ -29,10 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Native Webpage Translator** (`src-tauri/src/lib.rs`, `src/translate-popover.ts`, `src/main.ts`, `src/icons.ts`):
   - Implement native translation backend command `translate_tab` with `allow-translate-tab` capability.
   - Add translate popover interface (`Ctrl+Shift+U` or Omnibar translate button) supporting multiple language selections.
-- **Custom NSIS 1-Click Installer** (`src-tauri/installer/*`, `src-tauri/tauri.conf.json`):
-  - Create custom NSIS installer script with moss dark theme branding (#0F1411 background and #7da27e accent).
+- **Custom NSIS 1-Click Installer & UI Mock** (`src-tauri/installer/*`, `src-tauri/tauri.conf.json`, `src-tauri/icons/icon.ico`, `installer/ui/*`):
+  - Create custom NSIS installer script with moss dark theme branding (#0F1411 background and #7da27e accent), explicit Start Menu/Desktop shortcut icons, DIB-based `icon.ico` installation, and shell icon cache refresh.
   - Include uncompressed 24-bit header and sidebar bitmaps with portable build scripts.
-  - Add standalone installer preview (`public/installer-preview.html`).
+  - Add standalone installer preview (`public/installer-preview.html`) and modern frameless 480x300 installer UI mock and spec (`installer/ui/index.html`, `installer/ui/styles.css`, `installer/ui/SPEC.md`) with PT-BR and EN-US copy.
 - **Phase 18: Glance Link Peeking** (`src/glance.ts`, `src/main.ts`, `src/styles/browser-chrome.css`):
   - Non-destructive floating modal preview for hyperlinks triggered via `Shift+Click` or `Ctrl+Shift+G`.
   - Native HWND occlusion management that conceals underlying webviews while the preview modal is active.
@@ -86,6 +92,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Header Downloads Icon Geometry** (`src/styles/browser-chrome.css`):
   - Fix downloads button icon bounding box to standard 16x16px dimension in the main header.
+- **Privacy Shield SPA Hydration & YouTube Ad Observer** (`src-tauri/src/webview2_blocker.rs`, `src-tauri/src/lib.rs`, `src/privacy-shield.ts`, `src/main.ts`):
+  - Remove global DOM, `fetch`, and `XHR` patches that broke SPA hydration, replacing them with native WebView2 `WebResourceRequested` blocking.
+  - Scope YouTube ad suppression to exact YouTube hosts and guard video acceleration against SSAI streams and unbuffered states.
+- **Taskbar Proxy Icon & Command Capability** (`src-tauri/src/taskbar_tabs.rs`, `src-tauri/capabilities/default.json`, `src-tauri/build.rs`):
+  - Register `set_taskbar_active_tab` permission in `default.json` and load the application icon resource in taskbar proxy windows.
 - Element Zapper thread block: replaced synchronous polling with background async runtime task spawning.
 - Native webview occlusion: resolved overlay clipping by clearing active webview visibility during modal lifecycle.
 - Background media evaluation: expanded polling routine from active tab to all non-hibernated tabs.

@@ -1,6 +1,8 @@
 use tauri::webview::PlatformWebview;
 use tauri::{AppHandle, Manager, Runtime, Url, Webview};
-use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL;
+use webview2_com::Microsoft::Web::WebView2::Win32::{
+    ICoreWebView2, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL,
+};
 use webview2_com::WebResourceRequestedEventHandler;
 use windows::core::{HSTRING, PWSTR};
 use windows::Win32::System::Com::IStream;
@@ -45,12 +47,16 @@ pub(super) fn attach<R: Runtime>(app: &AppHandle<R>, tab_id: &str, webview: &Web
                 eprintln!("[moss] webview2 blocker: CoreWebView2 unavailable for tab {tab}");
                 return;
             };
+            let mut registered: Vec<String> = Vec::with_capacity(filters.len());
             for filter in &filters {
-                let filter = HSTRING::from(filter.as_str());
-                if let Err(err) =
-                    core.AddWebResourceRequestedFilter(&filter, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL)
+                let hfilter = HSTRING::from(filter.as_str());
+                match core
+                    .AddWebResourceRequestedFilter(&hfilter, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL)
                 {
-                    eprintln!("[moss] webview2 blocker: filter registration failed for tab {tab}: {err}");
+                    Ok(()) => registered.push(filter.clone()),
+                    Err(err) => {
+                        eprintln!("[moss] webview2 blocker: filter registration failed for tab {tab}: {err}")
+                    }
                 }
             }
 
@@ -112,12 +118,28 @@ pub(super) fn attach<R: Runtime>(app: &AppHandle<R>, tab_id: &str, webview: &Web
 
             match core.add_WebResourceRequested(&handler, &mut token) {
                 Ok(()) => {
-                    if let Ok(mut blockers) = app_handle.state::<BrowserState>().blockers.lock() {
-                        blockers.insert(tab.clone(), BlockerHandle { token, filters });
+                    match app_handle.state::<BrowserState>().blockers.lock() {
+                        Ok(mut blockers) => {
+                            blockers.insert(
+                                tab.clone(),
+                                BlockerHandle {
+                                    token,
+                                    filters: registered,
+                                },
+                            );
+                        }
+                        Err(err) => {
+                            eprintln!(
+                                "[moss] webview2 blocker: blocker registry lock failed for tab {tab}: {err}"
+                            );
+                            let _ = core.remove_WebResourceRequested(token);
+                            remove_filters(&core, &registered);
+                        }
                     }
                 }
                 Err(err) => {
-                    eprintln!("[moss] webview2 blocker: handler registration failed for tab {tab}: {err}")
+                    eprintln!("[moss] webview2 blocker: handler registration failed for tab {tab}: {err}");
+                    remove_filters(&core, &registered);
                 }
             }
         }
@@ -136,10 +158,17 @@ pub(super) fn detach(platform: PlatformWebview, handle: BlockerHandle) {
             return;
         };
         let _ = core.remove_WebResourceRequested(handle.token);
-        for filter in handle.filters {
-            let filter = HSTRING::from(filter.as_str());
-            let _ =
-                core.RemoveWebResourceRequestedFilter(&filter, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+        remove_filters(&core, &handle.filters);
+    }
+}
+
+fn remove_filters(core: &ICoreWebView2, filters: &[String]) {
+    // SAFETY: WebView2 COM calls must run on the UI thread; all callers are inside with_webview.
+    unsafe {
+        for filter in filters {
+            let hfilter = HSTRING::from(filter.as_str());
+            let _ = core
+                .RemoveWebResourceRequestedFilter(&hfilter, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
         }
     }
 }

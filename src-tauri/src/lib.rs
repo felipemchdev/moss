@@ -258,7 +258,6 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
     if (video.readyState < 2) return;
     if (!Number.isFinite(video.duration) || video.duration <= 0) return;
     if (!Number.isFinite(contentDuration) || contentDuration <= 0) return;
-    if (video.duration >= contentDuration - 1) return;
     var target = Math.max(0, video.duration - 0.1);
     if (!bufferedCovers(video, target)) return;
     try {
@@ -295,18 +294,49 @@ const TRACKER_BLOCKER_SCRIPT: &str = r#"
   var isYouTubeHost = host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be';
   if (!isYouTubeHost) return;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachPlayer);
-  } else {
-    attachPlayer();
+  var bootObserver = null;
+  var bootTimer = null;
+
+  function stopBootWatch() {
+    if (bootObserver) {
+      bootObserver.disconnect();
+      bootObserver = null;
+    }
+    if (bootTimer) {
+      clearTimeout(bootTimer);
+      bootTimer = null;
+    }
   }
 
-  if (!player) {
-    var bootObserver = new MutationObserver(function() {
+  function startBootWatch() {
+    stopBootWatch();
+    attachPlayer();
+    if (player) return;
+    bootObserver = new MutationObserver(function() {
       attachPlayer();
-      if (player) bootObserver.disconnect();
+      if (player) stopBootWatch();
     });
     bootObserver.observe(document.documentElement || document, { childList: true, subtree: true });
+    bootTimer = setTimeout(stopBootWatch, 15000);
+  }
+
+  function onNavigate() {
+    contentDuration = NaN;
+    seekDone = false;
+    if (player && player.isConnected) return;
+    if (adActive) restoreVideo();
+    player = null;
+    startBootWatch();
+  }
+
+  document.addEventListener('yt-navigate-finish', onNavigate);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!player) startBootWatch();
+    });
+  } else if (!player) {
+    startBootWatch();
   }
 })();
 "#;

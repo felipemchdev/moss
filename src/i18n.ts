@@ -28,6 +28,9 @@ export function getLocale(): Locale {
 export function setLocale(locale: Locale): void {
   if (currentLocale === locale) return;
   currentLocale = locale;
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = locale;
+  }
   try {
     localStorage.setItem("moss:locale", locale);
   } catch (_) {}
@@ -41,6 +44,13 @@ export function setLocale(locale: Locale): void {
 export function subscribeLocale(fn: LocaleListener): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
+}
+
+export function registerMessages(
+  extra: Record<Locale, Record<string, string>>,
+): void {
+  Object.assign(messages["pt-BR"], extra["pt-BR"]);
+  Object.assign(messages["en-US"], extra["en-US"]);
 }
 
 const messages: Record<Locale, Record<string, string>> = {
@@ -257,6 +267,25 @@ const messages: Record<Locale, Record<string, string>> = {
   },
 };
 
-export function t(key: string): string {
-  return messages[currentLocale][key] ?? messages["pt-BR"][key] ?? key;
+const isDevEnv = Boolean(
+  (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV,
+);
+
+export function t(
+  key: string,
+  vars?: Record<string, string | number>,
+): string {
+  const localized = messages[currentLocale][key];
+  if (localized === undefined && isDevEnv) {
+    console.error(
+      `[moss:i18n] Missing translation key "${key}" for locale "${currentLocale}"`,
+    );
+  }
+  let text = localized ?? messages["pt-BR"][key] ?? key;
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      text = text.split(`{${name}}`).join(String(value));
+    }
+  }
+  return text;
 }

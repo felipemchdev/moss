@@ -1,4 +1,6 @@
 import { el, hostnameOf } from "./dom";
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { icon } from "./icons";
 import { webview, type Viewport } from "./webview";
 
@@ -24,18 +26,19 @@ export function createGlance(options: GlanceOptions): GlanceController {
   let currentUrl = "";
   let currentTitle = "";
 
-  const titleEl = el("span", { class: "glance-title" }, ["Carregando..."]);
+  const titleEl = el("span", { class: "glance-title" }, [t("glance.loading")]);
   const urlEl = el("span", { class: "glance-url" }, [""]);
 
+  const promoteText = el("span", { class: "glance-action-text" }, [t("glance.promoteText")]);
   const promoteBtn = el(
     "button",
     {
       class: "glance-action-btn",
       type: "button",
-      title: "Abrir como aba permanente (Ctrl+O)",
-      "aria-label": "Abrir como aba",
+      title: t("glance.promoteTitle"),
+      "aria-label": t("glance.promoteAria"),
     },
-    [icon("externalLink"), el("span", { class: "glance-action-text" }, ["Abrir na aba"])],
+    [icon("externalLink"), promoteText],
   );
 
   const copyBtn = el(
@@ -43,8 +46,8 @@ export function createGlance(options: GlanceOptions): GlanceController {
     {
       class: "glance-action-btn",
       type: "button",
-      title: "Copiar link",
-      "aria-label": "Copiar link",
+      title: t("glance.copyLink"),
+      "aria-label": t("glance.copyLink"),
     },
     [icon("copy")],
   );
@@ -54,8 +57,8 @@ export function createGlance(options: GlanceOptions): GlanceController {
     {
       class: "glance-close-btn",
       type: "button",
-      title: "Fechar Glance (Esc)",
-      "aria-label": "Fechar Glance",
+      title: t("glance.closeTitle"),
+      "aria-label": t("glance.closeAria"),
     },
     [icon("close")],
   );
@@ -71,7 +74,7 @@ export function createGlance(options: GlanceOptions): GlanceController {
   const webviewContainer = el("div", {
     class: "glance-webview-container",
     role: "region",
-    "aria-label": "Conteúdo espiado",
+    "aria-label": t("glance.previewAria"),
   });
 
   const card = el("div", { class: "glance-card", role: "dialog", "aria-modal": "true" }, [
@@ -80,6 +83,20 @@ export function createGlance(options: GlanceOptions): GlanceController {
   ]);
 
   const overlay = el("div", { class: "glance-overlay", style: "display: none;" }, [card]);
+
+  function applyLocale() {
+    if (!open || !currentTitle) {
+      titleEl.textContent = t("glance.loading");
+    }
+    promoteBtn.title = t("glance.promoteTitle");
+    promoteBtn.setAttribute("aria-label", t("glance.promoteAria"));
+    promoteText.textContent = t("glance.promoteText");
+    copyBtn.title = t("glance.copyLink");
+    copyBtn.setAttribute("aria-label", t("glance.copyLink"));
+    closeBtn.title = t("glance.closeTitle");
+    closeBtn.setAttribute("aria-label", t("glance.closeAria"));
+    webviewContainer.setAttribute("aria-label", t("glance.previewAria"));
+  }
 
   function syncViewport() {
     if (!open) return;
@@ -111,11 +128,10 @@ export function createGlance(options: GlanceOptions): GlanceController {
     if (!currentUrl) return;
     try {
       await navigator.clipboard.writeText(currentUrl);
-      const originalTitle = copyBtn.title;
-      copyBtn.title = "Copiado!";
+      copyBtn.title = t("glance.copied");
       copyBtn.classList.add("glance-action-btn--success");
       setTimeout(() => {
-        copyBtn.title = originalTitle;
+        copyBtn.title = t("glance.copyLink");
         copyBtn.classList.remove("glance-action-btn--success");
       }, 1500);
     } catch (err) {
@@ -149,6 +165,8 @@ export function createGlance(options: GlanceOptions): GlanceController {
       }
     }
   }
+
+  const unsubscribeLocale = subscribeLocale(() => applyLocale());
 
   const controller: GlanceController = {
     overlay,
@@ -192,6 +210,7 @@ export function createGlance(options: GlanceOptions): GlanceController {
     },
     syncViewport,
     destroy() {
+      unsubscribeLocale();
       if (open) controller.close();
       resizeObserver.disconnect();
       overlay.remove();

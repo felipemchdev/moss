@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { el } from "./dom";
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { icon } from "./icons";
 import { webview } from "./webview";
 
@@ -54,7 +56,7 @@ export function createPrivacyShield(
     {
       class: "shield-badge",
       style: "display: none;",
-      "aria-label": "Rastreadores bloqueados",
+      "aria-label": t("shield.trackersBlocked"),
     },
     ["0"],
   );
@@ -66,13 +68,13 @@ export function createPrivacyShield(
     { class: `shield-popover-icon ${enabled ? "shield-popover-icon--active" : "shield-popover-icon--inactive"}` },
     [icon("shield")],
   );
-  const headerTitle = el("h3", { class: "shield-popover-title" }, ["Escudo de Privacidade"]);
+  const headerTitle = el("h3", { class: "shield-popover-title" }, [t("shield.title")]);
   const header = el("header", { class: "shield-popover-header" }, [headerIcon, headerTitle]);
 
   const toggleLabel = el(
     "span",
     { class: "shield-toggle-label" },
-    [enabled ? "Proteção Ativa" : "Proteção Pausada"],
+    [enabled ? t("shield.active") : t("shield.paused")],
   );
   const switchInput = el("input", {
     type: "checkbox",
@@ -82,19 +84,19 @@ export function createPrivacyShield(
   const switchSlider = el("span", { class: "shield-switch-slider" });
   const switchContainer = el(
     "label",
-    { class: "shield-switch", "aria-label": "Alternar proteção do escudo" },
+    { class: "shield-switch", "aria-label": t("shield.toggleAria") },
     [switchInput, switchSlider],
   );
   const toggleRow = el("div", { class: "shield-toggle-row" }, [toggleLabel, switchContainer]);
 
   const counterNumber = el("span", { class: "shield-counter-number" }, ["0"]);
-  const counterLabel = el("span", { class: "shield-counter-label" }, ["rastreadores bloqueados"]);
+  const counterLabel = el("span", { class: "shield-counter-label" }, [t("shield.counterLabel")]);
   const counterCard = el("div", { class: "shield-counter-card" }, [counterNumber, counterLabel]);
 
   const resetBtn = el(
     "button",
     { class: "shield-reset-btn", type: "button" },
-    ["Zerar estatísticas"],
+    [t("shield.resetStats")],
   );
 
   const popover = el(
@@ -102,7 +104,7 @@ export function createPrivacyShield(
     {
       class: "shield-popover",
       role: "region",
-      "aria-label": "Escudo de Privacidade",
+      "aria-label": t("shield.title"),
       style: "display: none;",
     },
     [header, toggleRow, counterCard, resetBtn],
@@ -110,7 +112,13 @@ export function createPrivacyShield(
 
   function updateUI() {
     switchInput.checked = enabled;
-    toggleLabel.textContent = enabled ? "Proteção Ativa" : "Proteção Pausada";
+    toggleLabel.textContent = enabled ? t("shield.active") : t("shield.paused");
+    headerTitle.textContent = t("shield.title");
+    popover.setAttribute("aria-label", t("shield.title"));
+    badge.setAttribute("aria-label", t("shield.trackersBlocked"));
+    switchContainer.setAttribute("aria-label", t("shield.toggleAria"));
+    counterLabel.textContent = t("shield.counterLabel");
+    resetBtn.textContent = t("shield.resetStats");
 
     headerIcon.classList.toggle("shield-popover-icon--active", enabled);
     headerIcon.classList.toggle("shield-popover-icon--inactive", !enabled);
@@ -177,6 +185,7 @@ export function createPrivacyShield(
   resetBtn.addEventListener("click", performReset);
 
   let unlistenCount: UnlistenFn | null = null;
+  const unsubscribeLocale = subscribeLocale(() => updateUI());
 
   listen<{ tabId?: string; count?: number }>("tracker-blocked-count", (event) => {
     if (destroyed || !enabled) return;
@@ -238,6 +247,7 @@ export function createPrivacyShield(
     resetCount: performReset,
     destroy() {
       destroyed = true;
+      unsubscribeLocale();
       controller.close();
       if (unlistenCount) unlistenCount();
       popover.remove();

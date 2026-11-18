@@ -1,5 +1,7 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-chrome";
 
 export interface DownloadPayload {
   filename?: string;
@@ -211,6 +213,30 @@ export function initDownloads(root: HTMLElement = document.body): DownloadIndica
     }, 4000);
   }
 
+  let lastShown: {
+    filename: string;
+    progress: number;
+    isFinished: boolean;
+    failed: boolean;
+  } | null = null;
+
+  function renderPillText() {
+    if (!lastShown) return;
+    const { filename, progress, isFinished, failed } = lastShown;
+    if (failed) {
+      textNode.textContent = t("chrome.downloadPill.failed", { filename });
+    } else if (isFinished || progress >= 100) {
+      textNode.textContent = t("chrome.downloadPill.completed", { filename });
+    } else if (progress > 0) {
+      textNode.textContent = t("chrome.downloadPill.progress", {
+        filename,
+        progress,
+      });
+    } else {
+      textNode.textContent = t("chrome.downloadPill.downloading", { filename });
+    }
+  }
+
   function show(filename: string, progress: number, isFinished = false, failed = false) {
     if (dismissTimer !== null) {
       window.clearTimeout(dismissTimer);
@@ -222,21 +248,20 @@ export function initDownloads(root: HTMLElement = document.body): DownloadIndica
       pill.classList.remove("download-pill--hiding");
     }
 
-    if (failed) {
-      textNode.textContent = `Falhou: ${filename}`;
-    } else if (isFinished || progress >= 100) {
-      textNode.textContent = `Concluído: ${filename}`;
-    } else if (progress > 0) {
-      textNode.textContent = `Baixando: ${filename} (${progress}%)`;
-    } else {
-      textNode.textContent = `Baixando: ${filename}...`;
-    }
+    lastShown = { filename, progress, isFinished, failed };
+    renderPillText();
     pill.style.display = "flex";
 
     if (failed || isFinished || progress >= 100) {
       scheduleDismiss();
     }
   }
+
+  const unsubLocale = subscribeLocale(() => {
+    if (pill.style.display !== "none") {
+      renderPillText();
+    }
+  });
 
   let destroyed = false;
   const unlistenFns: UnlistenFn[] = [];
@@ -287,6 +312,7 @@ export function initDownloads(root: HTMLElement = document.body): DownloadIndica
     isOpen: () => pill.style.display !== "none" && !pill.classList.contains("download-pill--hiding"),
     destroy() {
       destroyed = true;
+      unsubLocale();
       if (dismissTimer !== null) window.clearTimeout(dismissTimer);
       if (hideAnimationTimer !== null) window.clearTimeout(hideAnimationTimer);
       for (const unlisten of unlistenFns) unlisten();

@@ -1,3 +1,6 @@
+import "./i18n-chrome";
+import { t } from "./i18n";
+
 export interface TabFolder {
   id: string;
   name: string;
@@ -7,14 +10,18 @@ export interface TabFolder {
   createdAt: number;
 }
 
-export const FOLDER_COLORS = [
-  { name: "Musgo", value: "#99bc58" },
-  { name: "Céu", value: "#38bdf8" },
-  { name: "Pôr do sol", value: "#f97316" },
-  { name: "Lavanda", value: "#a855f7" },
-  { name: "Rosa", value: "#f43f5e" },
-  { name: "Esmeralda", value: "#10b981" },
-];
+export function getFolderColors() {
+  return [
+    { name: t("folders.color.moss"), value: "#99bc58" },
+    { name: t("folders.color.sky"), value: "#38bdf8" },
+    { name: t("folders.color.sunset"), value: "#f97316" },
+    { name: t("folders.color.lavender"), value: "#a855f7" },
+    { name: t("folders.color.rose"), value: "#f43f5e" },
+    { name: t("folders.color.emerald"), value: "#10b981" },
+  ];
+}
+
+export const FOLDER_COLORS = getFolderColors();
 
 const STORAGE_KEY = "moss:tab_folders";
 
@@ -79,8 +86,9 @@ export function getFolder(id: string): TabFolder | undefined {
 }
 
 export function createFolder(name: string, workspaceId: string, color?: string): TabFolder {
-  const trimmed = name.trim() || "Nova pasta";
-  const assignedColor = color ?? FOLDER_COLORS[folders.length % FOLDER_COLORS.length].value;
+  const trimmed = name.trim() || t("folders.defaultName");
+  const palette = getFolderColors();
+  const assignedColor = color ?? palette[folders.length % palette.length].value;
   const folder: TabFolder = {
     id: `folder-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: trimmed,

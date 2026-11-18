@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import "./i18n-chrome";
+import { t } from "./i18n";
 import { icon } from "./icons";
 
 export interface ToastAction {
@@ -47,7 +49,7 @@ export function showToast(message: string, options: ToastOptions = {}) {
 
   const closeBtn = el(
     "button",
-    { class: "toast-close-btn", type: "button", "aria-label": "Fechar" },
+    { class: "toast-close-btn", type: "button", "aria-label": t("toast.close") },
     [icon("close")],
   );
   closeBtn.addEventListener("click", () => dismissToast());

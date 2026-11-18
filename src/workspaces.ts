@@ -1,3 +1,6 @@
+import { t } from "./i18n";
+import "./i18n-chrome";
+
 export interface Workspace {
   id: string;
   name: string;
@@ -104,7 +107,9 @@ export function createWorkspace(
   icon = "folder",
   color = "#b8eb9a",
 ): Workspace {
-  const trimmed = name.trim() || `Espaço ${workspaces.length + 1}`;
+  const trimmed =
+    name.trim() ||
+    t("chrome.workspace.numbered", { count: workspaces.length + 1 });
   const id = `ws-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const workspace: Workspace = {
     id,

@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { icon } from "./icons";
 import { webview } from "./webview";
 
@@ -10,24 +12,35 @@ export interface TranslatePopoverController {
   destroy: () => void;
 }
 
+type StatusKey =
+  | "translate.selectLang"
+  | "translate.translating"
+  | "translate.translated"
+  | "translate.injectError"
+  | "translate.restoring"
+  | "translate.restored"
+  | "translate.restoreError";
+
 export function createTranslatePopover(onVisibilityChange?: () => void): TranslatePopoverController {
   let open = false;
   let currentTabId = "";
   let currentUrl = "";
   let currentTargetLang = "pt";
+  let statusKey: StatusKey = "translate.selectLang";
+  let statusVars: Record<string, string | number> | undefined;
 
   const element = el("div", {
     class: "translate-popover",
     role: "dialog",
     "aria-modal": "true",
-    "aria-label": "Tradutor de Página",
+    "aria-label": t("translate.ariaLabel"),
     style: "display: none;",
   });
 
-  const headerTitle = el("span", { class: "translate-header-title" }, ["Traduzir Página"]);
+  const headerTitle = el("span", { class: "translate-header-title" }, [t("translate.title")]);
   const closeBtn = el(
     "button",
-    { class: "translate-close-btn", type: "button", "aria-label": "Fechar" },
+    { class: "translate-close-btn", type: "button", "aria-label": t("translate.close") },
     [icon("close")],
   );
 
@@ -40,23 +53,23 @@ export function createTranslatePopover(onVisibilityChange?: () => void): Transla
   ]);
 
   const statusLabel = el("div", { class: "translate-status-label" }, [
-    "Selecione um idioma para traduzir:",
+    t("translate.selectLang"),
   ]);
 
   const ptBtn = el(
     "button",
     { class: "translate-lang-btn translate-lang-btn--active", type: "button" },
-    ["🇧🇷 Português"],
+    [t("translate.langPt")],
   );
   const enBtn = el(
     "button",
     { class: "translate-lang-btn", type: "button" },
-    ["🇺🇸 Inglês"],
+    [t("translate.langEn")],
   );
   const esBtn = el(
     "button",
     { class: "translate-lang-btn", type: "button" },
-    ["🇪🇸 Espanhol"],
+    [t("translate.langEs")],
   );
 
   const langGroup = el("div", { class: "translate-lang-group" }, [ptBtn, enBtn, esBtn]);
@@ -64,19 +77,19 @@ export function createTranslatePopover(onVisibilityChange?: () => void): Transla
   const translateBtn = el(
     "button",
     { class: "translate-action-btn translate-action-btn--primary", type: "button" },
-    ["Traduzir página"],
+    [t("translate.translateBtn")],
   );
 
   const restoreBtn = el(
     "button",
     { class: "translate-action-btn", type: "button" },
-    ["Restaurar original"],
+    [t("translate.restoreBtn")],
   );
 
   const externalBtn = el(
     "button",
     { class: "translate-action-btn translate-action-btn--secondary", type: "button" },
-    ["Abrir no Google Tradutor"],
+    [t("translate.openExternal")],
   );
 
   const actionsGroup = el("div", { class: "translate-actions-group" }, [
@@ -86,6 +99,25 @@ export function createTranslatePopover(onVisibilityChange?: () => void): Transla
   ]);
 
   element.append(header, statusLabel, langGroup, actionsGroup);
+
+  function setStatus(key: StatusKey, vars?: Record<string, string | number>) {
+    statusKey = key;
+    statusVars = vars;
+    statusLabel.textContent = t(key, vars);
+  }
+
+  function applyLocale() {
+    element.setAttribute("aria-label", t("translate.ariaLabel"));
+    headerTitle.textContent = t("translate.title");
+    closeBtn.setAttribute("aria-label", t("translate.close"));
+    ptBtn.textContent = t("translate.langPt");
+    enBtn.textContent = t("translate.langEn");
+    esBtn.textContent = t("translate.langEs");
+    translateBtn.textContent = t("translate.translateBtn");
+    restoreBtn.textContent = t("translate.restoreBtn");
+    externalBtn.textContent = t("translate.openExternal");
+    statusLabel.textContent = t(statusKey, statusVars);
+  }
 
   function selectLang(lang: string, activeBtn: HTMLElement) {
     currentTargetLang = lang;
@@ -100,23 +132,23 @@ export function createTranslatePopover(onVisibilityChange?: () => void): Transla
 
   translateBtn.addEventListener("click", async () => {
     if (!currentTabId) return;
-    statusLabel.textContent = "Traduzindo página...";
+    setStatus("translate.translating");
     try {
       await webview.translateTab(currentTabId, currentTargetLang);
-      statusLabel.textContent = `Página traduzida (${currentTargetLang.toUpperCase()})!`;
+      setStatus("translate.translated", { lang: currentTargetLang.toUpperCase() });
     } catch {
-      statusLabel.textContent = "Erro ao injetar tradutor. Tente abrir no Google Tradutor.";
+      setStatus("translate.injectError");
     }
   });
 
   restoreBtn.addEventListener("click", async () => {
     if (!currentTabId) return;
-    statusLabel.textContent = "Restaurando idioma original...";
+    setStatus("translate.restoring");
     try {
       await webview.translateTab(currentTabId, "original");
-      statusLabel.textContent = "Original restaurado!";
+      setStatus("translate.restored");
     } catch {
-      statusLabel.textContent = "Erro ao restaurar página.";
+      setStatus("translate.restoreError");
     }
   });
 
@@ -146,12 +178,14 @@ export function createTranslatePopover(onVisibilityChange?: () => void): Transla
     }
   }
 
+  const unsubscribeLocale = subscribeLocale(() => applyLocale());
+
   const controller: TranslatePopoverController = {
     element,
     open(tabId: string, url: string) {
       currentTabId = tabId;
       currentUrl = url;
-      statusLabel.textContent = "Selecione um idioma para traduzir:";
+      setStatus("translate.selectLang");
       element.style.display = "flex";
       open = true;
       document.addEventListener("pointerdown", onPointerDown, true);
@@ -168,6 +202,7 @@ export function createTranslatePopover(onVisibilityChange?: () => void): Transla
     },
     isOpen: () => open,
     destroy() {
+      unsubscribeLocale();
       controller.close();
       element.remove();
     },

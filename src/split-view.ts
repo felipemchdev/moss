@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { icon } from "./icons";
 import type { TabViewport, Viewport } from "./webview";
 
@@ -189,8 +191,8 @@ export function createSplitDivider(callbacks: SplitDividerCallbacks): HTMLElemen
     {
       class: "split-handle-btn split-handle-btn--swap",
       type: "button",
-      "aria-label": "Trocar painéis de lado",
-      title: "Trocar painéis",
+      "aria-label": t("split.swapAria"),
+      title: t("split.swapTitle"),
     },
     [icon("swap")],
   );
@@ -200,8 +202,8 @@ export function createSplitDivider(callbacks: SplitDividerCallbacks): HTMLElemen
     {
       class: "split-handle-btn split-handle-btn--close",
       type: "button",
-      "aria-label": "Fechar tela dividida",
-      title: "Fechar tela dividida",
+      "aria-label": t("split.close"),
+      title: t("split.close"),
     },
     [icon("close")],
   );
@@ -224,11 +226,19 @@ export function createSplitDivider(callbacks: SplitDividerCallbacks): HTMLElemen
       class: "split-divider",
       role: "separator",
       "aria-orientation": "vertical",
-      "aria-label": "Redimensionar painéis",
+      "aria-label": t("split.resizeAria"),
       tabindex: "0",
     },
     [handle],
   );
+
+  subscribeLocale(() => {
+    swapBtn.setAttribute("aria-label", t("split.swapAria"));
+    swapBtn.title = t("split.swapTitle");
+    closeBtn.setAttribute("aria-label", t("split.close"));
+    closeBtn.title = t("split.close");
+    divider.setAttribute("aria-label", t("split.resizeAria"));
+  });
 
   let isDragging = false;
   let rafId: number | null = null;

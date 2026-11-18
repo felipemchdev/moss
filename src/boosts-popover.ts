@@ -8,6 +8,8 @@ import {
   applyBoostToTab,
 } from "./boosts";
 import { el } from "./dom";
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { icon } from "./icons";
 import { webview } from "./webview";
 
@@ -29,15 +31,15 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     class: "boosts-popover",
     role: "dialog",
     "aria-modal": "true",
-    "aria-label": "Aparência & Boosts",
+    "aria-label": t("boosts.title"),
     style: "display: none;",
   });
 
-  const headerTitle = el("span", { class: "boosts-header-title" }, ["Aparência & Boosts"]);
+  const headerTitle = el("span", { class: "boosts-header-title" }, [t("boosts.title")]);
   const headerDomain = el("span", { class: "boosts-header-domain" }, [""]);
   const closeBtn = el(
     "button",
-    { class: "boosts-close-btn", type: "button", "aria-label": "Fechar" },
+    { class: "boosts-close-btn", type: "button", "aria-label": t("boosts.close") },
     [icon("close")],
   );
 
@@ -49,15 +51,14 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     closeBtn,
   ]);
 
+  const zapperTitle = el("strong", {}, [t("boosts.zapperTitle")]);
+  const zapperDesc = el("span", {}, [t("boosts.zapperDesc")]);
   const zapperBtn = el(
     "button",
     { class: "boosts-zapper-hero-btn", type: "button" },
     [
       icon("zap"),
-      el("div", { class: "boosts-zapper-hero-text" }, [
-        el("strong", {}, ["Element Zapper"]),
-        el("span", {}, ["Clique para eliminar anúncios e popups"]),
-      ]),
+      el("div", { class: "boosts-zapper-hero-text" }, [zapperTitle, zapperDesc]),
     ],
   );
 
@@ -66,11 +67,12 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     class: "boosts-switch",
     id: "boost-dark-toggle",
   }) as HTMLInputElement;
+  const darkLabelText = el("span", {}, [t("boosts.darkMode")]);
 
   const darkRow = el("div", { class: "boosts-row" }, [
     el("label", { for: "boost-dark-toggle", class: "boosts-label" }, [
       icon("moon"),
-      el("span", {}, ["Modo Escuro Forçado"]),
+      darkLabelText,
     ]),
     darkToggle,
   ]);
@@ -80,11 +82,12 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     class: "boosts-switch",
     id: "boost-sepia-toggle",
   }) as HTMLInputElement;
+  const sepiaLabelText = el("span", {}, [t("boosts.sepia")]);
 
   const sepiaRow = el("div", { class: "boosts-row" }, [
     el("label", { for: "boost-sepia-toggle", class: "boosts-label" }, [
       icon("book"),
-      el("span", {}, ["Tom Sépia Relaxante"]),
+      sepiaLabelText,
     ]),
     sepiaToggle,
   ]);
@@ -97,13 +100,11 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     value: "0",
     class: "boosts-slider",
   }) as HTMLInputElement;
+  const brightnessLabel = el("span", { class: "boosts-label" }, [t("boosts.brightness")]);
   const brightnessVal = el("span", { class: "boosts-slider-val" }, ["100%"]);
 
   const brightnessRow = el("div", { class: "boosts-slider-group" }, [
-    el("div", { class: "boosts-slider-header" }, [
-      el("span", { class: "boosts-label" }, ["Brilho"]),
-      brightnessVal,
-    ]),
+    el("div", { class: "boosts-slider-header" }, [brightnessLabel, brightnessVal]),
     brightnessSlider,
   ]);
 
@@ -115,32 +116,28 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     value: "0",
     class: "boosts-slider",
   }) as HTMLInputElement;
+  const contrastLabel = el("span", { class: "boosts-label" }, [t("boosts.contrast")]);
   const contrastVal = el("span", { class: "boosts-slider-val" }, ["100%"]);
 
   const contrastRow = el("div", { class: "boosts-slider-group" }, [
-    el("div", { class: "boosts-slider-header" }, [
-      el("span", { class: "boosts-label" }, ["Contraste"]),
-      contrastVal,
-    ]),
+    el("div", { class: "boosts-slider-header" }, [contrastLabel, contrastVal]),
     contrastSlider,
   ]);
 
+  const cssLabel = el("span", { class: "boosts-label" }, [t("boosts.customCss")]);
   const cssInput = el("textarea", {
     class: "boosts-css-textarea",
-    placeholder: "/* CSS customizado para este site */\nbody {\n  /* ... */\n}",
+    placeholder: t("boosts.cssPlaceholder"),
     rows: "3",
   }) as HTMLTextAreaElement;
 
-  const cssGroup = el("div", { class: "boosts-css-group" }, [
-    el("span", { class: "boosts-label" }, ["CSS Personalizado"]),
-    cssInput,
-  ]);
+  const cssGroup = el("div", { class: "boosts-css-group" }, [cssLabel, cssInput]);
 
   const zappedStatus = el("span", { class: "boosts-zapped-status" }, [""]);
   const restoreZapsBtn = el(
     "button",
     { class: "boosts-link-btn", type: "button" },
-    ["Restaurar elementos"],
+    [t("boosts.restoreZaps")],
   );
 
   const zapsRow = el("div", { class: "boosts-zaps-row" }, [zappedStatus, restoreZapsBtn]);
@@ -148,7 +145,7 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
   const resetBtn = el(
     "button",
     { class: "boosts-reset-btn", type: "button" },
-    ["Redefinir Boosts"],
+    [t("boosts.reset")],
   );
 
   element.append(
@@ -162,6 +159,26 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     zapsRow,
     resetBtn,
   );
+
+  function applyLocale() {
+    element.setAttribute("aria-label", t("boosts.title"));
+    headerTitle.textContent = t("boosts.title");
+    closeBtn.setAttribute("aria-label", t("boosts.close"));
+    zapperTitle.textContent = t("boosts.zapperTitle");
+    zapperDesc.textContent = t("boosts.zapperDesc");
+    darkLabelText.textContent = t("boosts.darkMode");
+    sepiaLabelText.textContent = t("boosts.sepia");
+    brightnessLabel.textContent = t("boosts.brightness");
+    contrastLabel.textContent = t("boosts.contrast");
+    cssLabel.textContent = t("boosts.customCss");
+    cssInput.placeholder = t("boosts.cssPlaceholder");
+    restoreZapsBtn.textContent = t("boosts.restoreZaps");
+    resetBtn.textContent = t("boosts.reset");
+    if (currentDomain) {
+      const zaps = getDomainZapRules(currentDomain);
+      zappedStatus.textContent = t("boosts.zappedCount", { count: zaps.length });
+    }
+  }
 
   function syncValues() {
     if (!currentDomain) return;
@@ -177,7 +194,7 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     contrastVal.textContent = `${100 + boost.contrast}%`;
     cssInput.value = boost.customCss;
 
-    zappedStatus.textContent = `${zaps.length} elemento(s) eliminado(s)`;
+    zappedStatus.textContent = t("boosts.zappedCount", { count: zaps.length });
     restoreZapsBtn.style.display = zaps.length > 0 ? "inline-block" : "none";
   }
 
@@ -243,6 +260,8 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
     }
   }
 
+  const unsubscribeLocale = subscribeLocale(() => applyLocale());
+
   const controller: BoostsPopoverController = {
     element,
     isOpen: () => open,
@@ -268,6 +287,7 @@ export function createBoostsPopover(onVisibilityChange?: () => void): BoostsPopo
       onVisibilityChange?.();
     },
     destroy() {
+      unsubscribeLocale();
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown);
       element.remove();

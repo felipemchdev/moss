@@ -14,6 +14,8 @@ import { updateTabMediaState, clearTabMediaState, getMediaStateForTab, toggleMut
 import { createWelcomeWizard, isOnboardingCompleted } from "./welcome-wizard";
 import { NavHistory, clearHistory, updateVisitTitle, addHistoryEntry, type NavIntent } from "./history";
 import { createHistoryPanel } from "./history-panel";
+import "./i18n-chrome";
+import { getLocale, subscribeLocale, t } from "./i18n";
 import { icon, type IconName } from "./icons";
 import { resolveOmnibarInput } from "./omnibar";
 import { PANEL_TOGGLE_ATTR, type Panel } from "./panel";
@@ -39,7 +41,7 @@ import {
 } from "./split-view";
 import { isWebUrl } from "./storage";
 import {
-  NEW_TAB_TITLE,
+  isNewTabTitle,
   closeTab,
   createTab,
   getActiveTab,
@@ -117,23 +119,23 @@ interface TabSelectedEvent {
   tabId: string;
 }
 
-const NAV_BUTTONS: { action: NavAction; label: string; icon: IconName }[] = [
-  { action: "back", label: "Voltar", icon: "back" },
-  { action: "forward", label: "Avançar", icon: "forward" },
-  { action: "reload", label: "Recarregar", icon: "reload" },
+const NAV_BUTTONS: { action: NavAction; labelKey: string; icon: IconName }[] = [
+  { action: "back", labelKey: "chrome.nav.back", icon: "back" },
+  { action: "forward", labelKey: "chrome.nav.forward", icon: "forward" },
+  { action: "reload", labelKey: "chrome.nav.reload", icon: "reload" },
 ];
 
-const SHORTCUTS = [
-  ["Ctrl+T", "nova aba"],
-  ["Ctrl+W", "fechar aba"],
-  ["Ctrl+K", "paleta de comandos"],
-  ["Ctrl+\\", "tela dividida"],
-  ["Ctrl+Shift+S", "tela dividida"],
-  ["Ctrl+Tab", "próxima aba"],
-  ["Ctrl+L", "omnibar"],
-  ["Ctrl+H", "histórico"],
-  ["Ctrl+,", "configurações"],
-  ["Ctrl+/", "atalhos"],
+const SHORTCUTS: [string, string][] = [
+  ["Ctrl+T", "chrome.shortcut.newTab"],
+  ["Ctrl+W", "chrome.shortcut.closeTab"],
+  ["Ctrl+K", "chrome.shortcut.commandPalette"],
+  ["Ctrl+\\", "chrome.shortcut.splitView"],
+  ["Ctrl+Shift+S", "chrome.shortcut.splitView"],
+  ["Ctrl+Tab", "chrome.shortcut.nextTab"],
+  ["Ctrl+L", "chrome.shortcut.omnibar"],
+  ["Ctrl+H", "chrome.shortcut.history"],
+  ["Ctrl+,", "chrome.shortcut.settings"],
+  ["Ctrl+/", "chrome.shortcut.shortcuts"],
 ];
 
 const histories = new Map<string, NavHistory>();
@@ -153,20 +155,20 @@ function buildChrome(root: HTMLElement) {
   const closeWindowBtn = el("button", {
     class: "window-btn window-btn--close",
     type: "button",
-    "aria-label": "Fechar janela",
-    title: "Fechar janela",
+    "aria-label": t("chrome.window.close"),
+    title: t("chrome.window.close"),
   });
   const minimizeWindowBtn = el("button", {
     class: "window-btn window-btn--minimize",
     type: "button",
-    "aria-label": "Minimizar janela",
-    title: "Minimizar janela",
+    "aria-label": t("chrome.window.minimize"),
+    title: t("chrome.window.minimize"),
   });
   const maximizeWindowBtn = el("button", {
     class: "window-btn window-btn--maximize",
     type: "button",
-    "aria-label": "Maximizar janela",
-    title: "Maximizar janela",
+    "aria-label": t("chrome.window.maximize"),
+    title: t("chrome.window.maximize"),
   });
 
   closeWindowBtn.addEventListener("click", () => windowControls.close());
@@ -184,8 +186,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "sidebar-toggle-btn nav-btn",
       type: "button",
-      "aria-label": "Recolher barra lateral (Ctrl+B)",
-      title: "Recolher barra lateral (Ctrl+B)",
+      "aria-label": t("chrome.sidebar.collapse"),
+      title: t("chrome.sidebar.collapse"),
     },
     [icon("sidebar")],
   );
@@ -197,7 +199,8 @@ function buildChrome(root: HTMLElement) {
   );
 
   const navButtons = {} as Record<NavAction, HTMLButtonElement>;
-  for (const { action, label, icon: iconName } of NAV_BUTTONS) {
+  for (const { action, labelKey, icon: iconName } of NAV_BUTTONS) {
+    const label = t(labelKey);
     navButtons[action] = el(
       "button",
       { class: "nav-btn", type: "button", "aria-label": label, title: label, disabled: "" },
@@ -214,10 +217,10 @@ function buildChrome(root: HTMLElement) {
   const omnibarInput = el("input", {
     class: "omnibar-input",
     type: "text",
-    placeholder: "Pesquise ou digite um endereço",
+    placeholder: t("chrome.omnibar.placeholder"),
     autocomplete: "off",
     spellcheck: "false",
-    "aria-label": "Barra de endereço",
+    "aria-label": t("chrome.omnibar.ariaLabel"),
   });
   const bookmarkToggle = el(
     "button",
@@ -229,9 +232,9 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-reader-btn",
       type: "button",
-      "aria-label": "Modo leitura (Ctrl+Alt+R)",
+      "aria-label": t("chrome.omnibar.reader"),
       "aria-pressed": "false",
-      title: "Modo leitura (Ctrl+Alt+R)",
+      title: t("chrome.omnibar.reader"),
     },
     [icon("book")],
   );
@@ -240,9 +243,9 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-split-btn",
       type: "button",
-      "aria-label": "Alternar tela dividida (Ctrl+\\)",
+      "aria-label": t("chrome.omnibar.split"),
       "aria-pressed": "false",
-      title: "Alternar tela dividida (Ctrl+\\)",
+      title: t("chrome.omnibar.split"),
     },
     [icon("split")],
   );
@@ -251,8 +254,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-zoom-badge",
       type: "button",
-      "aria-label": "Zoom: 100%. Clique para redefinir para 100% (Ctrl+0)",
-      title: "Zoom: 100%. Clique para redefinir para 100% (Ctrl+0)",
+      "aria-label": t("chrome.omnibar.zoomTooltip", { percent: "100%" }),
+      title: t("chrome.omnibar.zoomTooltip", { percent: "100%" }),
       style: "display: none;",
     },
     ["100%"],
@@ -262,8 +265,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-security-btn",
       type: "button",
-      "aria-label": "Informações e permissões do site",
-      title: "Ver informações e permissões do site",
+      "aria-label": t("chrome.omnibar.securityAria"),
+      title: t("chrome.omnibar.securityTitle"),
     },
     [icon("globe")],
   );
@@ -272,8 +275,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-boosts-btn",
       type: "button",
-      "aria-label": "Boosts & Element Zapper (Ctrl+Shift+Z)",
-      title: "Boosts & Element Zapper (Ctrl+Shift+Z)",
+      "aria-label": t("chrome.omnibar.boosts"),
+      title: t("chrome.omnibar.boosts"),
     },
     [icon("sparkles")],
   );
@@ -282,8 +285,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "omnibar-translate-btn",
       type: "button",
-      "aria-label": "Traduzir página (Ctrl+Shift+U)",
-      title: "Traduzir página (Ctrl+Shift+U)",
+      "aria-label": t("chrome.omnibar.translate"),
+      title: t("chrome.omnibar.translate"),
     },
     [icon("translate")],
   );
@@ -293,39 +296,39 @@ function buildChrome(root: HTMLElement) {
     el("div", { class: "omnibar-actions" }, [zoomBadge, readerButton, omnibarTranslateBtn, omnibarSplitBtn, bookmarkToggle, boostsButton]),
   ]);
 
-  const pinnedTabsLabel = el("div", { class: "pinned-tabs-label" }, ["Fixadas"]);
+  const pinnedTabsLabel = el("div", { class: "pinned-tabs-label" }, [t("chrome.pinned.label")]);
   const pinnedTabsGrid = el("div", {
     class: "pinned-tabs-grid",
     role: "tablist",
-    "aria-label": "Abas fixadas",
+    "aria-label": t("chrome.pinned.aria"),
   });
   const pinnedTabsSection = el("div", { class: "pinned-tabs-section", style: "display: none;" }, [
     pinnedTabsLabel,
     pinnedTabsGrid,
   ]);
 
+  const newTabLabel = el("span", {}, [t("chrome.newTab.label")]);
   const newTabButton = el(
     "button",
-    { class: "new-tab-btn tab-new-btn", type: "button", "aria-label": "Nova aba", title: "Nova aba (Ctrl+T)" },
-    [icon("plus"), el("span", {}, ["Nova Aba"])],
+    { class: "new-tab-btn tab-new-btn", type: "button", "aria-label": t("chrome.newTab.aria"), title: t("chrome.newTab.title") },
+    [icon("plus"), newTabLabel],
   );
   const newFolderButton = el(
     "button",
-    { class: "new-folder-btn", type: "button", "aria-label": "Nova pasta de abas", title: "Nova pasta de abas" },
+    { class: "new-folder-btn", type: "button", "aria-label": t("chrome.newFolder"), title: t("chrome.newFolder") },
     [icon("folderPlus")],
   );
   const newTabSection = el("div", { class: "new-tab-section" }, [newTabButton, newFolderButton]);
   const tabList = el("div", { class: "tabs-list tab-list", role: "tablist" });
   const tabBar = el("div", { class: "tabs-section tab-bar" }, [tabList, newTabSection]);
 
+  const bookmarksTitle = el("span", { class: "bookmarks-title" }, [t("chrome.bookmarks.title")]);
   const bookmarksList = el("ul", { class: "bookmarks-list" });
   const bookmarksBar = el(
     "nav",
-    { class: "bookmarks-bar bookmarks-section", "aria-label": "Favoritos", style: "display: none;" },
+    { class: "bookmarks-bar bookmarks-section", "aria-label": t("chrome.bookmarks.title"), style: "display: none;" },
     [
-      el("div", { class: "bookmarks-header" }, [
-        el("span", { class: "bookmarks-title" }, ["Favoritos"]),
-      ]),
+      el("div", { class: "bookmarks-header" }, [bookmarksTitle]),
       bookmarksList,
     ],
   );
@@ -336,9 +339,9 @@ function buildChrome(root: HTMLElement) {
     {
       class: "footer-btn footer-btn--split nav-btn",
       type: "button",
-      "aria-label": "Alternar tela dividida (Ctrl+\\)",
+      "aria-label": t("chrome.omnibar.split"),
       "aria-pressed": "false",
-      title: "Alternar tela dividida (Ctrl+\\)",
+      title: t("chrome.omnibar.split"),
     },
     [icon("split")],
   );
@@ -347,8 +350,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "footer-btn footer-btn--privacy nav-btn",
       type: "button",
-      "aria-label": "Escudo de Privacidade",
-      title: "Escudo de Privacidade",
+      "aria-label": t("chrome.footer.privacy"),
+      title: t("chrome.footer.privacy"),
     },
     [icon("shield")],
   );
@@ -357,8 +360,8 @@ function buildChrome(root: HTMLElement) {
     {
       ...toggleAttrs,
       class: "footer-btn nav-btn",
-      "aria-label": "Histórico",
-      title: "Histórico (Ctrl+H)",
+      "aria-label": t("chrome.footer.historyAria"),
+      title: t("chrome.footer.historyTitle"),
     },
     [icon("history")],
   );
@@ -367,8 +370,8 @@ function buildChrome(root: HTMLElement) {
     {
       ...toggleAttrs,
       class: "footer-btn footer-btn--settings nav-btn",
-      "aria-label": "Configurações",
-      title: "Configurações (Ctrl+,)",
+      "aria-label": t("chrome.footer.settingsAria"),
+      title: t("chrome.footer.settingsTitle"),
     },
     [icon("settings")],
   );
@@ -377,8 +380,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "footer-btn footer-btn--downloads nav-btn",
       type: "button",
-      "aria-label": "Downloads",
-      title: "Downloads",
+      "aria-label": t("chrome.footer.downloads"),
+      title: t("chrome.footer.downloads"),
     },
     [icon("download")],
   );
@@ -411,22 +414,22 @@ function buildChrome(root: HTMLElement) {
 
   const floatingBackBtn = el(
     "button",
-    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Voltar", title: "Voltar (Alt+←)", disabled: "" },
+    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": t("chrome.nav.back"), title: t("chrome.nav.backTitle"), disabled: "" },
     [icon("back")],
   );
   const floatingForwardBtn = el(
     "button",
-    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Avançar", title: "Avançar (Alt+→)", disabled: "" },
+    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": t("chrome.nav.forward"), title: t("chrome.nav.forwardTitle"), disabled: "" },
     [icon("forward")],
   );
   const floatingReloadBtn = el(
     "button",
-    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": "Recarregar", title: "Recarregar (F5)", disabled: "" },
+    { class: "nav-btn floating-nav-btn", type: "button", "aria-label": t("chrome.nav.reload"), title: t("chrome.nav.reloadTitle"), disabled: "" },
     [icon("reload")],
   );
 
   const floatingSecurityIcon = el("span", { class: "floating-security-icon" }, [icon("globe")]);
-  const floatingUrlText = el("span", { class: "floating-url-text" }, ["Pesquise ou digite um endereço"]);
+  const floatingUrlText = el("span", { class: "floating-url-text" }, [t("chrome.omnibar.placeholder")]);
   const floatingShortcut = el("kbd", { class: "floating-shortcut" }, ["Ctrl+K"]);
   const floatingOmnibarPill = el(
     "div",
@@ -434,25 +437,25 @@ function buildChrome(root: HTMLElement) {
       class: "floating-omnibar-pill",
       role: "button",
       tabindex: "0",
-      "aria-label": "Pesquisar ou digitar endereço",
-      title: "Pesquisar ou digitar endereço (Ctrl+K)",
+      "aria-label": t("chrome.omnibar.pillAria"),
+      title: t("chrome.omnibar.pillTitle"),
     },
     [floatingSecurityIcon, floatingUrlText, floatingShortcut],
   );
 
   const floatingReaderBtn = el(
     "button",
-    { class: "nav-btn floating-action-btn", type: "button", "aria-label": "Modo leitura (Ctrl+Alt+R)", title: "Modo leitura (Ctrl+Alt+R)" },
+    { class: "nav-btn floating-action-btn", type: "button", "aria-label": t("chrome.omnibar.reader"), title: t("chrome.omnibar.reader") },
     [icon("book")],
   );
   const floatingSplitBtn = el(
     "button",
-    { class: "nav-btn floating-action-btn", type: "button", "aria-label": "Alternar tela dividida (Ctrl+\\)", title: "Alternar tela dividida (Ctrl+\\)" },
+    { class: "nav-btn floating-action-btn", type: "button", "aria-label": t("chrome.omnibar.split"), title: t("chrome.omnibar.split") },
     [icon("split")],
   );
   const floatingStarBtn = el(
     "button",
-    { class: "nav-btn floating-action-btn", type: "button", "aria-label": "Favoritos", title: "Favoritar esta página" },
+    { class: "nav-btn floating-action-btn", type: "button", "aria-label": t("chrome.bookmarks.title"), title: t("chrome.bookmark.starPage") },
     [icon("star")],
   );
   const floatingExpandBtn = el(
@@ -460,8 +463,8 @@ function buildChrome(root: HTMLElement) {
     {
       class: "nav-btn floating-action-btn floating-expand-btn",
       type: "button",
-      "aria-label": "Expandir barra lateral (Ctrl+B)",
-      title: "Expandir barra lateral (Ctrl+B)",
+      "aria-label": t("chrome.sidebar.expand"),
+      title: t("chrome.sidebar.expand"),
     },
     [icon("sidebarCollapsed")],
   );
@@ -471,13 +474,13 @@ function buildChrome(root: HTMLElement) {
     {
       class: "nav-btn floating-action-btn floating-translate-btn",
       type: "button",
-      "aria-label": "Traduzir página (Ctrl+Shift+U)",
-      title: "Traduzir página (Ctrl+Shift+U)",
+      "aria-label": t("chrome.omnibar.translate"),
+      title: t("chrome.omnibar.translate"),
     },
     [icon("translate")],
   );
 
-  const floatingTopBar = el("header", { class: "floating-top-bar", "aria-label": "Navegação rápida compacta", "data-tauri-drag-region": "" }, [
+  const floatingTopBar = el("header", { class: "floating-top-bar", "aria-label": t("chrome.floating.topBarAria"), "data-tauri-drag-region": "" }, [
     el("div", { class: "floating-nav-group" }, [floatingBackBtn, floatingForwardBtn, floatingReloadBtn]),
     floatingOmnibarPill,
     el("div", { class: "floating-actions-group" }, [
@@ -489,15 +492,22 @@ function buildChrome(root: HTMLElement) {
     ]),
   ]);
 
+  const emptyStateHint = el("p", { class: "viewport-empty-hint empty-state-hint" }, [
+    t("chrome.empty.hint"),
+  ]);
+  const shortcutLabelEls = SHORTCUTS.map(([keys, labelKey]) => {
+    const labelNode = document.createTextNode(t(labelKey));
+    const item = el("span", { class: "empty-state-shortcut" }, [el("kbd", {}, [keys]), labelNode]);
+    return { item, labelNode, labelKey };
+  });
+
   const emptyState = el("div", { class: "viewport-empty empty-state" }, [
     el("h1", { class: "viewport-empty-title empty-state-title" }, ["moss"]),
-    el("p", { class: "viewport-empty-hint empty-state-hint" }, ["Digite um endereço na omnibar para começar."]),
+    emptyStateHint,
     el(
       "div",
       { class: "empty-state-shortcuts" },
-      SHORTCUTS.map(([keys, label]) =>
-        el("span", { class: "empty-state-shortcut" }, [el("kbd", {}, [keys]), label]),
-      ),
+      shortcutLabelEls.map((entry) => entry.item),
     ),
   ]);
   const loadingBar = el("div", { class: "viewport-loading webview-loading" });
@@ -506,6 +516,85 @@ function buildChrome(root: HTMLElement) {
   const mainView = el("main", { class: "main-view viewport-area" }, [viewportCard]);
 
   root.append(sidebar, mainView);
+
+  function applyLocale() {
+    closeWindowBtn.setAttribute("aria-label", t("chrome.window.close"));
+    closeWindowBtn.title = t("chrome.window.close");
+    minimizeWindowBtn.setAttribute("aria-label", t("chrome.window.minimize"));
+    minimizeWindowBtn.title = t("chrome.window.minimize");
+    maximizeWindowBtn.setAttribute("aria-label", t("chrome.window.maximize"));
+    maximizeWindowBtn.title = t("chrome.window.maximize");
+
+    const sidebarToggleTitle = isSidebarCollapsed()
+      ? t("chrome.sidebar.expand")
+      : t("chrome.sidebar.collapse");
+    sidebarToggleBtn.title = sidebarToggleTitle;
+    sidebarToggleBtn.setAttribute("aria-label", sidebarToggleTitle);
+
+    for (const { action, labelKey } of NAV_BUTTONS) {
+      const label = t(labelKey);
+      navButtons[action].setAttribute("aria-label", label);
+      navButtons[action].title = label;
+    }
+
+    omnibarInput.placeholder = t("chrome.omnibar.placeholder");
+    omnibarInput.setAttribute("aria-label", t("chrome.omnibar.ariaLabel"));
+    readerButton.setAttribute("aria-label", t("chrome.omnibar.reader"));
+    readerButton.title = t("chrome.omnibar.reader");
+    omnibarSplitBtn.setAttribute("aria-label", t("chrome.omnibar.split"));
+    omnibarSplitBtn.title = t("chrome.omnibar.split");
+    securityButton.setAttribute("aria-label", t("chrome.omnibar.securityAria"));
+    boostsButton.setAttribute("aria-label", t("chrome.omnibar.boosts"));
+    boostsButton.title = t("chrome.omnibar.boosts");
+    omnibarTranslateBtn.setAttribute("aria-label", t("chrome.omnibar.translate"));
+    omnibarTranslateBtn.title = t("chrome.omnibar.translate");
+
+    pinnedTabsLabel.textContent = t("chrome.pinned.label");
+    pinnedTabsGrid.setAttribute("aria-label", t("chrome.pinned.aria"));
+    newTabLabel.textContent = t("chrome.newTab.label");
+    newTabButton.setAttribute("aria-label", t("chrome.newTab.aria"));
+    newTabButton.title = t("chrome.newTab.title");
+    newFolderButton.setAttribute("aria-label", t("chrome.newFolder"));
+    newFolderButton.title = t("chrome.newFolder");
+    bookmarksBar.setAttribute("aria-label", t("chrome.bookmarks.title"));
+    bookmarksTitle.textContent = t("chrome.bookmarks.title");
+
+    splitButton.setAttribute("aria-label", t("chrome.omnibar.split"));
+    splitButton.title = t("chrome.omnibar.split");
+    privacyButton.setAttribute("aria-label", t("chrome.footer.privacy"));
+    privacyButton.title = t("chrome.footer.privacy");
+    historyButton.setAttribute("aria-label", t("chrome.footer.historyAria"));
+    historyButton.title = t("chrome.footer.historyTitle");
+    settingsButton.setAttribute("aria-label", t("chrome.footer.settingsAria"));
+    settingsButton.title = t("chrome.footer.settingsTitle");
+    downloadsButton.setAttribute("aria-label", t("chrome.footer.downloads"));
+    downloadsButton.title = t("chrome.footer.downloads");
+
+    floatingBackBtn.setAttribute("aria-label", t("chrome.nav.back"));
+    floatingBackBtn.title = t("chrome.nav.backTitle");
+    floatingForwardBtn.setAttribute("aria-label", t("chrome.nav.forward"));
+    floatingForwardBtn.title = t("chrome.nav.forwardTitle");
+    floatingReloadBtn.setAttribute("aria-label", t("chrome.nav.reload"));
+    floatingReloadBtn.title = t("chrome.nav.reloadTitle");
+    floatingOmnibarPill.setAttribute("aria-label", t("chrome.omnibar.pillAria"));
+    floatingOmnibarPill.title = t("chrome.omnibar.pillTitle");
+    floatingReaderBtn.setAttribute("aria-label", t("chrome.omnibar.reader"));
+    floatingReaderBtn.title = t("chrome.omnibar.reader");
+    floatingTranslateBtn.setAttribute("aria-label", t("chrome.omnibar.translate"));
+    floatingTranslateBtn.title = t("chrome.omnibar.translate");
+    floatingSplitBtn.setAttribute("aria-label", t("chrome.omnibar.split"));
+    floatingSplitBtn.title = t("chrome.omnibar.split");
+    floatingStarBtn.setAttribute("aria-label", t("chrome.bookmarks.title"));
+    floatingStarBtn.title = t("chrome.bookmark.starPage");
+    floatingExpandBtn.setAttribute("aria-label", t("chrome.sidebar.expand"));
+    floatingExpandBtn.title = t("chrome.sidebar.expand");
+    floatingTopBar.setAttribute("aria-label", t("chrome.floating.topBarAria"));
+
+    emptyStateHint.textContent = t("chrome.empty.hint");
+    for (const entry of shortcutLabelEls) {
+      entry.labelNode.textContent = t(entry.labelKey);
+    }
+  }
 
   return {
     tabList,
@@ -551,6 +640,7 @@ function buildChrome(root: HTMLElement) {
     pinnedTabsGrid,
     workspaceSection,
     mediaWidget,
+    applyLocale,
   };
 }
 
@@ -581,6 +671,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const root = document.querySelector<HTMLElement>("#app");
   if (!root) return;
 
+  document.documentElement.lang = getLocale();
+
   const ui = buildChrome(root);
   const tabElements = new Map<string, HTMLElement>();
   const pinnedTabElements = new Map<string, HTMLElement>();
@@ -591,7 +683,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const zoomOutButton = el(
     "button",
-    { class: "zoom-popover-btn", type: "button", "aria-label": "Diminuir zoom", title: "Diminuir zoom" },
+    { class: "zoom-popover-btn", type: "button", "aria-label": t("chrome.zoom.out"), title: t("chrome.zoom.out") },
     ["-"],
   );
   const zoomValueButton = el(
@@ -599,14 +691,14 @@ window.addEventListener("DOMContentLoaded", () => {
     {
       class: "zoom-popover-btn zoom-popover-value",
       type: "button",
-      "aria-label": "Redefinir zoom para 100%",
-      title: "Redefinir para 100%",
+      "aria-label": t("chrome.zoom.valueAria"),
+      title: t("chrome.zoom.valueTitle"),
     },
     ["100%"],
   );
   const zoomInButton = el(
     "button",
-    { class: "zoom-popover-btn", type: "button", "aria-label": "Aumentar zoom", title: "Aumentar zoom" },
+    { class: "zoom-popover-btn", type: "button", "aria-label": t("chrome.zoom.in"), title: t("chrome.zoom.in") },
     ["+"],
   );
   const zoomResetButton = el(
@@ -614,22 +706,35 @@ window.addEventListener("DOMContentLoaded", () => {
     {
       class: "zoom-popover-btn zoom-popover-reset",
       type: "button",
-      "aria-label": "Redefinir zoom",
-      title: "Redefinir zoom",
+      "aria-label": t("chrome.zoom.reset"),
+      title: t("chrome.zoom.reset"),
     },
-    ["Reset"],
+    [t("chrome.zoom.resetBtn")],
   );
   const zoomPopover = el(
     "div",
     {
       class: "zoom-popover",
       role: "group",
-      "aria-label": "Controle de zoom",
+      "aria-label": t("chrome.zoom.controlsAria"),
       style: "display: none;",
     },
     [zoomOutButton, zoomValueButton, zoomInButton, zoomResetButton],
   );
   document.body.append(zoomPopover);
+
+  function applyZoomPopoverLocale() {
+    zoomOutButton.setAttribute("aria-label", t("chrome.zoom.out"));
+    zoomOutButton.title = t("chrome.zoom.out");
+    zoomValueButton.setAttribute("aria-label", t("chrome.zoom.valueAria"));
+    zoomValueButton.title = t("chrome.zoom.valueTitle");
+    zoomInButton.setAttribute("aria-label", t("chrome.zoom.in"));
+    zoomInButton.title = t("chrome.zoom.in");
+    zoomResetButton.setAttribute("aria-label", t("chrome.zoom.reset"));
+    zoomResetButton.title = t("chrome.zoom.reset");
+    zoomResetButton.textContent = t("chrome.zoom.resetBtn");
+    zoomPopover.setAttribute("aria-label", t("chrome.zoom.controlsAria"));
+  }
 
   function closeZoomPopover() {
     zoomPopover.style.display = "none";
@@ -650,7 +755,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     const pct = formatZoomPercent(getZoomForTab(tabId, url));
     ui.zoomBadge.textContent = pct;
-    ui.zoomBadge.title = `Zoom: ${pct}. Clique para abrir o controle de zoom`;
+    ui.zoomBadge.title = t("chrome.omnibar.zoomTooltip", { percent: pct });
     ui.zoomBadge.setAttribute("aria-label", ui.zoomBadge.title);
     ui.zoomBadge.style.display = "inline-flex";
   }
@@ -985,7 +1090,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const tab = getTargetTab();
         if (!tab || !isWebUrl(tab.url)) return;
         if (isBookmarked(tab.url)) removeBookmark(tab.url);
-        else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
+        else addBookmark(tab.url, isNewTabTitle(tab.title) ? hostnameOf(tab.url) : tab.title);
       },
       zoomIn() {
         const target = getTargetTab();
@@ -1009,7 +1114,7 @@ window.addEventListener("DOMContentLoaded", () => {
         runNavAction("forward");
       },
       newWorkspace() {
-        const ws = createWorkspace("Novo Espaço");
+        const ws = createWorkspace(t("chrome.workspace.newName"));
         handleSwitchWorkspace(ws.id);
       },
       switchWorkspace(workspaceId) {
@@ -1068,7 +1173,7 @@ window.addEventListener("DOMContentLoaded", () => {
           const ws = getWorkspace(currentWsId);
           if (host && ws) {
             addRoutingRule(host, currentWsId);
-            showToast(`Regra criada: ${host} sempre abrirá em ${ws.name}`);
+            showToast(t("chrome.routing.ruleCreated", { host, workspace: ws.name }));
           }
         } catch {
           /* invalid url */
@@ -1380,13 +1485,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if (getSpaceRoutingMode() === "auto") {
       moveTabToWorkspace(tabId, rule.targetWorkspaceId);
       handleSwitchWorkspace(rule.targetWorkspaceId);
-      showToast(`Roteado para o espaço ${targetWs.name} (${rule.domain})`);
+      showToast(t("chrome.routing.autoToast", { workspace: targetWs.name, domain: rule.domain }));
       return true;
     } else {
-      showToast(`O site "${rule.domain}" pertence ao espaço ${targetWs.name}.`, {
+      showToast(t("chrome.routing.promptToast", { domain: rule.domain, workspace: targetWs.name }), {
         duration: 6000,
         action: {
-          label: `Mover para ${targetWs.name}`,
+          label: t("chrome.routing.moveAction", { workspace: targetWs.name }),
           onClick: () => {
             moveTabToWorkspace(tabId, rule.targetWorkspaceId);
             handleSwitchWorkspace(rule.targetWorkspaceId);
@@ -1447,9 +1552,10 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleCreateFolder(withTabId?: string) {
-    const name = window.prompt("Nome da pasta:", "Nova pasta");
+    const defaultFolderName = t("folders.defaultName");
+    const name = window.prompt(t("chrome.folder.namePrompt"), defaultFolderName);
     if (name === null) return;
-    const folder = createFolder(name.trim() || "Nova pasta", getActiveWorkspaceId());
+    const folder = createFolder(name.trim() || defaultFolderName, getActiveWorkspaceId());
     if (withTabId) {
       setTabFolder(withTabId, folder.id);
     }
@@ -1513,7 +1619,7 @@ window.addEventListener("DOMContentLoaded", () => {
         el("span", { class: "tab-title" }),
         el(
           "button",
-          { class: "tab-close", type: "button", "aria-label": "Fechar aba", title: "Fechar aba (Ctrl+W)" },
+          { class: "tab-close", type: "button", "aria-label": t("chrome.tab.closeAria"), title: t("chrome.tab.closeTitle") },
           [icon("close")],
         ),
       ],
@@ -1532,28 +1638,38 @@ window.addEventListener("DOMContentLoaded", () => {
     node.classList.toggle("tab--sleeping", Boolean(tab.isSleeping));
     node.classList.toggle("tab--private", Boolean(tab.isPrivate));
     node.setAttribute("aria-selected", String(tab.active));
-    const privateSuffix = tab.isPrivate ? " (Guia Anônima)" : "";
-    const statusSuffix = tab.isSleeping ? " (Hibernada - clique para acordar)" : "";
+    const privateSuffix = tab.isPrivate ? t("chrome.tab.privateSuffix") : "";
+    const statusSuffix = tab.isSleeping ? t("chrome.tab.sleepingSuffix") : "";
     node.title = tab.url ? `${tab.title}\n${tab.url}${statusSuffix}${privateSuffix}` : `${tab.title}${statusSuffix}${privateSuffix}`;
+
+    const closeBtn = node.querySelector<HTMLElement>(".tab-close");
+    if (closeBtn) {
+      closeBtn.setAttribute("aria-label", t("chrome.tab.closeAria"));
+      closeBtn.title = t("chrome.tab.closeTitle");
+    }
 
     const titleEl = node.querySelector(".tab-title")!;
     titleEl.textContent = tab.title;
 
-    let privateBadge = node.querySelector(".tab-private-badge");
+    let privateBadge = node.querySelector<HTMLElement>(".tab-private-badge");
     if (tab.isPrivate) {
       if (!privateBadge) {
-        privateBadge = el("span", { class: "tab-private-badge", title: "Guia anônima (sem histórico)" }, [icon("shield")]);
+        privateBadge = el("span", { class: "tab-private-badge", title: t("chrome.tab.privateTitle") }, [icon("shield")]);
         titleEl.before(privateBadge);
+      } else {
+        privateBadge.title = t("chrome.tab.privateTitle");
       }
     } else if (privateBadge) {
       privateBadge.remove();
     }
 
-    let sleepIndicator = node.querySelector(".tab-sleeping-indicator");
+    let sleepIndicator = node.querySelector<HTMLElement>(".tab-sleeping-indicator");
     if (tab.isSleeping) {
       if (!sleepIndicator) {
-        sleepIndicator = el("span", { class: "tab-sleeping-indicator", title: "Aba hibernada" }, [icon("moon")]);
+        sleepIndicator = el("span", { class: "tab-sleeping-indicator", title: t("chrome.tab.sleepingTitle") }, [icon("moon")]);
         titleEl.before(sleepIndicator);
+      } else {
+        sleepIndicator.title = t("chrome.tab.sleepingTitle");
       }
     } else if (sleepIndicator) {
       sleepIndicator.remove();
@@ -1562,12 +1678,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const mediaState = getMediaStateForTab(tab.id);
     let audioIndicator = node.querySelector<HTMLElement>(".tab-audio-indicator");
     if (mediaState && (mediaState.playing || mediaState.hasMedia)) {
+      const audioLabel = mediaState.muted ? t("chrome.tab.unmute") : t("chrome.tab.mute");
       if (!audioIndicator) {
         audioIndicator = el("button", {
           class: "tab-audio-indicator",
           type: "button",
-          title: mediaState.muted ? "Ativar som da aba" : "Silenciar aba",
-          "aria-label": mediaState.muted ? "Ativar som da aba" : "Silenciar aba",
+          title: audioLabel,
+          "aria-label": audioLabel,
         });
         audioIndicator.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1577,7 +1694,8 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       const audioIconName = mediaState.muted ? "volumeX" : "volume2";
       audioIndicator.replaceChildren(icon(audioIconName));
-      audioIndicator.title = mediaState.muted ? "Ativar som da aba" : "Silenciar aba";
+      audioIndicator.title = audioLabel;
+      audioIndicator.setAttribute("aria-label", audioLabel);
     } else if (audioIndicator) {
       audioIndicator.remove();
     }
@@ -1598,7 +1716,7 @@ window.addEventListener("DOMContentLoaded", () => {
         el("span", { class: "pinned-tab-favicon" }),
         el(
           "button",
-          { class: "pinned-tab-close", type: "button", "aria-label": "Fechar aba fixada", title: "Fechar aba" },
+          { class: "pinned-tab-close", type: "button", "aria-label": t("chrome.pinned.closeAria"), title: t("chrome.tab.closeAria") },
           [icon("close")],
         ),
       ],
@@ -1611,6 +1729,12 @@ window.addEventListener("DOMContentLoaded", () => {
     node.classList.toggle("pinned-tab--active", tab.active);
     node.setAttribute("aria-selected", String(tab.active));
     node.title = tab.url ? `${tab.title}\n${tab.url}` : tab.title;
+
+    const closeBtn = node.querySelector<HTMLElement>(".pinned-tab-close");
+    if (closeBtn) {
+      closeBtn.setAttribute("aria-label", t("chrome.pinned.closeAria"));
+      closeBtn.title = t("chrome.tab.closeAria");
+    }
 
     const favicon = node.querySelector(".pinned-tab-favicon")!;
     const iconName = tab.isLoading ? "spinner" : "globe";
@@ -1635,8 +1759,8 @@ window.addEventListener("DOMContentLoaded", () => {
       {
         class: "tab-folder-add-btn",
         type: "button",
-        "aria-label": "Nova aba nesta pasta",
-        title: "Nova aba nesta pasta",
+        "aria-label": t("chrome.folder.addTab"),
+        title: t("chrome.folder.addTab"),
       },
       [icon("plus")],
     );
@@ -1660,10 +1784,10 @@ window.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       e.stopPropagation();
       const action = window.confirm(
-        `Pasta: "${folder.name}"\n\nOK = Renomear pasta\nCancelar = Hibernar abas desta pasta`,
+        t("chrome.folder.contextPrompt", { name: folder.name }),
       );
       if (action) {
-        const nextName = window.prompt("Novo nome da pasta:", folder.name);
+        const nextName = window.prompt(t("chrome.folder.renamePrompt"), folder.name);
         if (nextName !== null && nextName.trim()) {
           updateFolder(folder.id, { name: nextName.trim() });
         }
@@ -1746,6 +1870,11 @@ window.addEventListener("DOMContentLoaded", () => {
       fNode.classList.toggle("tab-folder--collapsed", folder.isCollapsed);
       const title = fNode.querySelector(".tab-folder-title");
       if (title) title.textContent = folder.name;
+      const addBtn = fNode.querySelector<HTMLElement>(".tab-folder-add-btn");
+      if (addBtn) {
+        addBtn.setAttribute("aria-label", t("chrome.folder.addTab"));
+        addBtn.title = t("chrome.folder.addTab");
+      }
       const folderTabs = unpinned.filter((t) => t.folderId === folder.id);
       const badge = fNode.querySelector(".tab-folder-badge");
       if (badge) badge.textContent = String(folderTabs.length);
@@ -1795,7 +1924,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const url = getTargetTab()?.url ?? "";
     const bookmarkable = isWebUrl(url);
     const active = bookmarkable && isBookmarked(url);
-    const label = active ? "Remover dos favoritos" : "Adicionar aos favoritos";
+    const label = active ? t("chrome.bookmark.remove") : t("chrome.bookmark.add");
     ui.bookmarkToggle.style.display = bookmarkable ? "" : "none";
     ui.bookmarkToggle.classList.toggle("omnibar-star-btn--active", active);
     ui.bookmarkToggle.setAttribute("aria-pressed", String(active));
@@ -1808,7 +1937,7 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.floatingSecurityIcon.classList.remove("floating-security-icon--secure", "floating-security-icon--insecure");
     if (!url) {
       ui.securityButton.replaceChildren(icon("globe"));
-      ui.securityButton.title = "Informações da página";
+      ui.securityButton.title = t("chrome.security.defaultTitle");
       ui.floatingSecurityIcon.replaceChildren(icon("globe"));
       return;
     }
@@ -1817,23 +1946,23 @@ window.addEventListener("DOMContentLoaded", () => {
       if (parsed.protocol === "https:") {
         ui.securityButton.classList.add("omnibar-security-btn--secure");
         ui.securityButton.replaceChildren(icon("lock"));
-        ui.securityButton.title = `Conexão Segura - ${parsed.hostname}`;
+        ui.securityButton.title = t("chrome.security.secure", { host: parsed.hostname });
         ui.floatingSecurityIcon.classList.add("floating-security-icon--secure");
         ui.floatingSecurityIcon.replaceChildren(icon("lock"));
       } else if (parsed.protocol === "http:") {
         ui.securityButton.classList.add("omnibar-security-btn--insecure");
         ui.securityButton.replaceChildren(icon("unlock"));
-        ui.securityButton.title = `Conexão Não Segura - ${parsed.hostname}`;
+        ui.securityButton.title = t("chrome.security.insecure", { host: parsed.hostname });
         ui.floatingSecurityIcon.classList.add("floating-security-icon--insecure");
         ui.floatingSecurityIcon.replaceChildren(icon("unlock"));
       } else {
         ui.securityButton.replaceChildren(icon("globe"));
-        ui.securityButton.title = `Página local - ${url}`;
+        ui.securityButton.title = t("chrome.security.local", { url });
         ui.floatingSecurityIcon.replaceChildren(icon("globe"));
       }
     } catch {
       ui.securityButton.replaceChildren(icon("globe"));
-      ui.securityButton.title = "Informações da página";
+      ui.securityButton.title = t("chrome.security.defaultTitle");
       ui.floatingSecurityIcon.replaceChildren(icon("globe"));
     }
   }
@@ -1848,7 +1977,7 @@ window.addEventListener("DOMContentLoaded", () => {
     ui.floatingNavButtons.back.disabled = !target?.canGoBack;
     ui.floatingNavButtons.forward.disabled = !target?.canGoForward;
     ui.floatingNavButtons.reload.disabled = !target?.url;
-    ui.floatingUrlText.textContent = target?.url || "Pesquise ou digite um endereço";
+    ui.floatingUrlText.textContent = target?.url || t("chrome.omnibar.placeholder");
     ui.floatingReaderBtn.classList.toggle("floating-action-btn--active", readerView.isOpen());
     ui.floatingSplitBtn.classList.toggle("floating-action-btn--active", isSplitActive());
     const isTargetBookmarked = target?.url ? isBookmarked(target.url) : false;
@@ -2028,7 +2157,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const tab = getTargetTab();
     if (!tab || !isWebUrl(tab.url)) return;
     if (isBookmarked(tab.url)) removeBookmark(tab.url);
-    else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
+    else addBookmark(tab.url, isNewTabTitle(tab.title) ? hostnameOf(tab.url) : tab.title);
   });
 
   ui.omnibar.addEventListener("click", (e) => {
@@ -2042,8 +2171,8 @@ window.addEventListener("DOMContentLoaded", () => {
   subscribeSidebar((collapsed) => {
     appRoot?.classList.toggle("sidebar-collapsed", collapsed);
     ui.sidebarToggleBtn.title = collapsed
-      ? "Expandir barra lateral (Ctrl+B)"
-      : "Recolher barra lateral (Ctrl+B)";
+      ? t("chrome.sidebar.expand")
+      : t("chrome.sidebar.collapse");
     ui.sidebarToggleBtn.setAttribute("aria-label", ui.sidebarToggleBtn.title);
     ui.sidebarToggleBtn.replaceChildren(icon(collapsed ? "sidebarCollapsed" : "sidebar"));
     syncViewport();
@@ -2052,7 +2181,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (isSidebarCollapsed()) {
     appRoot?.classList.add("sidebar-collapsed");
-    ui.sidebarToggleBtn.title = "Expandir barra lateral (Ctrl+B)";
+    ui.sidebarToggleBtn.title = t("chrome.sidebar.expand");
     ui.sidebarToggleBtn.setAttribute("aria-label", ui.sidebarToggleBtn.title);
     ui.sidebarToggleBtn.replaceChildren(icon("sidebarCollapsed"));
   }
@@ -2067,7 +2196,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const tab = getTargetTab();
     if (!tab || !isWebUrl(tab.url)) return;
     if (isBookmarked(tab.url)) removeBookmark(tab.url);
-    else addBookmark(tab.url, tab.title === NEW_TAB_TITLE ? hostnameOf(tab.url) : tab.title);
+    else addBookmark(tab.url, isNewTabTitle(tab.title) ? hostnameOf(tab.url) : tab.title);
   });
 
   ui.bookmarksBar.addEventListener("click", (event) => {
@@ -2377,7 +2506,7 @@ window.addEventListener("DOMContentLoaded", () => {
   listen<TabLoadEvent>("tab://load", ({ payload }) => {
     const tab = getTab(payload.tabId);
     if (!tab) return;
-    const title = tab.title === NEW_TAB_TITLE ? hostnameOf(payload.url) : tab.title;
+    const title = isNewTabTitle(tab.title) ? hostnameOf(payload.url) : tab.title;
     if (payload.state === "started") {
       checkSpaceRouting(tab.id, payload.url);
       pageTitles.delete(tab.id);
@@ -2478,7 +2607,7 @@ window.addEventListener("DOMContentLoaded", () => {
     ({ payload }) => {
       addDomainZapRule(payload.domain, payload.selector);
       applyBoostToTab(payload.tab_id, payload.domain);
-      showToast(`Elemento eliminado (${payload.selector})! Regra salva para ${payload.domain}.`);
+      showToast(t("chrome.zapper.toast", { selector: payload.selector, domain: payload.domain }));
     },
   );
 
@@ -2621,6 +2750,12 @@ window.addEventListener("DOMContentLoaded", () => {
   subscribeFolders(() => {
     render(getTabs());
   });
+  subscribeLocale((locale) => {
+    document.documentElement.lang = locale;
+    ui.applyLocale();
+    applyZoomPopoverLocale();
+    render(getTabs());
+  });
 
   // Restore persisted session tabs if enabled, otherwise fallback to pinned tabs
   const sessionTabs = loadSession();
@@ -2629,7 +2764,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (shouldRestoreSession) {
     for (const s of sessionTabs) {
       const tab = createTab(s.url, s.isPinned, s.workspaceId, s.folderId);
-      if (s.title && s.title !== NEW_TAB_TITLE) {
+      if (s.title && !isNewTabTitle(s.title)) {
         updateTab(tab.id, { title: s.title });
       }
       if (s.url) {

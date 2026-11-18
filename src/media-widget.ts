@@ -1,4 +1,6 @@
 import { el } from "./dom";
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { icon } from "./icons";
 import {
   getActivePlayingMedia,
@@ -21,8 +23,8 @@ export type MediaWidget = HTMLElement & MediaWidgetController;
 
 export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
   const coverIcon = el("span", { class: "media-widget-cover" }, [icon("play")]);
-  const titleEl = el("span", { class: "media-widget-title" }, ["Tocando agora"]);
-  const artistEl = el("span", { class: "media-widget-artist" }, ["moss player"]);
+  const titleEl = el("span", { class: "media-widget-title" }, [t("media.nowPlaying")]);
+  const artistEl = el("span", { class: "media-widget-artist" }, [t("media.defaultPlayer")]);
 
   const infoCol = el("div", { class: "media-widget-info" }, [titleEl, artistEl]);
 
@@ -31,8 +33,8 @@ export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
     {
       class: "media-widget-btn media-widget-btn--play",
       type: "button",
-      "aria-label": "Play / Pause",
-      title: "Play / Pause",
+      "aria-label": t("media.playPause"),
+      title: t("media.playPause"),
     },
     [icon("pause")],
   );
@@ -42,8 +44,8 @@ export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
     {
       class: "media-widget-btn media-widget-btn--mute",
       type: "button",
-      "aria-label": "Silenciar",
-      title: "Silenciar / Ativar som",
+      "aria-label": t("media.mute"),
+      title: t("media.muteToggle"),
     },
     [icon("volume2")],
   );
@@ -56,7 +58,7 @@ export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
       class: "sidebar-media-widget",
       style: "display: none;",
       role: "region",
-      "aria-label": "Controles de mídia",
+      "aria-label": t("media.controlsAria"),
     },
     [coverIcon, infoCol, controlsRow],
   );
@@ -84,6 +86,10 @@ export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
   });
 
   function render(media?: TabMediaState) {
+    container.setAttribute("aria-label", t("media.controlsAria"));
+    playPauseBtn.title = t("media.playPause");
+    muteBtn.title = t("media.muteToggle");
+
     if (!media || (!media.hasMedia && !media.playing)) {
       container.style.display = "none";
       currentTabId = null;
@@ -93,17 +99,17 @@ export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
     currentTabId = media.tabId;
     container.style.display = "flex";
 
-    titleEl.textContent = media.title || "Tocando áudio";
-    titleEl.title = media.title || "Tocando áudio";
-    artistEl.textContent = media.artist || "Aba com áudio";
+    titleEl.textContent = media.title || t("media.playingAudio");
+    titleEl.title = media.title || t("media.playingAudio");
+    artistEl.textContent = media.artist || t("media.tabWithAudio");
 
     const playIconName = media.playing ? "pause" : "play";
     playPauseBtn.replaceChildren(icon(playIconName));
-    playPauseBtn.setAttribute("aria-label", media.playing ? "Pausar" : "Reproduzir");
+    playPauseBtn.setAttribute("aria-label", media.playing ? t("media.pause") : t("media.play"));
 
     const muteIconName = media.muted ? "volumeX" : "volume2";
     muteBtn.replaceChildren(icon(muteIconName));
-    muteBtn.setAttribute("aria-label", media.muted ? "Ativar som" : "Silenciar");
+    muteBtn.setAttribute("aria-label", media.muted ? t("media.unmute") : t("media.mute"));
 
     container.classList.toggle("sidebar-media-widget--playing", media.playing);
   }
@@ -111,11 +117,15 @@ export function createMediaWidget(options: MediaWidgetOptions): MediaWidget {
   const unsubscribe = subscribeMedia(() => {
     render(getActivePlayingMedia());
   });
+  const unsubscribeLocale = subscribeLocale(() => {
+    render(getActivePlayingMedia());
+  });
 
   render(getActivePlayingMedia());
 
   function destroy() {
     unsubscribe();
+    unsubscribeLocale();
     container.remove();
   }
 

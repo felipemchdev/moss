@@ -1,3 +1,5 @@
+import "./i18n-chrome";
+import { subscribeLocale, t } from "./i18n";
 import { getActiveWorkspaceId } from "./workspaces";
 
 const PINNED_STORAGE_KEY = "moss:pinned_tabs";
@@ -42,7 +44,26 @@ export interface SessionTab {
 export type TabPatch = Partial<Omit<Tab, "id" | "active">>;
 type Listener = (tabs: readonly Tab[]) => void;
 
-export const NEW_TAB_TITLE = "Nova aba";
+export function getNewTabTitle(): string {
+  return t("tabs.newTab");
+}
+
+export function getPrivateTabTitle(): string {
+  return t("tabs.privateTab");
+}
+
+export function isNewTabTitle(title: string): boolean {
+  return title === "Nova aba" || title === "New tab" || title === t("tabs.newTab");
+}
+
+function isDefaultBlankTabTitle(title: string): boolean {
+  return (
+    isNewTabTitle(title) ||
+    title === "Guia Anônima" ||
+    title === "Private Tab" ||
+    title === t("tabs.privateTab")
+  );
+}
 
 let tabs: Tab[] = [];
 let nextId = 1;
@@ -192,7 +213,7 @@ export function createTab(
 
   const tab: Tab = {
     id: String(nextId++),
-    title: isPrivate && !initialUrl ? "Guia Anônima" : NEW_TAB_TITLE,
+    title: isPrivate && !initialUrl ? getPrivateTabTitle() : getNewTabTitle(),
     url: initialUrl,
     active: shouldActivate,
     isLoading: false,
@@ -222,7 +243,7 @@ export function closeTab(id: string) {
   if (!closed.isPrivate && closed.url && isRestorableUrl(closed.url)) {
     closedTabsStack.push({
       url: closed.url,
-      title: closed.title || NEW_TAB_TITLE,
+      title: closed.title || getNewTabTitle(),
       workspaceId: closed.workspaceId,
       isPinned: closed.isPinned,
       folderId: closed.folderId,
@@ -262,7 +283,7 @@ export function reopenLastClosedTab(): Tab | undefined {
   if (!closed) return undefined;
 
   const tab = createTab(closed.url, closed.isPinned, closed.workspaceId, closed.folderId);
-  if (closed.title && closed.title !== NEW_TAB_TITLE) {
+  if (closed.title && !isDefaultBlankTabTitle(closed.title)) {
     updateTab(tab.id, { title: closed.title });
   }
   selectTab(tab.id);
@@ -370,3 +391,18 @@ export function getInactiveTabs(olderThanMs = 20 * 60 * 1000): readonly Tab[] {
       now - (t.lastAccessedAt ?? 0) > olderThanMs,
   );
 }
+
+subscribeLocale(() => {
+  let changed = false;
+  tabs = tabs.map((tab) => {
+    if (!tab.url && isDefaultBlankTabTitle(tab.title)) {
+      const nextTitle = tab.isPrivate ? getPrivateTabTitle() : getNewTabTitle();
+      if (tab.title !== nextTitle) {
+        changed = true;
+        return { ...tab, title: nextTitle };
+      }
+    }
+    return tab;
+  });
+  if (changed) notify();
+});

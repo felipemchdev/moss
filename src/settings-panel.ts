@@ -145,9 +145,10 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     try {
       const savedPath = await saveExportFile(html, filename);
       showStatus(
-        t("settings.exportedBookmarks")
-          .replace("{count}", String(list.length))
-          .replace("{path}", savedPath),
+        t("settings.exportedBookmarks", {
+          count: list.length,
+          path: savedPath,
+        }),
         "success",
       );
     } catch {
@@ -197,7 +198,7 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
         bookmarksFileInput.value = "";
         return;
       }
-      showStatus(t("settings.bookmarksImported").replace("{count}", String(count)), "success");
+      showStatus(t("settings.bookmarksImported", { count }), "success");
       onChange();
     } catch {
       showStatus(t("settings.fileReadFailed"), "error");
@@ -222,10 +223,11 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     try {
       const savedPath = await saveExportFile(json, filename);
       showStatus(
-        t("settings.backupExported")
-          .replace("{bookmarks}", String(b.length))
-          .replace("{history}", String(h.length))
-          .replace("{path}", savedPath),
+        t("settings.backupExported", {
+          bookmarks: b.length,
+          history: h.length,
+          path: savedPath,
+        }),
         "success",
       );
     } catch {
@@ -261,9 +263,10 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
       const bCount = importBookmarks(parsed.bookmarks);
       const hCount = importHistory(parsed.history);
       showStatus(
-        t("settings.backupRestored")
-          .replace("{bookmarks}", String(bCount))
-          .replace("{history}", String(hCount)),
+        t("settings.backupRestored", {
+          bookmarks: bCount,
+          history: hCount,
+        }),
         "success",
       );
       onChange();
@@ -323,7 +326,7 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
         {
           class: "settings-icon-btn",
           type: "button",
-          "aria-label": t("settings.removeRuleFor").replace("{domain}", rule.domain),
+          "aria-label": t("settings.removeRuleFor", { domain: rule.domain }),
           title: t("settings.removeRule"),
         },
         [icon("trash")],
@@ -369,9 +372,10 @@ export function createSettingsPanel(onChange: () => void): { panel: Panel; overl
     if (added) {
       newDomainInput.value = "";
       showStatus(
-        t("settings.ruleAdded")
-          .replace("{domain}", added.domain)
-          .replace("{workspace}", newWorkspaceSelect.selectedOptions[0]?.text ?? ""),
+        t("settings.ruleAdded", {
+          domain: added.domain,
+          workspace: newWorkspaceSelect.selectedOptions[0]?.text ?? "",
+        }),
         "success",
       );
     }

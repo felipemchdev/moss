@@ -35,6 +35,9 @@ jobs:
       - name: TypeScript typecheck
         run: pnpm exec tsc --noEmit
 
+      - name: i18n parity check
+        run: pnpm run check:i18n
+
   backend:
     name: Backend Cargo Check
     runs-on: windows-latest

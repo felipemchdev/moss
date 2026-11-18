@@ -52,3 +52,21 @@ jobs:
 
       - name: Cargo check
         run: cargo check --manifest-path src-tauri/Cargo.toml
+
+  bootstrapper:
+    name: Bootstrapper Cargo Check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: installer/bootstrapper/src-tauri -> target
+
+      - name: Cargo check
+        run: cargo check --manifest-path installer/bootstrapper/src-tauri/Cargo.toml

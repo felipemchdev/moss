@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-launch-moss"
+description = "Enables the launch_moss command without any pre-configured scope."
+commands.allow = ["launch_moss"]
+
+[[permission]]
+identifier = "deny-launch-moss"
+description = "Denies the launch_moss command without any pre-configured scope."
+commands.deny = ["launch_moss"]

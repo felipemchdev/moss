@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-clear-tab-data"
+description = "Enables the clear_tab_data command without any pre-configured scope."
+commands.allow = ["clear_tab_data"]
+
+[[permission]]
+identifier = "deny-clear-tab-data"
+description = "Denies the clear_tab_data command without any pre-configured scope."
+commands.deny = ["clear_tab_data"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sync-site-permissions"
+description = "Enables the sync_site_permissions command without any pre-configured scope."
+commands.allow = ["sync_site_permissions"]
+
+[[permission]]
+identifier = "deny-sync-site-permissions"
+description = "Denies the sync_site_permissions command without any pre-configured scope."
+commands.deny = ["sync_site_permissions"]

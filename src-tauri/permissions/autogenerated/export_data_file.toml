@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-export-data-file"
+description = "Enables the export_data_file command without any pre-configured scope."
+commands.allow = ["export_data_file"]
+
+[[permission]]
+identifier = "deny-export-data-file"
+description = "Denies the export_data_file command without any pre-configured scope."
+commands.deny = ["export_data_file"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sync-tab-media-state"
+description = "Enables the sync_tab_media_state command without any pre-configured scope."
+commands.allow = ["sync_tab_media_state"]
+
+[[permission]]
+identifier = "deny-sync-tab-media-state"
+description = "Denies the sync_tab_media_state command without any pre-configured scope."
+commands.deny = ["sync_tab_media_state"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sync-tab-trackers-blocked"
+description = "Enables the sync_tab_trackers_blocked command without any pre-configured scope."
+commands.allow = ["sync_tab_trackers_blocked"]
+
+[[permission]]
+identifier = "deny-sync-tab-trackers-blocked"
+description = "Denies the sync_tab_trackers_blocked command without any pre-configured scope."
+commands.deny = ["sync_tab_trackers_blocked"]

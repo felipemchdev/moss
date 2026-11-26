@@ -1,16 +1,11 @@
-/* ==========================================================================
-   MOSS BROWSER — MODERN CSS RESET
-   Based on modern reset best practices (Andy Bell, Josh Comeau, etc.)
-   ========================================================================== */
+/* moss - modern css reset - based on modern reset best practices (andy bell, josh comeau, etc.) */
 
-/* --- Box sizing --- */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-/* --- Root elements --- */
 html {
   -moz-text-size-adjust: none;
   -webkit-text-size-adjust: none;
@@ -22,14 +17,12 @@ html:focus-within {
   scroll-behavior: smooth;
 }
 
-/* --- Body defaults --- */
 body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
-/* --- Media --- */
 img,
 picture,
 video,
@@ -40,7 +33,6 @@ svg {
   height: auto;
 }
 
-/* --- Form elements --- */
 input,
 button,
 textarea,
@@ -49,7 +41,6 @@ select {
   color: inherit;
 }
 
-/* --- Remove default button styles --- */
 button {
   background: none;
   border: none;
@@ -57,13 +48,11 @@ button {
   cursor: pointer;
 }
 
-/* --- Links --- */
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* --- Lists --- */
 ul,
 ol {
   list-style: none;
@@ -71,19 +60,16 @@ ol {
   padding: 0;
 }
 
-/* --- Headings --- */
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: inherit;
   font-size: inherit;
 }
 
-/* --- Paragraphs --- */
 p {
   margin: 0;
 }
 
-/* --- Fieldset / Legend --- */
 fieldset {
   border: none;
   margin: 0;
@@ -94,20 +80,17 @@ legend {
   padding: 0;
 }
 
-/* --- Table --- */
 table {
   border-collapse: collapse;
   border-spacing: 0;
 }
 
-/* --- HR --- */
 hr {
   border: 0;
   border-top: 1px solid var(--color-border-default);
   margin: 0;
 }
 
-/* --- Selection --- */
 ::selection {
   background-color: var(--color-accent-primary);
   color: var(--color-fg-inverse);
@@ -118,7 +101,6 @@ hr {
   color: var(--color-fg-inverse);
 }
 
-/* --- Focus visible (accessible focus styles) --- */
 :focus {
   outline: none;
 }
@@ -128,12 +110,10 @@ hr {
   outline-offset: 2px;
 }
 
-/* Skip focus ring for mouse users on buttons */
 :focus:not(:focus-visible) {
   outline: none;
 }
 
-/* --- Reduced motion --- */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -145,7 +125,6 @@ hr {
   }
 }
 
-/* --- High contrast mode --- */
 @media (prefers-contrast: high) {
   :root {
     --color-border-subtle:  var(--color-fg-primary);
@@ -154,13 +133,11 @@ hr {
   }
 }
 
-/* --- Scrollbar styling (dark theme base) --- */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-default) transparent;
 }
 
-/* WebKit scrollbar */
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -185,7 +162,6 @@ hr {
   background: transparent;
 }
 
-/* --- Text rendering --- */
 ::-webkit-input-placeholder {
   color: var(--color-fg-placeholder);
   opacity: 1;
@@ -206,7 +182,6 @@ hr {
   opacity: 1;
 }
 
-/* --- Input number arrows --- */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -217,7 +192,6 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* --- Search input cancel button --- */
 input[type="search"]::-webkit-search-cancel-button,
 input[type="search"]::-webkit-search-decoration,
 input[type="search"]::-webkit-search-results-button,
@@ -225,12 +199,10 @@ input[type="search"]::-webkit-search-results-decoration {
   -webkit-appearance: none;
 }
 
-/* --- Disable tap highlight on mobile --- */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* --- Prevent text selection on UI elements --- */
 .ui-no-select,
 button,
 .tab,
@@ -241,7 +213,6 @@ button,
   user-select: none;
 }
 
-/* --- Ensure monospace for code elements --- */
 code,
 pre,
 kbd,
@@ -264,7 +235,6 @@ pre code {
   font-size: inherit;
 }
 
-/* --- Utility: visually hidden but accessible --- */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -277,14 +247,12 @@ pre code {
   border: 0;
 }
 
-/* --- Utility: clearfix --- */
 .clearfix::after {
   content: "";
   display: table;
   clear: both;
 }
 
-/* --- Utility: container --- */
 .container {
   width: 100%;
   max-width: 1280px;
@@ -292,7 +260,6 @@ pre code {
   padding: 0 var(--space-4);
 }
 
-/* --- Utility: flex helpers --- */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .flex-1 { flex: 1; }
@@ -307,7 +274,6 @@ pre code {
 .gap-3 { gap: var(--space-3); }
 .gap-4 { gap: var(--space-4); }
 
-/* --- Utility: text helpers --- */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
@@ -321,18 +287,15 @@ pre code {
 .text-success { color: var(--color-success); }
 .text-warning { color: var(--color-warning); }
 
-/* --- Utility: truncate --- */
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* --- Utility: aspect ratio --- */
 .aspect-square { aspect-ratio: 1 / 1; }
 .aspect-video { aspect-ratio: 16 / 9; }
 
-/* --- Utility: spacing --- */
 .m-0 { margin: 0; }
 .m-auto { margin: auto; }
 .mt-auto { margin-top: auto; }
@@ -342,7 +305,6 @@ pre code {
 
 .p-0 { padding: 0; }
 
-/* --- Utility: sizing --- */
 .w-full { width: 100%; }
 .h-full { height: 100%; }
 .min-h-0 { min-height: 0; }
@@ -350,20 +312,17 @@ pre code {
 .max-w-full { max-width: 100%; }
 .max-h-full { max-height: 100%; }
 
-/* --- Utility: overflow --- */
 .overflow-hidden { overflow: hidden; }
 .overflow-auto { overflow: auto; }
 .overflow-x-auto { overflow-x: auto; }
 .overflow-y-auto { overflow-y: auto; }
 
-/* --- Utility: position --- */
 .relative { position: relative; }
 .absolute { position: absolute; }
 .fixed { position: fixed; }
 .sticky { position: sticky; }
 .inset-0 { inset: 0; }
 
-/* --- Utility: z-index --- */
 .z-base { z-index: var(--z-base); }
 .z-dropdown { z-index: var(--z-dropdown); }
 .z-sticky { z-index: var(--z-sticky); }
@@ -373,7 +332,6 @@ pre code {
 .z-tooltip { z-index: var(--z-tooltip); }
 .z-toast { z-index: var(--z-toast); }
 
-/* --- Utility: transitions --- */
 .transition-fast { transition: all var(--transition-fast); }
 .transition-base { transition: all var(--transition-base); }
 .transition-slow { transition: all var(--transition-slow); }
@@ -391,7 +349,6 @@ pre code {
   transition: opacity var(--transition-base);
 }
 
-/* --- Utility: border radius --- */
 .rounded-none { border-radius: var(--radius-none); }
 .rounded-xs { border-radius: var(--radius-xs); }
 .rounded-sm { border-radius: var(--radius-sm); }
@@ -401,7 +358,6 @@ pre code {
 .rounded-2xl { border-radius: var(--radius-2xl); }
 .rounded-full { border-radius: var(--radius-full); }
 
-/* --- Utility: shadows --- */
 .shadow-xs { box-shadow: var(--shadow-xs); }
 .shadow-sm { box-shadow: var(--shadow-sm); }
 .shadow-md { box-shadow: var(--shadow-md); }
@@ -410,7 +366,6 @@ pre code {
 .shadow-2xl { box-shadow: var(--shadow-2xl); }
 .shadow-focus { box-shadow: var(--shadow-focus); }
 
-/* --- Utility: cursor --- */
 .cursor-pointer { cursor: pointer; }
 .cursor-default { cursor: default; }
 .cursor-not-allowed { cursor: not-allowed; }

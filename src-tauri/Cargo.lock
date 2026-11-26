@@ -2079,13 +2079,16 @@ dependencies = [
 
 [[package]]
 name = "moss"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
+ "tokio",
+ "webview2-com",
+ "windows",
 ]
 
 [[package]]

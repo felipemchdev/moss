@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-apply-tab-boost"
+description = "Enables the apply_tab_boost command without any pre-configured scope."
+commands.allow = ["apply_tab_boost"]
+
+[[permission]]
+identifier = "deny-apply-tab-boost"
+description = "Denies the apply_tab_boost command without any pre-configured scope."
+commands.deny = ["apply_tab_boost"]

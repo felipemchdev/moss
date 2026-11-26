@@ -22,6 +22,8 @@ target/
 
 # Tauri
 src-tauri/gen/schemas/
+installer/bootstrapper/src-tauri/gen/schemas/
+installer/bootstrapper/src-tauri/resources/nsis/*.exe
 src-tauri/WixTools/
 
 # Env / secrets
@@ -45,6 +47,10 @@ desktop.ini
 *.sw?
 
 kilo.json
+kilo.jsonc
+.kilo/
+mcp_config.json
+.mcp.json
 
 # Local development
 AGENTS.md

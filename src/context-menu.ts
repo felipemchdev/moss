@@ -1,0 +1,377 @@
+import { el } from "./dom";
+import { subscribeLocale, t } from "./i18n";
+import "./i18n-panels";
+
+export interface TabContextMenuActions {
+  onReload: (tabId: string) => void;
+  onDuplicate: (tabId: string) => void;
+  onClose: (tabId: string) => void;
+  onCloseOthers: (tabId: string) => void;
+  onTogglePin: (tabId: string) => void;
+  isPinned: (tabId: string) => boolean;
+  onGlanceTab?: (tabId: string) => void;
+  onReopenClosedTab?: () => void;
+  canReopenClosedTab?: () => boolean;
+  onToggleSplit?: (tabId: string) => void;
+  isSplitActive?: () => boolean;
+  isSplitTab?: (tabId: string) => boolean;
+  onMoveToWorkspace?: (tabId: string, workspaceId: string) => void;
+  getWorkspaces?: () => readonly { id: string; name: string }[];
+  getCurrentWorkspaceId?: () => string;
+  onSleepTab?: (tabId: string) => void;
+  onWakeTab?: (tabId: string) => void;
+  isSleeping?: (tabId: string) => boolean;
+  onMoveToFolder?: (tabId: string, folderId: string | undefined) => void;
+  getFolders?: () => readonly { id: string; name: string; color?: string }[];
+  getCurrentFolderId?: (tabId: string) => string | undefined;
+  onCreateFolderWithTab?: (tabId: string) => void;
+  onNewPrivateTab?: () => void;
+  onTranslateTab?: (tabId: string) => void;
+}
+
+export interface TabContextMenu {
+  element: HTMLElement;
+  open: (tabId: string, x: number, y: number) => void;
+  close: () => void;
+  isOpen: () => boolean;
+}
+
+export function createTabContextMenu(
+  actions: TabContextMenuActions,
+  onChange?: () => void,
+): TabContextMenu {
+  let activeTabId: string | null = null;
+  let open = false;
+
+  const element = el("div", {
+    class: "tab-context-menu",
+    role: "menu",
+    tabindex: "-1",
+    style: "display: none;",
+  });
+
+  let pinButton: HTMLButtonElement | null = null;
+  let splitButton: HTMLButtonElement | null = null;
+  let reopenButton: HTMLButtonElement | null = null;
+  let glanceButton: HTMLButtonElement | null = null;
+  const staticButtons: HTMLButtonElement[] = [];
+
+  const staticOptions: { labelKey: string; action: (tabId: string) => void }[] = [
+    { labelKey: "ctx.reload", action: actions.onReload },
+    { labelKey: "ctx.duplicate", action: actions.onDuplicate },
+    { labelKey: "ctx.closeTab", action: actions.onClose },
+    { labelKey: "ctx.closeOthers", action: actions.onCloseOthers },
+  ];
+
+  function buildStaticOptions() {
+    for (const node of staticButtons) node.remove();
+    staticButtons.length = 0;
+    for (const option of staticOptions) {
+      const itemButton = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [t(option.labelKey)],
+      );
+      itemButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const targetTabId = activeTabId;
+        menu.close();
+        if (targetTabId) option.action(targetTabId);
+      });
+      staticButtons.push(itemButton);
+    }
+    element.prepend(...staticButtons);
+  }
+
+  buildStaticOptions();
+
+  function buildPinButton(tabId: string) {
+    if (pinButton) pinButton.remove();
+    pinButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [actions.isPinned(tabId) ? t("ctx.unpin") : t("ctx.pin")],
+    ) as HTMLButtonElement;
+    pinButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const targetTabId = activeTabId;
+      menu.close();
+      if (targetTabId) actions.onTogglePin(targetTabId);
+    });
+    element.prepend(pinButton);
+  }
+
+  function buildSplitButton(tabId: string) {
+    if (splitButton) splitButton.remove();
+    if (!actions.onToggleSplit) return;
+    const isSplit = actions.isSplitActive?.() ?? false;
+    const isThisTabSplit = actions.isSplitTab?.(tabId) ?? false;
+    splitButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [isSplit && isThisTabSplit ? t("ctx.closeSplit") : t("ctx.openSplit")],
+    ) as HTMLButtonElement;
+    splitButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const targetTabId = activeTabId;
+      menu.close();
+      if (targetTabId) actions.onToggleSplit?.(targetTabId);
+    });
+    element.append(splitButton);
+  }
+
+  function buildReopenButton() {
+    if (reopenButton) reopenButton.remove();
+    if (!actions.onReopenClosedTab) return;
+    const canReopen = actions.canReopenClosedTab ? actions.canReopenClosedTab() : true;
+    if (!canReopen) return;
+    reopenButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [t("ctx.reopen")],
+    ) as HTMLButtonElement;
+    reopenButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onReopenClosedTab?.();
+    });
+    element.append(reopenButton);
+  }
+
+  function buildGlanceButton(tabId: string) {
+    if (glanceButton) glanceButton.remove();
+    if (!actions.onGlanceTab) return;
+    glanceButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [t("ctx.glance")],
+    ) as HTMLButtonElement;
+    glanceButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onGlanceTab?.(tabId);
+    });
+    element.append(glanceButton);
+  }
+
+  let privateTabButton: HTMLButtonElement | null = null;
+  function buildPrivateTabButton() {
+    if (privateTabButton) privateTabButton.remove();
+    if (!actions.onNewPrivateTab) return;
+    privateTabButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [t("ctx.privateTab")],
+    ) as HTMLButtonElement;
+    privateTabButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onNewPrivateTab?.();
+    });
+    element.append(privateTabButton);
+  }
+
+  let translateButton: HTMLButtonElement | null = null;
+  function buildTranslateButton(tabId: string) {
+    if (translateButton) translateButton.remove();
+    if (!actions.onTranslateTab) return;
+    translateButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [t("ctx.translate")],
+    ) as HTMLButtonElement;
+    translateButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      actions.onTranslateTab?.(tabId);
+    });
+    element.append(translateButton);
+  }
+
+  let sleepButton: HTMLButtonElement | null = null;
+  function buildSleepButton(tabId: string) {
+    if (sleepButton) sleepButton.remove();
+    if (!actions.onSleepTab) return;
+    const sleeping = actions.isSleeping ? actions.isSleeping(tabId) : false;
+    sleepButton = el(
+      "button",
+      { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+      [sleeping ? t("ctx.wake") : t("ctx.sleep")],
+    ) as HTMLButtonElement;
+    sleepButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.close();
+      if (sleeping) actions.onWakeTab?.(tabId);
+      else actions.onSleepTab?.(tabId);
+    });
+    element.append(sleepButton);
+  }
+
+  let folderButtons: HTMLButtonElement[] = [];
+  function buildFolderButtons(tabId: string) {
+    for (const b of folderButtons) b.remove();
+    folderButtons = [];
+    if (!actions.onMoveToFolder) return;
+
+    const currentFolderId = actions.getCurrentFolderId?.(tabId);
+    const availableFolders = actions.getFolders?.() ?? [];
+
+    if (currentFolderId) {
+      const currentFolder = availableFolders.find((f) => f.id === currentFolderId);
+      const removeBtn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [t("ctx.removeFromFolder", { name: currentFolder ? currentFolder.name : t("ctx.folderFallback") })],
+      ) as HTMLButtonElement;
+      removeBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        menu.close();
+        actions.onMoveToFolder!(tabId, undefined);
+      });
+      element.append(removeBtn);
+      folderButtons.push(removeBtn);
+    }
+
+    const otherFolders = availableFolders.filter((f) => f.id !== currentFolderId);
+    for (const f of otherFolders) {
+      const btn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [t("ctx.moveToFolder", { name: f.name })],
+      ) as HTMLButtonElement;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        menu.close();
+        actions.onMoveToFolder!(tabId, f.id);
+      });
+      element.append(btn);
+      folderButtons.push(btn);
+    }
+
+    if (actions.onCreateFolderWithTab) {
+      const newFolderBtn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [t("ctx.createFolder")],
+      ) as HTMLButtonElement;
+      newFolderBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        menu.close();
+        actions.onCreateFolderWithTab!(tabId);
+      });
+      element.append(newFolderBtn);
+      folderButtons.push(newFolderBtn);
+    }
+  }
+
+  let workspaceButtons: HTMLButtonElement[] = [];
+
+  function buildWorkspaceButtons() {
+    for (const b of workspaceButtons) b.remove();
+    workspaceButtons = [];
+    if (!actions.getWorkspaces || !actions.onMoveToWorkspace) return;
+    const currentWsId = actions.getCurrentWorkspaceId?.() ?? "default";
+    const others = actions.getWorkspaces().filter((w) => w.id !== currentWsId);
+    if (others.length === 0) return;
+
+    for (const ws of others) {
+      const btn = el(
+        "button",
+        { class: "tab-context-menu__item", type: "button", role: "menuitem" },
+        [t("ctx.moveToWorkspace", { name: ws.name })],
+      ) as HTMLButtonElement;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const targetTabId = activeTabId;
+        menu.close();
+        if (targetTabId) actions.onMoveToWorkspace!(targetTabId, ws.id);
+      });
+      element.append(btn);
+      workspaceButtons.push(btn);
+    }
+  }
+
+  function onPointerDown(event: PointerEvent) {
+    const target = event.target;
+    if (target instanceof Node && element.contains(target)) return;
+    menu.close();
+  }
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      menu.close();
+    }
+  }
+
+  element.addEventListener("keydown", (event) => {
+    const buttons = [...element.querySelectorAll<HTMLButtonElement>(".tab-context-menu__item")];
+    if (buttons.length === 0) return;
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      buttons[(index + 1) % buttons.length]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      buttons[(index - 1 + buttons.length) % buttons.length]?.focus();
+    }
+  });
+
+  const menu: TabContextMenu = {
+    element,
+    isOpen: () => open,
+    open(tabId: string, x: number, y: number) {
+      activeTabId = tabId;
+      open = true;
+      rebuildForLocale(tabId);
+
+      element.style.visibility = "hidden";
+      element.style.display = "flex";
+
+      const rect = element.getBoundingClientRect();
+      const width = rect.width || 180;
+      const height = rect.height || 160;
+      const left = Math.max(8, Math.min(x, window.innerWidth - width - 8));
+      const top = Math.max(8, Math.min(y, window.innerHeight - height - 8));
+
+      element.style.left = `${left}px`;
+      element.style.top = `${top}px`;
+      element.style.visibility = "visible";
+
+      document.addEventListener("pointerdown", onPointerDown, true);
+      document.addEventListener("keydown", onKeyDown);
+      onChange?.();
+
+      element.querySelector<HTMLButtonElement>(".tab-context-menu__item")?.focus();
+    },
+    close() {
+      if (!open) return;
+      open = false;
+      activeTabId = null;
+      element.style.display = "none";
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+      onChange?.();
+    },
+  };
+
+  function rebuildForLocale(tabId: string) {
+    buildStaticOptions();
+    buildPinButton(tabId);
+    buildSplitButton(tabId);
+    buildWorkspaceButtons();
+    buildFolderButtons(tabId);
+    buildSleepButton(tabId);
+    buildReopenButton();
+    buildGlanceButton(tabId);
+    buildPrivateTabButton();
+    buildTranslateButton(tabId);
+  }
+
+  subscribeLocale(() => {
+    if (!activeTabId) return;
+    rebuildForLocale(activeTabId);
+  });
+
+  return menu;
+}

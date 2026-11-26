@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>moss installer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="installer" data-state="ready" role="dialog" aria-modal="true" aria-labelledby="installer-title">
+    <header class="installer-header">
+      <div class="header-brand">
+        <svg class="logo" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        </svg>
+        <span class="brand-name">moss</span>
+      </div>
+      <div class="header-drag" aria-hidden="true"></div>
+      <span id="app-version" class="version"></span>
+      <div class="lang-selector" role="group">
+        <button class="lang-btn active" data-lang="pt" type="button" aria-pressed="true">PT</button>
+        <button class="lang-btn" data-lang="en" type="button" aria-pressed="false">EN</button>
+      </div>
+      <button class="btn-close" aria-label="Fechar" type="button">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="installer-body">
+      <section class="state ready" data-state="ready">
+        <svg class="state-logo" viewBox="0 0 24 24" width="64" height="64" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        </svg>
+        <h1 id="installer-title" class="state-title" data-i18n="ready.title">Instalar moss</h1>
+        <p id="ready-subtitle" class="state-subtitle">Versão</p>
+        <button id="btn-install" class="btn-primary" type="button" data-i18n="ready.btn">Instalar</button>
+      </section>
+
+      <section class="state installing" data-state="installing" hidden>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25" aria-label="Progresso da instalação">
+          <div class="progress-fill"></div>
+        </div>
+        <p id="install-status" class="status-text" aria-live="polite" data-i18n="installing.step1">Preparando</p>
+        <ol class="steps" aria-label="Etapas da instalação">
+          <li class="step active" data-step="1" data-i18n="installing.step1">Preparando</li>
+          <li class="step" data-step="2" data-i18n="installing.step2">Instalando</li>
+          <li class="step" data-step="3" data-i18n="installing.step3">Criando atalhos</li>
+          <li class="step" data-step="4" data-i18n="installing.step4">Concluindo</li>
+        </ol>
+      </section>
+
+      <section class="state success" data-state="success" hidden>
+        <svg class="state-icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+          <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+        <h2 class="state-title" data-i18n="success.title">moss instalado</h2>
+        <div class="btn-group">
+          <button id="btn-open" class="btn-primary" type="button" data-i18n="success.open">Abrir moss</button>
+          <button id="btn-finish-close" class="btn-secondary" type="button" data-i18n="success.close">Fechar</button>
+        </div>
+      </section>
+
+      <section class="state error" data-state="error" hidden>
+        <svg class="state-icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+        <h2 class="state-title" data-i18n="error.title">Erro na instalação</h2>
+        <p class="state-subtitle" id="error-message" data-i18n="error.message">Falha ao preparar arquivos</p>
+        <div class="btn-group">
+          <button id="btn-retry" class="btn-primary" type="button" data-i18n="error.retry">Tentar novamente</button>
+          <button id="btn-details" class="btn-link" type="button" aria-expanded="false" data-i18n="error.details">Detalhes</button>
+        </div>
+        <details class="error-details" hidden>
+          <summary data-i18n="error.details_label">Detalhes do erro</summary>
+          <pre id="error-log-path" class="log-path">%LOCALAPPDATA%\moss\install.log</pre>
+        </details>
+      </section>
+    </main>
+
+    <footer class="installer-footer" aria-hidden="true">
+      <p class="copyright">moss browser 2026</p>
+    </footer>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

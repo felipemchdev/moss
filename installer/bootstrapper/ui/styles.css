@@ -1,0 +1,494 @@
+:root {
+  --bg: #0F1411;
+  --surface: #141A16;
+  --accent: #7DA27E;
+  --accent-hover: #91B592;
+  --accent-active: #6E916F;
+  --text: #DCE2DE;
+  --text-muted: #8A938C;
+  --error: #C97B7B;
+  --success: #7DA27E;
+  --border: rgba(125, 162, 126, 0.24);
+  --radius: 12px;
+  --radius-btn: 8px;
+  --font: Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
+  --transition: 180ms;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 480px;
+  height: 300px;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font);
+  color: var(--text);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.installer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.installer-header {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 16px;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.header-drag {
+  flex: 1;
+  align-self: stretch;
+  min-width: 16px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.logo {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.version {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.lang-selector {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.lang-btn {
+  height: 24px;
+  min-width: 28px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.lang-btn:hover {
+  color: var(--text);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.lang-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.btn-close:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.btn-close:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.installer-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 32px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+  animation: stateEnter var(--transition) ease;
+}
+
+.state[hidden] {
+  display: none;
+}
+
+@keyframes stateEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.state-logo {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.state-title {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.state-subtitle {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.btn-primary {
+  height: 36px;
+  min-width: 120px;
+  padding: 0 24px;
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--accent-active);
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  height: 36px;
+  min-width: 100px;
+  padding: 0 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-link {
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-btn);
+  transition: color 150ms ease;
+}
+
+.btn-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.btn-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.state-icon {
+  flex-shrink: 0;
+  transition: width 150ms ease, height 150ms ease;
+}
+
+.state.installing .progress {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 200ms ease;
+  width: 25%;
+}
+
+.status-text {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--text-muted);
+  min-height: 18px;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  text-align: left;
+  width: 100%;
+  max-width: 280px;
+  list-style: none;
+}
+
+.step {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding-left: 20px;
+  position: relative;
+  transition: color 150ms ease;
+}
+
+.step::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.step.active {
+  color: var(--accent);
+}
+
+.step.active::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.step.done {
+  color: var(--success);
+}
+
+.step.done::before {
+  border-color: var(--success);
+  background: var(--success);
+}
+
+.state.error.details-open {
+  gap: 6px;
+}
+
+.state.error.details-open .state-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.state.error.details-open .state-title {
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.error-details {
+  width: 100%;
+  text-align: left;
+}
+
+.error-details summary {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.error-details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.log-path {
+  font-size: 11px;
+  line-height: 15px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-top: 4px;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
+.state.error .state-icon {
+  color: var(--error);
+}
+
+.state.success .state-icon {
+  color: var(--success);
+}
+
+.state.error .state-title {
+  color: var(--error);
+}
+
+.installer-footer {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.copyright {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state {
+    animation: none;
+  }
+  .progress-fill,
+  .btn-primary,
+  .btn-secondary,
+  .btn-link,
+  .btn-close,
+  .lang-btn,
+  .step,
+  .step::before,
+  .state-icon {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  :root {
+    --border: var(--accent);
+    --text-muted: var(--text);
+  }
+}

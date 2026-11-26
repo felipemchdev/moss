@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-show-tabs"
+description = "Enables the show_tabs command without any pre-configured scope."
+commands.allow = ["show_tabs"]
+
+[[permission]]
+identifier = "deny-show-tabs"
+description = "Denies the show_tabs command without any pre-configured scope."
+commands.deny = ["show_tabs"]

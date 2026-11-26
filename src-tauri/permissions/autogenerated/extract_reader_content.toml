@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-extract-reader-content"
+description = "Enables the extract_reader_content command without any pre-configured scope."
+commands.allow = ["extract_reader_content"]
+
+[[permission]]
+identifier = "deny-extract-reader-content"
+description = "Denies the extract_reader_content command without any pre-configured scope."
+commands.deny = ["extract_reader_content"]
